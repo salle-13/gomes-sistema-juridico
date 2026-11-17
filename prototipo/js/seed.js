@@ -1,0 +1,101 @@
+/* Dados de exemplo (fictícios). Usados no modo local e para popular a base compartilhada.
+   Todos levam exemplo:true para o botão "Remover exemplos". */
+(function (root) {
+  function seed(hoje, P) {
+    const add = (s, n) => P.addDays(s, n);
+    const mes = (n, dia) => { const d = P.parse(hoje); d.setDate(1); d.setMonth(d.getMonth() + n); d.setDate(dia); return P.ymd(d); };
+    const ex = o => Object.assign(o, {exemplo: true});
+    const equipe = [
+      {id:'m1', nome:'Dra. Helena Duarte', cargo:'Advogada sócia', papel:'admin', oab:'OAB/MG 123.456', email:'helena@exemplo.adv.br', cor:'#273884'},
+      {id:'m2', nome:'Dr. Rafael Moura', cargo:'Advogado', papel:'advogado', oab:'OAB/MG 234.567', email:'rafael@exemplo.adv.br', cor:'#8A3B6B'},
+      {id:'m3', nome:'Camila Teixeira', cargo:'Advogada', papel:'advogado', oab:'OAB/MG 345.678', email:'camila@exemplo.adv.br', cor:'#2C7A4D'},
+      {id:'m4', nome:'Lucas Pereira', cargo:'Estagiário', papel:'estagiario', oab:'OAB/MG 98.765-E', email:'lucas@exemplo.adv.br', cor:'#B5651D'},
+      {id:'m5', nome:'Bianca Lopes', cargo:'Assistente administrativa (captação)', papel:'assistente', oab:'', email:'bianca@exemplo.adv.br', cor:'#5B4FA8'},
+      {id:'m6', nome:'Paula Reis', cargo:'Financeiro', papel:'financeiro', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C'},
+    ].map(ex);
+    const C = (id, nome, tp, doc, area, resp, extra) => ex(Object.assign({id, nome, tipoPessoa:tp, documento:doc, telefone:'(34) 9' + (8000 + id.length * 111) + '-' + String(1000 + nome.length * 37).slice(0,4), email:'', origem:'Indicação de cliente', area, historia:'', urgencia:'normal', status:'ativo', encaminhadoPara:[resp], responsavelId:resp, cadastradoPor:'m5', criadoEm:mes(-6, 10) + 'T12:00:00.000Z', aceitoEm:mes(-6, 11) + 'T12:00:00.000Z', historico:[]}, extra || {}));
+    const clientes = [
+      C('k1','Construtora Alvorada (exemplo)','PJ','11.111.111/0001-11','Direito Civil','m1'),
+      C('k2','Marcos Antunes','PF','111.222.333-44','Direito Trabalhista','m2'),
+      C('k3','Farmácia Boa Saúde (exemplo)','PJ','22.222.222/0001-22','Consumidor','m3'),
+      C('k4','Juliana Ramos','PF','222.333.444-55','Família e Sucessões','m3'),
+      C('k5','Metalúrgica Santos (exemplo)','PJ','33.333.333/0001-33','Direito Trabalhista','m2'),
+      C('k6','Transportes Lima (exemplo)','PJ','44.444.444/0001-44','Cobrança','m1'),
+      C('k7','Padaria Pão Dourado (exemplo)','PJ','55.555.555/0001-55','Direito Trabalhista','m2'),
+      C('k8','Clínica Vida Plena (exemplo)','PJ','66.666.666/0001-66','Direito Civil','m3'),
+      C('k9','Sítio Boa Esperança (exemplo)','PJ','77.777.777/0001-77','Cobrança','m1'),
+      C('k10','Ana Beatriz Costa','PF','333.444.555-66','Direito Civil','m4', {status:'encerrado'}),
+      C('c1','Fernanda Albuquerque','PF','123.456.789-00','Direito Trabalhista','m3', {status:'encaminhado', aceitoEm:null, urgencia:'alta', criadoEm:add(hoje,-3) + 'T14:20:00.000Z',
+        historia:'Trabalhou 4 anos como auxiliar administrativa em um atacadista de Araguari. Dispensada sem justa causa em outubro, sem verbas rescisórias nem multa do FGTS. Relata horas extras habituais sem pagamento.',
+        historico:[{em:add(hoje,-3) + 'T14:25:00.000Z', por:'m5', texto:'Encaminhado para Camila Teixeira.'}]}),
+      C('c2','Cerealista Grão do Cerrado Ltda. (exemplo)','PJ','88.888.888/0001-88','Cobrança','m1', {status:'novo', encaminhadoPara:[], responsavelId:'', aceitoEm:null, criadoEm:hoje + 'T12:05:00.000Z', origem:'Site / formulário',
+        historia:'Quer cobrar três compradores de café e soja inadimplentes, cerca de R$ 48 mil em duplicatas vencidas. Notificação extrajudicial sem resposta.'}),
+      C('c3','João Batista Nogueira','PF','987.654.321-00','Direito Previdenciário','m1', {aceitoEm:add(hoje,-10) + 'T10:30:00.000Z', criadoEm:add(hoje,-11) + 'T15:00:00.000Z', origem:'Instagram',
+        historia:'Aposentadoria negada pelo INSS por falta de reconhecimento de período rural (1985 a 1992) na zona rural de Araguari.',
+        historico:[{em:add(hoje,-10) + 'T10:30:00.000Z', por:'m1', texto:'Caso aceito.'}]}),
+    ];
+    const PR = (id, numero, cli, parte, polo, trib, vara, classe, area, valor, resp, dist) => ex({id, numero, clienteId:cli, parteContraria:parte, polo, tribunal:trib, comarca:'Araguari', vara, classe, area, valorCausa:valor, responsavelId:resp, status:'ativo', distribuidoEm:dist, obs:'', andamentos:[]});
+    const processos = [
+      PR('pr1','5001234-67.2026.8.13.0035','k1','Condomínio Residencial Jardim (exemplo)','passivo','TJMG','1ª Vara Cível','Procedimento comum cível','Direito Civil',8540000,'m1',mes(-3,5)),
+      PR('pr2','0010456-12.2025.5.03.0000','k2','Atacadista Central (exemplo)','ativo','TRT3','Vara do Trabalho','Reclamação trabalhista','Direito Trabalhista',4200000,'m2',mes(-10,12)),
+      PR('pr3','5002345-78.2025.8.13.0035','k3','Distribuidora Norte (exemplo)','ativo','TJMG','3ª Vara Cível','Procedimento comum cível','Consumidor',2275000,'m3',mes(-12,2)),
+      PR('pr4','5004567-89.2026.8.13.0035','k4','Carlos Ramos','ativo','TJMG','Juizado Especial','Procedimento do Juizado Especial Cível','Família e Sucessões',1800000,'m4',mes(-2,20)),
+      PR('pr5','0010987-54.2026.5.03.0000','k5','Antônio Ferreira','passivo','TRT3','Vara do Trabalho','Reclamação trabalhista','Direito Trabalhista',6700000,'m2',mes(-4,8)),
+      PR('pr6','5003456-56.2026.8.13.0035','k6','Comercial Triângulo (exemplo)','ativo','TJMG','2ª Vara Cível','Execução de título extrajudicial','Cobrança',3912000,'m1',mes(-2,3)),
+      PR('pr7','0010789-11.2026.5.03.0000','k7','Rosana Alves','passivo','TRT3','Vara do Trabalho','Reclamação trabalhista','Direito Trabalhista',2850000,'m2',mes(-1,14)),
+      PR('pr8','1045678-90.2026.8.13.0000','k8','Plano de Saúde Regional (exemplo)','ativo','TJMG','2ª instância','Agravo de instrumento','Direito Civil',12000000,'m3',mes(-1,28)),
+      PR('pr9','5005678-12.2024.8.13.0035','k9','Agropecuária Serra (exemplo)','ativo','TJMG','4ª Vara Cível','Cumprimento de sentença','Cobrança',5610000,'m1',mes(-22,9)),
+      PR('pr10','5006789-34.2026.8.13.0035','k10','Imobiliária Centro (exemplo)','ativo','TJMG','1ª Vara Cível','Procedimento comum cível','Direito Civil',950000,'m4',mes(-5,17)),
+    ];
+    processos[2].andamentos = [{data:mes(-1,2), texto:'Sentença de improcedência publicada.', por:'m3'}, {data:mes(-6,15), texto:'Audiência de conciliação sem acordo.', por:'m3'}];
+    const pz = (id, pr, dias, pubOff, tipo, desc, resp, prio, status) => { const p = processos.find(x => x.id === pr); const pub = add(hoje, pubOff);
+      return ex({id, processo:p.numero, processoId:pr, clienteId:p.clienteId, cliente:clientes.find(c => c.id === p.clienteId).nome, tipo, descricao:desc, publicacao:pub, dias, contagem:'uteis', vencimento:P.vencimento(pub, dias, 'uteis'), responsavelId:resp, prioridade:prio||'normal', status:status||'pendente', obs:''}); };
+    const prazos = [
+      pz('ex1','pr1',15,-24,'Contestação','Contestar com pedido de reconvenção','m1','alta'),
+      pz('ex2','pr2',5,-7,'Embargos de Declaração','Omissão sobre horas extras','m2'),
+      pz('ex3','pr3',15,-20,'Recurso de Apelação','Apelar da sentença de improcedência','m3','alta'),
+      pz('ex4','pr4',5,-4,'Manifestação','Manifestar sobre laudo pericial','m4'),
+      pz('ex5','pr5',8,-5,'Impugnação','Impugnar cálculos de liquidação','m2'),
+      pz('ex6','pr6',15,-9,'Réplica','','m1'),
+      pz('ex7','pr7',15,-3,'Contrarrazões','','m2'),
+      pz('ex8','pr8',15,0,'Agravo Interno','Recorrer da negativa de tutela','m3','alta'),
+      pz('ex9','pr9',15,15,'Cumprimento de sentença','Apresentar planilha de débito','m1'),
+      pz('ex10','pr10',15,-27,'Juntada de documentos','Juntar procuração e contrato','m4','normal','concluido'),
+    ];
+    const pub = (id, pr, dispOff, tipo, texto, status, prazoId) => { const p = processos.find(x => x.id === pr); const disp = add(hoje, dispOff);
+      return ex({id, disponibilizacao:disp, publicacao:P.proximoUtil(add(disp,1)), tribunal:p ? p.tribunal : 'TJMG', orgao:p ? p.vara + ' de Araguari' : '2ª Vara Cível de Araguari', numeroProcesso:p ? p.numero : '5009999-01.2026.8.13.0035', processoId:p ? p.id : '', tipo, texto, oab:'MG123456', origem:'manual', status, responsavelId:p ? p.responsavelId : 'm1', prazoId:prazoId||''}); };
+    const publicacoes = [
+      pub('pb1','pr2',-8,'Intimação','Fica a parte reclamante intimada da sentença de embargos, podendo opor embargos de declaração no prazo legal.','tratada','ex2'),
+      pub('pb2','pr7',-4,'Intimação','Intimem-se as partes para apresentarem contrarrazões ao recurso ordinário no prazo de 8 dias.','tratada','ex7'),
+      pub('pb3','pr6',-1,'Despacho','Especifiquem as partes, no prazo de 15 dias, as provas que pretendem produzir, justificando a pertinência.','nova'),
+      pub('pb4','',-1,'Intimação','Intima-se o advogado para regularizar a representação processual no prazo de 5 dias, sob pena de desentranhamento.','nova'),
+      pub('pb5','pr3',-2,'Certidão','Certifico que decorreu o prazo para manifestação da parte requerida.','lida'),
+    ];
+    const centros_custo = [['cc1','01','Administrativo'],['cc2','02','Contencioso cível'],['cc3','03','Trabalhista'],['cc4','04','Previdenciário'],['cc5','05','Captação e marketing']].map(([id,codigo,nome]) => ex({id, codigo, nome, ativo:true}));
+    const fin = []; let n = 0;
+    const L = (o) => { const pago = o.status === 'pago'; fin.push(ex(Object.assign({id:'fl' + (++n), competencia:String(o.vencimento).slice(0,7), status:'pendente', pagoEm:pago ? o.vencimento : '', valorPago:pago ? o.valor : 0, forma:pago ? 'Transferência' : '', conta:'Conta corrente', clienteId:'', processoId:'', centroCustoId:'cc1', reembolsavel:false, documento:'', obs:''}, o))); };
+    for (let i = -5; i <= 1; i++) {
+      const passado = i < 0 || (i === 0 && mes(0, 10) < hoje);
+      L({tipo:'pagar', categoria:'Aluguel', natureza:'operacional', descricao:'Aluguel do escritório – Interlagos', valor:280000, vencimento:mes(i,10), status:passado ? 'pago' : 'pendente', centroCustoId:'cc1'});
+      L({tipo:'pagar', categoria:'Software e sistemas', natureza:'operacional', descricao:'Internet e telefonia', valor:24990, vencimento:mes(i,15), status:(i < 0 || mes(i,15) < hoje) ? 'pago' : 'pendente', centroCustoId:'cc1'});
+      L({tipo:'pagar', categoria:'Pessoal', natureza:'operacional', descricao:'Bolsa de estágio', valor:150000, vencimento:mes(i,5), status:(i < 0 || mes(i,5) < hoje) ? 'pago' : 'pendente', centroCustoId:'cc1'});
+      L({tipo:'pagar', categoria:'Marketing', natureza:'operacional', descricao:'Anúncios em redes sociais', valor:60000 + (i + 5) * 5000, vencimento:mes(i,20), status:(i < 0 || mes(i,20) < hoje) ? 'pago' : 'pendente', centroCustoId:'cc5'});
+      L({tipo:'receber', categoria:'Honorários contratuais', natureza:'honorarios', descricao:'Honorários mensais – assessoria', valor:350000, vencimento:mes(i,5), status:(i < 0 || mes(i,5) < hoje) ? 'pago' : 'pendente', clienteId:'k1', centroCustoId:'cc2'});
+      L({tipo:'receber', categoria:'Honorários contratuais', natureza:'honorarios', descricao:'Honorários mensais – assessoria trabalhista', valor:220000, vencimento:mes(i,10), status:i < -1 ? 'pago' : 'pendente', clienteId:'k5', centroCustoId:'cc3'});
+    }
+    L({tipo:'receber', categoria:'Honorários iniciais', natureza:'honorarios', descricao:'Honorários iniciais – parcela 2/3', valor:150000, vencimento:add(hoje,-12), clienteId:'k6', processoId:'pr6', centroCustoId:'cc2', parcela:{n:2,total:3,grupo:'g1'}});
+    L({tipo:'receber', categoria:'Honorários iniciais', natureza:'honorarios', descricao:'Honorários iniciais – parcela 3/3', valor:150000, vencimento:add(hoje,18), clienteId:'k6', processoId:'pr6', centroCustoId:'cc2', parcela:{n:3,total:3,grupo:'g1'}});
+    L({tipo:'receber', categoria:'Honorários de êxito', natureza:'honorarios', descricao:'Êxito – acordo trabalhista', valor:840000, vencimento:add(hoje,-40), status:'pago', clienteId:'k2', processoId:'pr2', centroCustoId:'cc3'});
+    L({tipo:'pagar', categoria:'Custas processuais', natureza:'custas', descricao:'Preparo da apelação (guia TJMG)', valor:61000, vencimento:add(hoje,2), clienteId:'k3', processoId:'pr3', centroCustoId:'cc2', reembolsavel:true, documento:'Guia nº 0001'});
+    L({tipo:'pagar', categoria:'Custas processuais', natureza:'custas', descricao:'Custas iniciais (guia TJMG)', valor:41235, vencimento:add(hoje,-60), status:'pago', clienteId:'k6', processoId:'pr6', centroCustoId:'cc2', reembolsavel:true});
+    L({tipo:'pagar', categoria:'Despesas processuais', natureza:'despesa_processual', descricao:'Diligência do oficial de justiça', valor:9840, vencimento:add(hoje,-20), status:'pago', clienteId:'k6', processoId:'pr6', centroCustoId:'cc2', reembolsavel:true});
+    L({tipo:'pagar', categoria:'Despesas processuais', natureza:'despesa_processual', descricao:'Deslocamento para audiência em Uberlândia', valor:18500, vencimento:add(hoje,-6), status:'pago', clienteId:'k2', processoId:'pr2', centroCustoId:'cc3', conta:'Caixa', forma:'Dinheiro'});
+    L({tipo:'pagar', categoria:'Despesas processuais', natureza:'despesa_processual', descricao:'Cópias e autenticações', valor:4620, vencimento:add(hoje,5), clienteId:'k8', processoId:'pr8', centroCustoId:'cc2', reembolsavel:true});
+    L({tipo:'receber', categoria:'Reembolso de despesas', natureza:'reembolso', descricao:'Reembolso de custas e diligência', valor:51075, vencimento:add(hoje,-5), clienteId:'k6', processoId:'pr6', centroCustoId:'cc2'});
+    const documentos = [];
+    const config = {antecedencia:5, contas:['Caixa','Conta corrente'], saldosIniciais:{'Conta corrente':{data:mes(-6,1), valor:1500000}, 'Caixa':{data:mes(-6,1), valor:50000}},
+      feriadosLocais:[Number(hoje.slice(0,4)), Number(hoje.slice(0,4)) + 1].flatMap(a => [{data:a+'-08-06',nome:'Senhor Bom Jesus da Cana Verde (Araguari)'},{data:a+'-08-15',nome:'Nossa Senhora da Abadia (Araguari)'},{data:a+'-08-28',nome:'Dia da Cidade (Araguari)'}])};
+    return {data:{equipe, clientes, processos, publicacoes, prazos, documentos, fin_lancamentos:fin, centros_custo}, config};
+  }
+  if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;
+})(typeof window !== 'undefined' ? window : globalThis);

@@ -133,7 +133,7 @@ ALTER TABLE equipe ADD CONSTRAINT fk_equipe_atualizado_por FOREIGN KEY (atualiza
 CREATE TABLE permissoes_papel (
   org_id  uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
   papel   text NOT NULL CHECK (papel IN ('admin','advogado','assistente','estagiario','financeiro')),
-  modulo  text NOT NULL CHECK (modulo IN ('prazos','processos','publicacoes','clientes','documentos','financeiro','relatorios','equipe')),
+  modulo  text NOT NULL CHECK (modulo IN ('prazos','processos','publicacoes','clientes','documentos','modelos','financeiro','relatorios','equipe')),
   nivel   text NOT NULL CHECK (nivel IN ('nenhum','ver','editar')),
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id),
   PRIMARY KEY (org_id, papel, modulo)
@@ -488,6 +488,21 @@ CREATE INDEX ix_docs_cliente ON documentos (cliente_id) WHERE excluido_em IS NUL
 CREATE INDEX ix_docs_processo ON documentos (processo_id) WHERE excluido_em IS NULL;
 CREATE UNIQUE INDEX ux_docs_storage ON documentos (org_id, storage_chave);
 
+-- Modelos de texto com campos {{cliente.nome}}, {{processo.numero}}, {{advogada.oab}}, {{data_hoje_extenso}}...
+-- O preenchimento acontece na aplicação; o documento gerado é gravado em "documentos" (PDF).
+CREATE TABLE modelos_documento (
+  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id    uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  nome      text NOT NULL,
+  tipo      text NOT NULL DEFAULT 'Outro' CHECK (tipo IN ('Procuração','Contrato','Declaração','Petição','Outro')),
+  texto     text NOT NULL CHECK (length(btrim(texto)) > 0),
+  ativo     boolean NOT NULL DEFAULT true,
+  exemplo   boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  UNIQUE (org_id, nome)
+);
+
 -- ---------------------------------------------------------------------
 -- 10. Financeiro (lançamentos e baixas manuais; sem integração bancária)
 -- ---------------------------------------------------------------------
@@ -710,11 +725,11 @@ END $$;
 DO $$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
+  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_rastreio BEFORE INSERT OR UPDATE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_rastreio()', t);
   END LOOP;
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_encaminhamentos','processos',
-                           'publicacoes','regras_prazo','prazos','documentos','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
+                           'publicacoes','regras_prazo','prazos','documentos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_auditar AFTER INSERT OR UPDATE OR DELETE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_auditar()', t);
   END LOOP;
 END $$;
@@ -726,7 +741,7 @@ DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_historico','processos','processo_andamentos',
-                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','documentos',
+                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','documentos','modelos_documento',
                            'centros_custo','contas_financeiras','fin_lancamentos','jobs','avisos','integracoes_log','auditoria'] LOOP
     EXECUTE format('ALTER TABLE app.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('CREATE POLICY pol_org ON app.%I USING (org_id = app.org_atual()) WITH CHECK (org_id = app.org_atual())', t);
@@ -801,7 +816,8 @@ SELECT p, m, n FROM (VALUES
  ('estagiario','prazos','editar'),('estagiario','processos','ver'),('estagiario','publicacoes','ver'),('estagiario','clientes','ver'),
  ('estagiario','documentos','editar'),('estagiario','financeiro','nenhum'),('estagiario','relatorios','nenhum'),('estagiario','equipe','ver'),
  ('financeiro','prazos','ver'),('financeiro','processos','ver'),('financeiro','publicacoes','nenhum'),('financeiro','clientes','ver'),
- ('financeiro','documentos','ver'),('financeiro','financeiro','editar'),('financeiro','relatorios','editar'),('financeiro','equipe','ver')
+ ('financeiro','documentos','ver'),('financeiro','financeiro','editar'),('financeiro','relatorios','editar'),('financeiro','equipe','ver'),
+ ('admin','modelos','editar'),('advogado','modelos','editar'),('assistente','modelos','ver'),('estagiario','modelos','ver'),('financeiro','modelos','nenhum')
 ) v(p, m, n);
 
 INSERT INTO feriados (data, nome, abrangencia, comarca) VALUES

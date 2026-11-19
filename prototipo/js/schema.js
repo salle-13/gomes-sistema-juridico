@@ -25,6 +25,7 @@ window.App.SCHEMA = {
     conta:'nome da conta/caixa', clienteId:'id', processoId:'id', centroCustoId:'id', reembolsavel:'bool', reembolsoDe:'id lançamento', documento:'nº NF/recibo/guia',
     parcela:'{n, total, grupo}', obs:'texto'},
   centros_custo: {codigo:'texto', nome:'texto', ativo:'bool'},
+  modelos: {nome:'texto', tipo:'Procuração|Contrato|Declaração|Petição|Outro', texto:'texto com campos {{cliente.nome}} etc. (lista em App.CAMPOS_MODELO)', ativo:'bool'},
   'config/geral': {antecedencia:'dias úteis', feriadosLocais:'[{data, nome}]', contas:'[nome]', saldosIniciais:'{conta: {data, valor}}'},
   'config/permissoes': {papeis:'{papel: {modulo: nenhum|ver|editar}}'},
 };

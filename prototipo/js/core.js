@@ -38,7 +38,7 @@ window.App = window.App || {};
   A.CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
 
   /* ---------- estado ---------- */
-  const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','documentos','fin_lancamentos','centros_custo'];
+  const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','documentos','fin_lancamentos','centros_custo','modelos'];
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
     config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}},
@@ -97,14 +97,14 @@ window.App = window.App || {};
   /* ---------- permissões por papel ---------- */
   A.PAPEIS = [['admin','Administrador(a)'],['advogado','Advogado(a)'],['assistente','Assistente administrativo(a)'],['estagiario','Estagiário(a)'],['financeiro','Financeiro']];
   A.PAPEL_LABEL = Object.fromEntries(A.PAPEIS);
-  A.MODULOS = [['prazos','Agenda e prazos'],['processos','Processos'],['publicacoes','Publicações'],['clientes','Clientes e captação'],['documentos','Documentos'],['financeiro','Financeiro'],['relatorios','Relatórios'],['equipe','Equipe, permissões e configurações']];
+  A.MODULOS = [['prazos','Agenda e prazos'],['processos','Processos'],['publicacoes','Publicações'],['clientes','Clientes e captação'],['documentos','Documentos'],['modelos','Modelos de documentos'],['financeiro','Financeiro'],['relatorios','Relatórios'],['equipe','Equipe, permissões e configurações']];
   const E = 'editar', V = 'ver', N = 'nenhum';
   A.PERM_PADRAO = {
-    admin:      {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, financeiro:E, relatorios:E, equipe:E},
-    advogado:   {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, financeiro:V, relatorios:V, equipe:V},
-    assistente: {prazos:V, processos:V, publicacoes:E, clientes:E, documentos:E, financeiro:N, relatorios:N, equipe:V},
-    estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, financeiro:N, relatorios:N, equipe:V},
-    financeiro: {prazos:V, processos:V, publicacoes:N, clientes:V, documentos:V, financeiro:E, relatorios:E, equipe:V},
+    admin:      {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:E, relatorios:E, equipe:E},
+    advogado:   {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:V, relatorios:V, equipe:V},
+    assistente: {prazos:V, processos:V, publicacoes:E, clientes:E, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
+    estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
+    financeiro: {prazos:V, processos:V, publicacoes:N, clientes:V, documentos:V, modelos:N, financeiro:E, relatorios:E, equipe:V},
   };
   A.papel = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (m.papel || 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
   A.nivel = mod => { if (S.isOwner) return E; const papel = A.papel(); const tab = (S.permissoes && S.permissoes.papeis) || A.PERM_PADRAO;

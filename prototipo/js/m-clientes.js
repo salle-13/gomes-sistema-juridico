@@ -116,7 +116,8 @@
         ${A.pode('processos', 'editar') ? '<div><button type="button" class="btn small" data-action="cl-novo-processo">+ Novo processo para este cliente</button></div>' : ''}</div>
       <div class="box"><h4>Prazos em aberto</h4><div class="plist">${prz.slice(0, 5).map(A.pcardPrazo).join('') || '<span class="muted" style="font-size:12px">Nenhum.</span>'}</div></div>
       ${A.pode('financeiro', 'ver') ? `<div class="box"><h4>Financeiro em aberto</h4><dl class="dl"><dt>A receber</dt><dd class="num">${A.brl(fin.filter(f => f.tipo === 'receber').reduce((a, f) => a + f.valor, 0))}</dd><dt>Despesas a reembolsar</dt><dd class="num">${A.brl(A.col('fin_lancamentos').filter(f => f.clienteId === id && f.tipo === 'pagar' && f.reembolsavel && f.status !== 'cancelado').reduce((a, f) => a + f.valor, 0))}</dd></dl></div>` : ''}` : ''}
-      ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do cliente</h4>${A.blocoDocumentos({clienteId: id})}</div>` : ''}`;
+      ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do cliente</h4>${A.blocoDocumentos({clienteId: id})}</div>` : ''}
+      ${A.blocoGerarDocumento ? A.blocoGerarDocumento() : ''}`;
   }
   const prev = A.aoAtualizar; A.aoAtualizar = c => { prev && prev(c); if (S.ui._modalCtx && S.ui._modalCtx.tipo === 'cliente' && ['processos','prazos','fin_lancamentos','documentos'].includes(c)) relacionados(); };
 })(window.App);

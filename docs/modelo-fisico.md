@@ -2,8 +2,9 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
+Pendente: a tabela `modelos_documento` (incluída em 19/11/2026) ainda não foi aplicada num PostgreSQL 16. Rode o DDL de novo antes de considerar validado.
 
-## 1. Tabelas (27) por área
+## 1. Tabelas (28) por área
 
 | Área | Tabelas |
 |---|---|
@@ -14,7 +15,7 @@ Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos
 | Coletor DJEN | `djen_alvos`, `djen_capturas`, `djen_respostas` |
 | Publicações | `publicacoes`, `publicacoes_quarentena` |
 | Prazos | `regras_prazo`, `prazos` |
-| Documentos | `documentos` |
+| Documentos | `documentos`, `modelos_documento` |
 | Financeiro | `centros_custo`, `contas_financeiras`, `fin_lancamentos` |
 | Infraestrutura | `jobs`, `avisos`, `integracoes_log`, `auditoria` |
 
@@ -66,6 +67,7 @@ erDiagram
 | Auditoria encadeada por hash, com bloqueio por organização | Qualquer alteração posterior é detectada por `verificar_auditoria()` |
 | Gatilhos `tg_rastreio` e `tg_auditar` | Preenchem quem/quando e registram antes/depois em todas as tabelas de negócio. A aplicação informa o membro com `SET app.membro_id` |
 | Fila de jobs em tabela com `FOR UPDATE SKIP LOCKED` | Sem Redis nesta fase; idempotência pela chave única `(org_id, tipo, chave)` |
+| `modelos_documento` guarda só o texto com campos `{{...}}`; o documento gerado vai para `documentos` como PDF | O preenchimento é feito na aplicação (lista de campos em `App.CAMPOS_MODELO`). O PDF guardado é a versão assinada/entregue, mesmo que o modelo mude depois |
 | Clientes, processos e lançamentos não são apagados em cascata | Excluir um cliente ou processo deixa os registros ligados sem vínculo (`ON DELETE SET NULL`), conforme a especificação |
 
 ## 4. Testes executados
@@ -91,7 +93,8 @@ erDiagram
 | `clientes.encaminhadoPara` e `clientes.historico` (listas) | Tabelas `cliente_encaminhamentos` e `cliente_historico` |
 | `config/geral.feriadosLocais` | Tabela `feriados` (com comarca e tribunal) |
 | `config/geral.contas` + `saldosIniciais` | Tabela `contas_financeiras`; `fin_lancamentos.conta` vira `conta_id` |
-| `config/permissoes` | Tabela `permissoes_papel` |
+| `config/permissoes` | Tabela `permissoes_papel` (módulo `modelos` incluído) |
+| Coleção `modelos` | Tabela `modelos_documento` (`tipo` com `CHECK`, nome único por organização) |
 | `fin_lancamentos.competencia` (AAAA-MM) | `date` do 1º dia do mês |
 | `fin_lancamentos.parcela {n,total,grupo}` | Colunas `parcela_n`, `parcela_total`, `parcela_grupo` |
 | `documentos.assetId` | `storage_chave` + `sha256` (armazenamento próprio) |

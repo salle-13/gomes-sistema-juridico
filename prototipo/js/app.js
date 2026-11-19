@@ -3,7 +3,7 @@
   const S = A.S, P = A.P;
   const GRUPOS = [
     ['Agenda', ['ano','mes','prazos']],
-    ['Jurídico', ['processos','publicacoes','clientes','documentos']],
+    ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
     ['Gestão', ['relatorios','equipe','config']],
   ];
@@ -128,6 +128,8 @@
     S.mode = 'local'; let d = null;
     try { d = JSON.parse(A.lsGet('gomes-sistema-v2') || 'null'); } catch (e) {}
     if (!d) { const s = A.seed(A.hoje(), P); d = {data: s.data, config: s.config, permissoes: null}; }
+    // Coleção criada depois que os dados locais foram salvos (ex.: modelos): começa com os exemplos do seed.
+    const faltam = A.COLS.filter(c => !(d.data && d.data[c])); if (faltam.length && d.data) { const s = A.seed(A.hoje(), P); faltam.forEach(c => d.data[c] = s.data[c] || []); }
     A.COLS.forEach(c => S.data[c] = (d.data && d.data[c]) || []);
     S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null;
     P.setLocais(S.config.feriadosLocais || []); A.render(); A.depoisDeCarregar && A.depoisDeCarregar();

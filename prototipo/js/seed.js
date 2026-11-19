@@ -95,7 +95,70 @@
     const documentos = [];
     const config = {antecedencia:5, contas:['Caixa','Conta corrente'], saldosIniciais:{'Conta corrente':{data:mes(-6,1), valor:1500000}, 'Caixa':{data:mes(-6,1), valor:50000}},
       feriadosLocais:[Number(hoje.slice(0,4)), Number(hoje.slice(0,4)) + 1].flatMap(a => [{data:a+'-08-06',nome:'Senhor Bom Jesus da Cana Verde (Araguari)'},{data:a+'-08-15',nome:'Nossa Senhora da Abadia (Araguari)'},{data:a+'-08-28',nome:'Dia da Cidade (Araguari)'}])};
-    return {data:{equipe, clientes, processos, publicacoes, prazos, documentos, fin_lancamentos:fin, centros_custo}, config};
+    const modelos = [
+      {id:'md1', nome:'Procuração ad judicia et extra', tipo:'Procuração', ativo:true, texto:
+`PROCURAÇÃO AD JUDICIA ET EXTRA
+
+OUTORGANTE: {{cliente.nome}}, {{cliente.tipo_pessoa}}, inscrito(a) no CPF/CNPJ sob o nº {{cliente.cpf_cnpj}}, residente e domiciliado(a) / com sede em {{cliente.endereco}}.
+
+OUTORGADA: {{advogada.nome}}, advogada inscrita na {{advogada.oab}}, integrante da Gomes Assessoria Jurídica, com escritório em Araguari/MG, endereço eletrônico {{advogada.email}}.
+
+PODERES: pelo presente instrumento, o(a) OUTORGANTE nomeia e constitui a OUTORGADA sua bastante procuradora, conferindo-lhe os poderes da cláusula ad judicia et extra para o foro em geral, em qualquer juízo, instância ou tribunal, podendo propor as ações competentes e defendê-lo(a) nas contrárias, seguindo umas e outras até final decisão, usando os recursos legais e acompanhando-os, conferindo-lhe ainda poderes especiais para confessar, desistir, transigir, firmar compromissos ou acordos, receber e dar quitação, reconhecer a procedência do pedido, renunciar ao direito sobre o qual se funda a ação, declarar hipossuficiência econômica e substabelecer esta a outrem, com ou sem reservas de iguais poderes, nos termos do art. 105 do Código de Processo Civil.
+
+Araguari/MG, {{data_hoje_extenso}}.
+
+
+
+_______________________________________
+{{cliente.nome}}
+CPF/CNPJ {{cliente.cpf_cnpj}}`},
+      {id:'md2', nome:'Contrato de honorários advocatícios', tipo:'Contrato', ativo:true, texto:
+`CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS
+
+CONTRATANTE: {{cliente.nome}}, {{cliente.tipo_pessoa}}, inscrito(a) no CPF/CNPJ sob o nº {{cliente.cpf_cnpj}}, com endereço em {{cliente.endereco}}, telefone {{cliente.telefone}}.
+
+CONTRATADA: {{advogada.nome}}, advogada inscrita na {{advogada.oab}}, integrante da Gomes Assessoria Jurídica, com escritório em Araguari/MG.
+
+CLÁUSULA 1ª – DO OBJETO. A CONTRATADA prestará serviços advocatícios ao CONTRATANTE no patrocínio da ação {{processo.classe}}, autos nº {{processo.numero}}, em trâmite na {{processo.vara}} da comarca de {{processo.comarca}} ({{processo.tribunal}}), em face de {{processo.parte_contraria}}, até a decisão final.
+
+CLÁUSULA 2ª – DOS HONORÁRIOS. Pelos serviços, o CONTRATANTE pagará à CONTRATADA: (a) honorários iniciais de R$ ________ (________), em ___ parcela(s) mensal(is) de R$ ________, com vencimento no dia ___ de cada mês; e (b) honorários de êxito correspondentes a ___% (________ por cento) do proveito econômico obtido, pagos na data do recebimento. Os honorários de sucumbência pertencem à CONTRATADA, nos termos do art. 23 da Lei nº 8.906/1994.
+
+CLÁUSULA 3ª – DAS DESPESAS. Custas, taxas, emolumentos, perícias, diligências e deslocamentos correm por conta do CONTRATANTE, que os reembolsará mediante comprovante.
+
+CLÁUSULA 4ª – DO INADIMPLEMENTO. O atraso no pagamento implica multa de 2% e juros de 1% ao mês, e autoriza a CONTRATADA a renunciar ao mandato, observado o art. 5º, § 3º, da Lei nº 8.906/1994.
+
+CLÁUSULA 5ª – DA RESCISÃO. A revogação do mandato pelo CONTRATANTE não o desobriga do pagamento dos honorários proporcionais aos serviços prestados e dos honorários de êxito, se houver proveito econômico posterior.
+
+CLÁUSULA 6ª – DO FORO. Fica eleito o foro da comarca de Araguari/MG para dirimir dúvidas oriundas deste contrato.
+
+E, por estarem justos e contratados, assinam o presente em duas vias de igual teor.
+
+Araguari/MG, {{data_hoje_extenso}}.
+
+
+
+_______________________________________
+{{cliente.nome}} – CONTRATANTE
+
+
+
+_______________________________________
+{{advogada.nome}} – {{advogada.oab}} – CONTRATADA`},
+      {id:'md3', nome:'Declaração de hipossuficiência', tipo:'Declaração', ativo:true, texto:
+`DECLARAÇÃO DE HIPOSSUFICIÊNCIA ECONÔMICA
+
+Eu, {{cliente.nome}}, inscrito(a) no CPF sob o nº {{cliente.cpf_cnpj}}, residente e domiciliado(a) em {{cliente.endereco}}, DECLARO, para os fins do art. 99 do Código de Processo Civil e da Lei nº 1.060/1950, sob as penas da lei, que não possuo condições de arcar com as custas e despesas processuais e com os honorários advocatícios sem prejuízo do meu próprio sustento e do de minha família, razão pela qual requeiro os benefícios da gratuidade da justiça.
+
+Declaro, ainda, estar ciente de que a falsidade desta declaração sujeita o declarante às sanções civis, administrativas e penais cabíveis, inclusive ao pagamento de até o décuplo das custas judiciais, nos termos do art. 100, parágrafo único, do Código de Processo Civil.
+
+Araguari/MG, {{data_hoje_extenso}}.
+
+
+
+_______________________________________
+{{cliente.nome}}`},
+    ].map(m => ex(Object.assign(m, {criadoEm: mes(-2, 3) + 'T12:00:00.000Z', criadoPor: 'm1'})));
+    return {data:{equipe, clientes, processos, publicacoes, prazos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
   }
   if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;
 })(typeof window !== 'undefined' ? window : globalThis);

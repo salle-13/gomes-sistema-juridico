@@ -1,6 +1,6 @@
 # Gomes · Sistema Jurídico
 
-Sistema de gestão jurídica da Gomes Assessoria Jurídica (Araguari/MG · Uberlândia/MG): agenda e prazos, processos, publicações do DJEN, clientes (captação e carteira), documentos, equipe e permissões, financeiro e relatórios.
+Sistema de gestão jurídica da Gomes Assessoria Jurídica (Araguari/MG · Uberlândia/MG): agenda e prazos, processos, publicações do DJEN, clientes (captação e carteira), documentos, modelos de documentos (procuração, contrato, declaração), equipe e permissões, financeiro e relatórios.
 
 > **Fase atual:** protótipo funcional, para uma única organização (single-tenant), com dados de exemplo fictícios. O sistema definitivo terá backend próprio (PostgreSQL + coletor DJEN), já especificado em `docs/`.
 
@@ -22,13 +22,14 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     m-publicacoes.js  Publicações: registro, importação, tratamento
     m-clientes.js     Captação, carteira, ficha do cliente
     m-documentos.js   Documentos
+    m-modelos.js      Modelos com campos {{...}} e gerador de documentos (fichas de cliente e processo)
     m-equipe.js       Equipe, permissões, configurações
     m-financeiro.js   Contas a pagar/receber, custas, centros de custo
     m-fin-painel.js   Dashboard financeiro e fluxo de caixa
     m-relatorios.js   Relatórios
     app.js            Inicialização, navegação, eventos (carregado por último)
 banco/
-  modelo-fisico.sql   DDL completo PostgreSQL 16 (27 tabelas), validado
+  modelo-fisico.sql   DDL completo PostgreSQL 16 (28 tabelas; modelos_documento ainda sem validação)
 docs/
   juridico.md         Especificação da seção Jurídico
   integracoes.md      Entrada manual x integrações externas (DJEN, DataJud, tribunais)
@@ -46,7 +47,7 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-Fora da plataforma Claude, o protótipo roda em **modo local**: os dados ficam no `localStorage` do navegador, começando com os dados de exemplo. O envio de arquivos (Documentos) só funciona na versão publicada no Claude.
+Fora da plataforma Claude, o protótipo roda em **modo local**: os dados ficam no `localStorage` do navegador, começando com os dados de exemplo. O envio de arquivos (Documentos) só funciona na versão publicada no Claude. Isso vale também para o botão "Salvar em Documentos" do gerador de modelos. Imprimir / salvar como PDF funciona nos dois modos.
 
 Para zerar os dados locais, abra o console do navegador e rode `localStorage.removeItem('gomes-sistema-v2')`.
 

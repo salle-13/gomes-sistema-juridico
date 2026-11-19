@@ -96,7 +96,8 @@
       ${podeFin ? `<div class="box"><h4>Financeiro do processo</h4><dl class="dl"><dt>Custas e despesas</dt><dd class="num">${A.brl(custas)}</dd><dt>A reembolsar pelo cliente</dt><dd class="num">${A.brl(reemb)}</dd><dt>Honorários lançados</dt><dd class="num">${A.brl(honor)}</dd></dl>
         ${fin.slice(0, 6).map(f => `<div style="font-size:12.5px;display:flex;justify-content:space-between;gap:8px"><span>${esc(A.fmt(f.vencimento))} · ${esc(f.descricao)}</span><span class="num ${f.tipo === 'receber' ? 'pos' : 'neg'}">${f.tipo === 'receber' ? '+' : '−'} ${A.brl(f.valor)}</span></div>`).join('')}
         ${edFin ? `<div class="statusbar"><button type="button" class="btn small" data-action="pr-lancar" data-tipo="pagar" data-nat="custas" data-cat="Custas processuais">+ Custa</button><button type="button" class="btn small" data-action="pr-lancar" data-tipo="pagar" data-nat="despesa_processual" data-cat="Despesas processuais">+ Despesa</button><button type="button" class="btn small" data-action="pr-lancar" data-tipo="receber" data-nat="honorarios" data-cat="Honorários contratuais">+ Honorários</button></div>` : ''}</div>` : ''}
-      ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do processo</h4>${A.blocoDocumentos({processoId: id, clienteId: atual.clienteId})}</div>` : ''}`;
+      ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do processo</h4>${A.blocoDocumentos({processoId: id, clienteId: atual.clienteId})}</div>` : ''}
+      ${A.blocoGerarDocumento ? A.blocoGerarDocumento() : ''}`;
   }
   const prev = A.aoAtualizar; A.aoAtualizar = c => { prev && prev(c); if (S.ui._modalCtx && S.ui._modalCtx.tipo === 'processo' && ['prazos','publicacoes','fin_lancamentos','documentos'].includes(c)) relacionados(); };
 })(window.App);

@@ -7,6 +7,7 @@
   const carregadas = {};
   function script(src) { return new Promise((ok, erro) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => erro(new Error('falha ao carregar ' + src)); document.head.appendChild(s); }); }
   async function carregar(nome) { if (!carregadas[nome]) carregadas[nome] = (async () => { for (const src of LIBS[nome]) await script(src); })(); return carregadas[nome]; }
+  A.carregarLib = carregar; // usado pelo gerador de documentos (m-modelos.js)
 
   function valorCelula(col, row, modo) {
     const v = col.v(row);

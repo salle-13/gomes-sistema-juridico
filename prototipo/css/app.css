@@ -236,6 +236,10 @@ tr.done td .proc{text-decoration:line-through}
 .previa{font-family:var(--font-display);font-size:14px;line-height:1.6;white-space:pre-wrap;text-align:justify;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px 26px;max-height:62vh;overflow:auto}
 .previa mark,.aviso-campos code{background:var(--amber-soft);color:var(--amber);border-radius:3px;padding:0 2px}
 .aviso-campos{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:13px}
+.aviso-campos div{margin-top:4px}
+.previa h5,.previa-ed h5{margin:0 0 10px;font-family:var(--font-body);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.previa-ed{display:flex;flex-direction:column}
+.previa + .previa,.previa-ed + .previa-ed{margin-top:4px;border-top:3px double var(--line)}
 .doc{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
 .doc .ft{width:34px;height:34px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .doc a{color:var(--ink);font-weight:500;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}

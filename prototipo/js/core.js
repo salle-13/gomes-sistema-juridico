@@ -41,7 +41,7 @@ window.App = window.App || {};
   const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','documentos','fin_lancamentos','centros_custo','modelos'];
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
-    config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}},
+    config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'},
     permissoes: null,
     mode: 'loading', canWrite: true, isOwner: false, contaId: null, meId: '', loaded: {},
     db: null, assets: null, downloads: null, user: null,

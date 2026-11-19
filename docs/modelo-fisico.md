@@ -2,7 +2,7 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
-Pendente: a tabela `modelos_documento` (incluída em 19/11/2026) ainda não foi aplicada num PostgreSQL 16. Rode o DDL de novo antes de considerar validado.
+Pendente: a tabela `modelos_documento` e as colunas novas de 19/11/2026 (`equipe.genero`, qualificação em `clientes`, `configuracoes.escritorio_*`) ainda não foram aplicadas num PostgreSQL 16. Rode o DDL de novo antes de considerar validado.
 
 ## 1. Tabelas (28) por área
 
@@ -95,6 +95,11 @@ erDiagram
 | `config/geral.contas` + `saldosIniciais` | Tabela `contas_financeiras`; `fin_lancamentos.conta` vira `conta_id` |
 | `config/permissoes` | Tabela `permissoes_papel` (módulo `modelos` incluído) |
 | Coleção `modelos` | Tabela `modelos_documento` (`tipo` com `CHECK`, nome único por organização) |
+| `equipe.genero` (M/F/vazio) | `equipe.genero char(1)`, nulo permitido (modelos usam "Dr(a)." e "advogado(a)") |
+| `clientes.nacionalidade`, `estadoCivil`, `profissao`, `rg`, `representanteNome`, `representanteCpf`, `representanteCargo` | Colunas `nacionalidade`, `estado_civil`, `profissao`, `rg`, `representante_nome`, `representante_cpf`, `representante_cargo` (qualificação PF/PJ nos modelos) |
+| `clientes.historico[].tipo = 'documento'` ("Documento gerado: …") | `cliente_historico.tipo = 'documento'` (valor já previsto no `CHECK`) |
+| `config/geral.escritorioNome` / `escritorioCidade` | `configuracoes.escritorio_nome` / `escritorio_cidade` |
+| Honorários informados ao gerar documento | Não são gravados: valem só para o documento gerado (o PDF guardado em `documentos` é o registro) |
 | `fin_lancamentos.competencia` (AAAA-MM) | `date` do 1º dia do mês |
 | `fin_lancamentos.parcela {n,total,grupo}` | Colunas `parcela_n`, `parcela_total`, `parcela_grupo` |
 | `documentos.assetId` | `storage_chave` + `sha256` (armazenamento próprio) |

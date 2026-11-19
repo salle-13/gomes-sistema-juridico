@@ -52,11 +52,12 @@
       ${A.inp('mCargo', 'Cargo / função', m.cargo, 'list="cargosList"')}<datalist id="cargosList">${['Advogado(a) sócio(a)','Advogado(a)','Estagiário(a)','Assistente administrativa (captação)','Financeiro','Controladoria jurídica','Secretário(a)'].map(c => `<option value="${c}">`).join('')}</datalist>
       ${A.sel('mPapel', 'Papel (define as permissões)', A.opts(A.PAPEIS, m.papel), '', m.id && m.contaId === S.contaId && m.papel === 'admin' && !S.isOwner ? 'disabled' : '')}
       ${A.inp('mOab', 'OAB', m.oab, 'placeholder="OAB/MG 123.456"')}${A.inp('mEmail', 'E-mail', m.email, 'type="email"')}
+      ${A.sel('mGenero', 'Gênero (Dr./Dra. nos documentos)', A.opts([['','Não informado (Dr(a).)'],['F','Feminino (Dra., advogada)'],['M','Masculino (Dr., advogado)']], m.genero || ''))}
       ${A.field('mCor', 'Cor no calendário', `<input id="mCor" type="color" value="${esc(m.cor)}" style="height:36px;padding:2px">`)}
       ${A.sel('mAtivo', 'Situação', A.opts([['1','Ativo'],['0','Inativo (não recebe novos prazos)']], m.ativo === false ? '0' : '1'))}
     </div><footer>${!novo ? `<button type="button" class="btn danger left" data-action="eq-remover" data-id="${esc(m.id)}" data-qtd="${qtd}">Remover</button>` : ''}<button type="button" class="btn" data-action="modal-fechar">Cancelar</button><button type="submit" class="btn primary">Salvar</button></footer></form>`);
     document.getElementById('fMembro').addEventListener('submit', async e => { e.preventDefault();
-      const obj = Object.assign({}, m, {nome: A.v('mNome'), cargo: A.v('mCargo'), papel: document.getElementById('mPapel').value, oab: A.v('mOab'), email: A.v('mEmail'), cor: document.getElementById('mCor').value, ativo: A.v('mAtivo') === '1'});
+      const obj = Object.assign({}, m, {nome: A.v('mNome'), cargo: A.v('mCargo'), papel: document.getElementById('mPapel').value, oab: A.v('mOab'), email: A.v('mEmail'), genero: A.v('mGenero'), cor: document.getElementById('mCor').value, ativo: A.v('mAtivo') === '1'});
       if (!obj.nome) return; if (await A.save('equipe', obj)) { A.closeModal(); A.toast('Equipe atualizada.'); } });
   }
   A.on('eq-remover', el => { const id = el.dataset.id, q = Number(el.dataset.qtd); A.confirm('Remover pessoa', q ? `Esta pessoa tem ${q} prazo(s) em aberto, que ficarão sem responsável. Para manter o histórico, prefira marcá-la como inativa.` : 'Esta pessoa será removida da equipe.', 'Remover', async () => { if (await A.remove('equipe', id)) A.toast('Pessoa removida.'); }); });
@@ -68,6 +69,8 @@
     const loc = (cfg.feriadosLocais || []).slice().sort((a, b) => a.data.localeCompare(b.data));
     const contas = cfg.contas || [];
     return `<section class="panel"><div class="vhead"><h2>Configurações</h2></div><div class="hgrid">
+      <div class="hbox"><h3>Escritório (usado nos modelos)</h3><p class="muted" style="margin:0 0 8px;font-size:12px">Preenchem os campos {{escritorio.nome}} e {{escritorio.cidade}} dos modelos de documentos e o cabeçalho dos documentos gerados.</p>
+        <div class="form-inline"><input id="cEscNome" value="${esc(cfg.escritorioNome || '')}" placeholder="Nome do escritório" aria-label="Nome do escritório" style="flex:1 1 180px" ${ed ? '' : 'disabled'}><input id="cEscCidade" value="${esc(cfg.escritorioCidade || '')}" placeholder="Cidade/UF (ex.: Araguari/MG)" aria-label="Cidade e UF" style="flex:1 1 140px" ${ed ? '' : 'disabled'}>${ed ? '<button class="btn small" data-action="cfg-escritorio">Salvar</button>' : ''}</div></div>
       <div class="hbox"><h3>Alerta de prazos em tela</h3><p class="muted" style="margin:0 0 10px">A faixa do topo e o aviso de abertura destacam prazos vencidos, os que vencem hoje, os de até 2 dias úteis e os que vencem dentro desta antecedência.</p>
         <div class="form-inline"><label for="cAnt" class="muted" style="align-self:center">Avisar com</label><input id="cAnt" type="number" min="1" max="30" value="${esc(cfg.antecedencia)}" style="width:70px" ${ed ? '' : 'disabled'}><span class="muted" style="align-self:center">dias úteis</span>${ed ? '<button class="btn small" data-action="cfg-ant">Salvar</button>' : ''}</div>
         <p class="muted" style="margin:14px 0 0;font-size:12px">Contagem em dias úteis (CPC art. 219), a partir do 1º dia útil após a publicação (art. 224, §3º), sem fins de semana, feriados e o recesso de 20/12 a 20/01 (art. 220).</p></div>
@@ -83,6 +86,8 @@
   A.route('config', {label: 'Configurações', mod: 'equipe', render: vConfig});
   A.on('cfg-ano', el => { ui().anoFer += Number(el.dataset.d); A.render(); });
   A.on('cfg-ant', async () => { const v = Math.min(30, Math.max(1, Number(A.v('cAnt')) || 5)); await A.saveDoc('config/geral', Object.assign({}, S.config, {antecedencia: v})); A.toast('Antecedência salva.'); });
+  A.on('cfg-escritorio', async () => { const nome = A.v('cEscNome'), cidade = A.v('cEscCidade'); if (!nome || !cidade) { A.toast('Informe o nome e a cidade do escritório.'); return; }
+    if (await A.saveDoc('config/geral', Object.assign({}, S.config, {escritorioNome: nome, escritorioCidade: cidade}))) A.toast('Dados do escritório salvos.'); });
   A.on('cfg-rm-fer', async el => { await A.saveDoc('config/geral', Object.assign({}, S.config, {feriadosLocais: (S.config.feriadosLocais || []).filter(f => f.data !== el.dataset.data)})); });
   A.on('cfg-rm-conta', el => { const c = el.dataset.conta; A.confirm('Remover conta', `“${c}” deixa de aparecer nas baixas. Lançamentos já registrados nela continuam.`, 'Remover', async () => { const si = Object.assign({}, S.config.saldosIniciais); delete si[c]; await A.saveDoc('config/geral', Object.assign({}, S.config, {contas: (S.config.contas || []).filter(x => x !== c), saldosIniciais: si})); }); });
   document.addEventListener('submit', async e => {

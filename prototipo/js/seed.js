@@ -6,20 +6,20 @@
     const mes = (n, dia) => { const d = P.parse(hoje); d.setDate(1); d.setMonth(d.getMonth() + n); d.setDate(dia); return P.ymd(d); };
     const ex = o => Object.assign(o, {exemplo: true});
     const equipe = [
-      {id:'m1', nome:'Dra. Helena Duarte', cargo:'Advogada sócia', papel:'admin', oab:'OAB/MG 123.456', email:'helena@exemplo.adv.br', cor:'#273884'},
-      {id:'m2', nome:'Dr. Rafael Moura', cargo:'Advogado', papel:'advogado', oab:'OAB/MG 234.567', email:'rafael@exemplo.adv.br', cor:'#8A3B6B'},
-      {id:'m3', nome:'Camila Teixeira', cargo:'Advogada', papel:'advogado', oab:'OAB/MG 345.678', email:'camila@exemplo.adv.br', cor:'#2C7A4D'},
-      {id:'m4', nome:'Lucas Pereira', cargo:'Estagiário', papel:'estagiario', oab:'OAB/MG 98.765-E', email:'lucas@exemplo.adv.br', cor:'#B5651D'},
-      {id:'m5', nome:'Bianca Lopes', cargo:'Assistente administrativa (captação)', papel:'assistente', oab:'', email:'bianca@exemplo.adv.br', cor:'#5B4FA8'},
-      {id:'m6', nome:'Paula Reis', cargo:'Financeiro', papel:'financeiro', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C'},
+      {id:'m1', nome:'Dra. Helena Duarte', cargo:'Advogada sócia', papel:'admin', oab:'OAB/MG 123.456', email:'helena@exemplo.adv.br', cor:'#273884', genero:'F'},
+      {id:'m2', nome:'Dr. Rafael Moura', cargo:'Advogado', papel:'advogado', oab:'OAB/MG 234.567', email:'rafael@exemplo.adv.br', cor:'#8A3B6B', genero:'M'},
+      {id:'m3', nome:'Camila Teixeira', cargo:'Advogada', papel:'advogado', oab:'OAB/MG 345.678', email:'camila@exemplo.adv.br', cor:'#2C7A4D', genero:'F'},
+      {id:'m4', nome:'Lucas Pereira', cargo:'Estagiário', papel:'estagiario', oab:'OAB/MG 98.765-E', email:'lucas@exemplo.adv.br', cor:'#B5651D', genero:'M'},
+      {id:'m5', nome:'Bianca Lopes', cargo:'Assistente administrativa (captação)', papel:'assistente', oab:'', email:'bianca@exemplo.adv.br', cor:'#5B4FA8', genero:'F'},
+      {id:'m6', nome:'Paula Reis', cargo:'Financeiro', papel:'financeiro', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C', genero:'F'},
     ].map(ex);
     const C = (id, nome, tp, doc, area, resp, extra) => ex(Object.assign({id, nome, tipoPessoa:tp, documento:doc, telefone:'(34) 9' + (8000 + id.length * 111) + '-' + String(1000 + nome.length * 37).slice(0,4), email:'', origem:'Indicação de cliente', area, historia:'', urgencia:'normal', status:'ativo', encaminhadoPara:[resp], responsavelId:resp, cadastradoPor:'m5', criadoEm:mes(-6, 10) + 'T12:00:00.000Z', aceitoEm:mes(-6, 11) + 'T12:00:00.000Z', historico:[]}, extra || {}));
     const clientes = [
       C('k1','Construtora Alvorada (exemplo)','PJ','11.111.111/0001-11','Direito Civil','m1'),
-      C('k2','Marcos Antunes','PF','111.222.333-44','Direito Trabalhista','m2'),
+      C('k2','Marcos Antunes','PF','111.222.333-44','Direito Trabalhista','m2', {nacionalidade:'brasileiro', estadoCivil:'casado', profissao:'motorista', rg:'MG-11.222.333 SSP/MG', endereco:'Rua das Flores, 120, Bairro Goiás, Araguari/MG, CEP 38440-000'}),
       C('k3','Farmácia Boa Saúde (exemplo)','PJ','22.222.222/0001-22','Consumidor','m3'),
       C('k4','Juliana Ramos','PF','222.333.444-55','Família e Sucessões','m3'),
-      C('k5','Metalúrgica Santos (exemplo)','PJ','33.333.333/0001-33','Direito Trabalhista','m2'),
+      C('k5','Metalúrgica Santos (exemplo)','PJ','33.333.333/0001-33','Direito Trabalhista','m2', {endereco:'Avenida Minas Gerais, 2.500, Distrito Industrial, Araguari/MG, CEP 38446-000', representanteNome:'Sérgio Santos', representanteCpf:'444.555.666-77', representanteCargo:'sócio-administrador'}),
       C('k6','Transportes Lima (exemplo)','PJ','44.444.444/0001-44','Cobrança','m1'),
       C('k7','Padaria Pão Dourado (exemplo)','PJ','55.555.555/0001-55','Direito Trabalhista','m2'),
       C('k8','Clínica Vida Plena (exemplo)','PJ','66.666.666/0001-66','Direito Civil','m3'),
@@ -93,19 +93,19 @@
     L({tipo:'pagar', categoria:'Despesas processuais', natureza:'despesa_processual', descricao:'Cópias e autenticações', valor:4620, vencimento:add(hoje,5), clienteId:'k8', processoId:'pr8', centroCustoId:'cc2', reembolsavel:true});
     L({tipo:'receber', categoria:'Reembolso de despesas', natureza:'reembolso', descricao:'Reembolso de custas e diligência', valor:51075, vencimento:add(hoje,-5), clienteId:'k6', processoId:'pr6', centroCustoId:'cc2'});
     const documentos = [];
-    const config = {antecedencia:5, contas:['Caixa','Conta corrente'], saldosIniciais:{'Conta corrente':{data:mes(-6,1), valor:1500000}, 'Caixa':{data:mes(-6,1), valor:50000}},
+    const config = {antecedencia:5, escritorioNome:'Gomes Assessoria Jurídica', escritorioCidade:'Araguari/MG', contas:['Caixa','Conta corrente'], saldosIniciais:{'Conta corrente':{data:mes(-6,1), valor:1500000}, 'Caixa':{data:mes(-6,1), valor:50000}},
       feriadosLocais:[Number(hoje.slice(0,4)), Number(hoje.slice(0,4)) + 1].flatMap(a => [{data:a+'-08-06',nome:'Senhor Bom Jesus da Cana Verde (Araguari)'},{data:a+'-08-15',nome:'Nossa Senhora da Abadia (Araguari)'},{data:a+'-08-28',nome:'Dia da Cidade (Araguari)'}])};
     const modelos = [
       {id:'md1', nome:'Procuração ad judicia et extra', tipo:'Procuração', ativo:true, texto:
 `PROCURAÇÃO AD JUDICIA ET EXTRA
 
-OUTORGANTE: {{cliente.nome}}, {{cliente.tipo_pessoa}}, inscrito(a) no CPF/CNPJ sob o nº {{cliente.cpf_cnpj}}, residente e domiciliado(a) / com sede em {{cliente.endereco}}.
+OUTORGANTE: {{cliente.qualificacao}}.
 
-OUTORGADA: {{advogada.nome}}, advogada inscrita na {{advogada.oab}}, integrante da Gomes Assessoria Jurídica, com escritório em Araguari/MG, endereço eletrônico {{advogada.email}}.
+PARTE OUTORGADA: {{advogado.tratamento}} {{advogado.nome}}, {{advogado.qualificacao}} com inscrição na {{advogado.oab}}, integrante do escritório {{escritorio.nome}}, com sede em {{escritorio.cidade}}, endereço eletrônico {{advogado.email}}.
 
-PODERES: pelo presente instrumento, o(a) OUTORGANTE nomeia e constitui a OUTORGADA sua bastante procuradora, conferindo-lhe os poderes da cláusula ad judicia et extra para o foro em geral, em qualquer juízo, instância ou tribunal, podendo propor as ações competentes e defendê-lo(a) nas contrárias, seguindo umas e outras até final decisão, usando os recursos legais e acompanhando-os, conferindo-lhe ainda poderes especiais para confessar, desistir, transigir, firmar compromissos ou acordos, receber e dar quitação, reconhecer a procedência do pedido, renunciar ao direito sobre o qual se funda a ação, declarar hipossuficiência econômica e substabelecer esta a outrem, com ou sem reservas de iguais poderes, nos termos do art. 105 do Código de Processo Civil.
+PODERES: pelo presente instrumento, a parte OUTORGANTE nomeia e constitui a PARTE OUTORGADA para representá-la, conferindo-lhe os poderes da cláusula ad judicia et extra para o foro em geral, em qualquer juízo, instância ou tribunal, podendo propor as ações competentes e defendê-lo(a) nas contrárias, seguindo umas e outras até final decisão, usando os recursos legais e acompanhando-os, conferindo-lhe ainda poderes especiais para confessar, desistir, transigir, firmar compromissos ou acordos, receber e dar quitação, reconhecer a procedência do pedido, renunciar ao direito sobre o qual se funda a ação, declarar hipossuficiência econômica e substabelecer esta a outrem, com ou sem reservas de iguais poderes, nos termos do art. 105 do Código de Processo Civil.
 
-Araguari/MG, {{data_hoje_extenso}}.
+{{escritorio.cidade}}, {{data_hoje_extenso}}.
 
 
 
@@ -115,43 +115,43 @@ CPF/CNPJ {{cliente.cpf_cnpj}}`},
       {id:'md2', nome:'Contrato de honorários advocatícios', tipo:'Contrato', ativo:true, texto:
 `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS
 
-CONTRATANTE: {{cliente.nome}}, {{cliente.tipo_pessoa}}, inscrito(a) no CPF/CNPJ sob o nº {{cliente.cpf_cnpj}}, com endereço em {{cliente.endereco}}, telefone {{cliente.telefone}}.
+PARTE CONTRATANTE: {{cliente.qualificacao}}, telefone {{cliente.telefone}}.
 
-CONTRATADA: {{advogada.nome}}, advogada inscrita na {{advogada.oab}}, integrante da Gomes Assessoria Jurídica, com escritório em Araguari/MG.
+PARTE CONTRATADA: {{advogado.tratamento}} {{advogado.nome}}, {{advogado.qualificacao}} com inscrição na {{advogado.oab}}, integrante do escritório {{escritorio.nome}}, com sede em {{escritorio.cidade}}.
 
-CLÁUSULA 1ª – DO OBJETO. A CONTRATADA prestará serviços advocatícios ao CONTRATANTE no patrocínio da ação {{processo.classe}}, autos nº {{processo.numero}}, em trâmite na {{processo.vara}} da comarca de {{processo.comarca}} ({{processo.tribunal}}), em face de {{processo.parte_contraria}}, até a decisão final.
+CLÁUSULA 1ª – DO OBJETO. A PARTE CONTRATADA prestará serviços advocatícios à PARTE CONTRATANTE no patrocínio da ação {{processo.classe}}, autos nº {{processo.numero}}, em trâmite na {{processo.vara}} da comarca de {{processo.comarca}} ({{processo.tribunal}}), em face de {{processo.parte_contraria}}, até a decisão final.
 
-CLÁUSULA 2ª – DOS HONORÁRIOS. Pelos serviços, o CONTRATANTE pagará à CONTRATADA: (a) honorários iniciais de R$ ________ (________), em ___ parcela(s) mensal(is) de R$ ________, com vencimento no dia ___ de cada mês; e (b) honorários de êxito correspondentes a ___% (________ por cento) do proveito econômico obtido, pagos na data do recebimento. Os honorários de sucumbência pertencem à CONTRATADA, nos termos do art. 23 da Lei nº 8.906/1994.
+CLÁUSULA 2ª – DOS HONORÁRIOS. Pelos serviços, a PARTE CONTRATANTE pagará à PARTE CONTRATADA: (a) honorários iniciais de {{honorarios.valor}} ({{honorarios.valor_extenso}}), em ___ parcela(s) mensal(is), com vencimento no dia ___ de cada mês; e (b) honorários de êxito correspondentes a {{honorarios.percentual_exito}} do proveito econômico obtido, pagos na data do recebimento. Os honorários de sucumbência pertencem à PARTE CONTRATADA, nos termos do art. 23 da Lei nº 8.906/1994.
 
-CLÁUSULA 3ª – DAS DESPESAS. Custas, taxas, emolumentos, perícias, diligências e deslocamentos correm por conta do CONTRATANTE, que os reembolsará mediante comprovante.
+CLÁUSULA 3ª – DAS DESPESAS. Custas, taxas, emolumentos, perícias, diligências e deslocamentos correm por conta da PARTE CONTRATANTE, que os reembolsará mediante comprovante.
 
-CLÁUSULA 4ª – DO INADIMPLEMENTO. O atraso no pagamento implica multa de 2% e juros de 1% ao mês, e autoriza a CONTRATADA a renunciar ao mandato, observado o art. 5º, § 3º, da Lei nº 8.906/1994.
+CLÁUSULA 4ª – DO INADIMPLEMENTO. O atraso no pagamento implica multa de 2% e juros de 1% ao mês, e autoriza a PARTE CONTRATADA a renunciar ao mandato, observado o art. 5º, § 3º, da Lei nº 8.906/1994.
 
-CLÁUSULA 5ª – DA RESCISÃO. A revogação do mandato pelo CONTRATANTE não o desobriga do pagamento dos honorários proporcionais aos serviços prestados e dos honorários de êxito, se houver proveito econômico posterior.
+CLÁUSULA 5ª – DA RESCISÃO. A revogação do mandato pela PARTE CONTRATANTE não a desobriga do pagamento dos honorários proporcionais aos serviços prestados e dos honorários de êxito, se houver proveito econômico posterior.
 
-CLÁUSULA 6ª – DO FORO. Fica eleito o foro da comarca de Araguari/MG para dirimir dúvidas oriundas deste contrato.
+CLÁUSULA 6ª – DO FORO. Fica eleito o foro da comarca de {{escritorio.cidade}} para dirimir dúvidas oriundas deste contrato.
 
-E, por estarem justos e contratados, assinam o presente em duas vias de igual teor.
+E, por estarem justas e contratadas, as partes assinam o presente em duas vias de igual teor.
 
-Araguari/MG, {{data_hoje_extenso}}.
-
-
-
-_______________________________________
-{{cliente.nome}} – CONTRATANTE
+{{escritorio.cidade}}, {{data_hoje_extenso}}.
 
 
 
 _______________________________________
-{{advogada.nome}} – {{advogada.oab}} – CONTRATADA`},
+{{cliente.nome}} – PARTE CONTRATANTE
+
+
+
+_______________________________________
+{{advogado.tratamento}} {{advogado.nome}} – {{advogado.oab}} – PARTE CONTRATADA`},
       {id:'md3', nome:'Declaração de hipossuficiência', tipo:'Declaração', ativo:true, texto:
 `DECLARAÇÃO DE HIPOSSUFICIÊNCIA ECONÔMICA
 
-Eu, {{cliente.nome}}, inscrito(a) no CPF sob o nº {{cliente.cpf_cnpj}}, residente e domiciliado(a) em {{cliente.endereco}}, DECLARO, para os fins do art. 99 do Código de Processo Civil e da Lei nº 1.060/1950, sob as penas da lei, que não possuo condições de arcar com as custas e despesas processuais e com os honorários advocatícios sem prejuízo do meu próprio sustento e do de minha família, razão pela qual requeiro os benefícios da gratuidade da justiça.
+Eu, {{cliente.qualificacao}}, DECLARO, para os fins do art. 99 do Código de Processo Civil e da Lei nº 1.060/1950, sob as penas da lei, que não possuo condições de arcar com as custas e despesas processuais e com os honorários advocatícios sem prejuízo do meu próprio sustento e do de minha família, razão pela qual requeiro os benefícios da gratuidade da justiça.
 
 Declaro, ainda, estar ciente de que a falsidade desta declaração sujeita o declarante às sanções civis, administrativas e penais cabíveis, inclusive ao pagamento de até o décuplo das custas judiciais, nos termos do art. 100, parágrafo único, do Código de Processo Civil.
 
-Araguari/MG, {{data_hoje_extenso}}.
+{{escritorio.cidade}}, {{data_hoje_extenso}}.
 
 
 

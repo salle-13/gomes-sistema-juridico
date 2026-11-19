@@ -114,6 +114,7 @@ CREATE TABLE equipe (
   oab_uf          char(2),
   oab_suplementar text,                       -- texto livre (ex.: 'OAB/SP 12.345')
   email           text,
+  genero          char(1) CHECK (genero IN ('M','F')),  -- nulo = "Dr(a)." / "advogado(a)" nos modelos
   cor             char(7) NOT NULL DEFAULT '#273884' CHECK (cor ~ '^#[0-9A-Fa-f]{6}$'),
   ativo           boolean NOT NULL DEFAULT true,
   usuario_id      uuid REFERENCES usuarios(id),
@@ -152,6 +153,8 @@ CREATE TABLE configuracoes (
   confirmacao_automatica_prazo boolean NOT NULL DEFAULT false,
   confianca_minima_auto      numeric(3,2) NOT NULL DEFAULT 0.90,
   escalonar_apos_horas_uteis smallint NOT NULL DEFAULT 4,
+  escritorio_nome            text     NOT NULL DEFAULT 'Gomes Assessoria Jurídica',  -- {{escritorio.nome}} nos modelos
+  escritorio_cidade          text     NOT NULL DEFAULT 'Araguari/MG',                -- {{escritorio.cidade}}
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id)
 );
 
@@ -186,6 +189,13 @@ CREATE TABLE clientes (
   email            text,
   endereco         text,
   cidade           text,
+  nacionalidade    text,                         -- qualificação (PF), usada em {{cliente.qualificacao}}
+  estado_civil     text,
+  profissao        text,
+  rg               text,
+  representante_nome  text,                      -- qualificação (PJ)
+  representante_cpf   text,
+  representante_cargo text,
   uf               char(2),
   origem           text,                         -- como chegou
   area             text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD')),

@@ -152,7 +152,7 @@
       S.data[c] = snap.docs.map(d => Object.assign({id: d.id}, d.data()));
       if (!snap.metadata.fromCache) S.loaded[c] = true; A.render(); pronto(); A.aoAtualizar && A.aoAtualizar(c);
     }, c === 'prazos' ? err : () => {}));
-    db.doc('config/geral').onSnapshot(s => { if (s.exists) S.config = Object.assign({antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}}, s.data()); P.setLocais(S.config.feriadosLocais || []); A.render(); }, () => {});
+    db.doc('config/geral').onSnapshot(s => { if (s.exists) S.config = Object.assign({antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'}, s.data()); P.setLocais(S.config.feriadosLocais || []); A.render(); }, () => {});
     db.doc('config/permissoes').onSnapshot(s => { S.permissoes = s.exists ? s.data() : null; A.render(); }, () => {});
   }
   setInterval(() => renderAlertas(), 60000);

@@ -72,11 +72,19 @@
     const body = `${A.modalHead(c._novo ? 'Cadastrar novo cliente' : c.nome, `<span class="tag">${esc(ST_LABEL[s])}</span>`).replace('data-action="modal-fechar"', 'data-action="modal-fechar"')}
     <form id="fCliente"><div class="cgrid"><div>
       ${A.inp('cNome', 'Nome / razão social', c.nome, `required ${ro}`)}
-      <div class="two">${A.sel('cTipo', 'Pessoa', A.opts([['PF','Física'],['PJ','Jurídica']], c.tipoPessoa), '', ro)}${A.inp('cDoc', 'CPF / CNPJ', c.documento, ro)}
+      <div class="two">${A.sel('cTipo', 'Pessoa', A.opts([['PF','Física'],['PJ','Jurídica']], c.tipoPessoa), '', `${ro} data-onchange="cl-tipo"`)}${A.inp('cDoc', 'CPF / CNPJ', c.documento, ro)}
         ${A.inp('cTel', 'Telefone / WhatsApp', c.telefone, ro)}${A.inp('cEmail', 'E-mail', c.email, `type="email" ${ro}`)}
         ${A.sel('cArea', 'Área', A.opts(A.AREAS, c.area, 'Selecione'), '', ro)}${A.inp('cOrig', 'Como chegou', c.origem, `list="origList" ${ro}`)}<datalist id="origList">${ORIGENS.map(o => `<option value="${esc(o)}">`).join('')}</datalist>
         ${A.sel('cUrg', 'Urgência', A.opts([['normal','Normal'],['alta','Alta (prazo correndo, audiência próxima…)']], c.urgencia), '', ro)}${A.sel('cResp', 'Advogado(a) responsável', A.optsEquipe(c.responsavelId), '', ro)}</div>
       ${A.inp('cEnd', 'Endereço', c.endereco, ro, 'full')}
+      <div id="cliPF" class="two" style="${c.tipoPessoa === 'PJ' ? 'display:none' : ''}">
+        ${A.inp('cNac', 'Nacionalidade', c.nacionalidade, `list="nacList" placeholder="brasileiro(a)" ${ro}`)}<datalist id="nacList"><option value="brasileiro"><option value="brasileira"></datalist>
+        ${A.inp('cEstCiv', 'Estado civil', c.estadoCivil, `list="ecList" ${ro}`)}<datalist id="ecList">${['solteiro','solteira','casado','casada','divorciado','divorciada','viúvo','viúva','em união estável'].map(o => `<option value="${o}">`).join('')}</datalist>
+        ${A.inp('cProf', 'Profissão', c.profissao, ro)}${A.inp('cRg', 'RG (nº e órgão emissor)', c.rg, `placeholder="MG-12.345.678 SSP/MG" ${ro}`)}</div>
+      <div id="cliPJ" class="two" style="${c.tipoPessoa === 'PJ' ? '' : 'display:none'}">
+        ${A.inp('cRepNome', 'Representante legal', c.representanteNome, ro)}${A.inp('cRepCpf', 'CPF do representante', c.representanteCpf, ro)}
+        ${A.inp('cRepCargo', 'Cargo do representante', c.representanteCargo, `list="cargoRepList" placeholder="sócio-administrador" ${ro}`)}<datalist id="cargoRepList">${['sócio-administrador','sócia-administradora','diretor','diretora','procurador','procuradora'].map(o => `<option value="${o}">`).join('')}</datalist></div>
+      <div class="muted" style="font-size:12px;margin-top:-6px">Os dados acima entram na qualificação das procurações, contratos e declarações (Modelos de documentos).</div>
       ${A.area('cHist', 'História do caso', c.historia, 8, `${ro} placeholder="O que aconteceu, quando, quem é a outra parte, o que o cliente quer, provas que tem, prazos que já correm…"`)}
       <div class="muted" style="font-size:12px">Cadastrado por ${esc(c.cadastradoPor ? A.nomeDe(c.cadastradoPor) : '—')} em ${esc(A.quando(c.criadoEm))}</div>
     </div><div>
@@ -92,6 +100,7 @@
   }
   function ler() { const v = A.v; if (!document.getElementById('fCliente')) return cli;
     Object.assign(cli, {nome: v('cNome'), tipoPessoa: v('cTipo'), documento: v('cDoc'), telefone: v('cTel'), email: v('cEmail'), area: v('cArea'), origem: v('cOrig'), urgencia: v('cUrg'), responsavelId: v('cResp'), endereco: v('cEnd'), historia: v('cHist'),
+      nacionalidade: v('cNac'), estadoCivil: v('cEstCiv'), profissao: v('cProf'), rg: v('cRg'), representanteNome: v('cRepNome'), representanteCpf: v('cRepCpf'), representanteCargo: v('cRepCargo'),
       encaminhadoPara: document.querySelector('input[name="enc"]') ? [...document.querySelectorAll('input[name="enc"]:checked')].map(i => i.value) : cli.encaminhadoPara}); return cli; }
   async function salvar(extra, registro) { const c = ler(); if (!c.nome) { A.toast('Informe o nome do cliente.'); return null; }
     const hist = [...(c.historico || [])], agora = new Date().toISOString();
@@ -105,6 +114,7 @@
     const extra = {status: s}; if (s === 'ativo' && !cli.aceitoEm) { extra.aceitoEm = new Date().toISOString(); extra.responsavelId = cli.responsavelId || (advogadoEu() ? S.meId : (cli.encaminhadoPara || [])[0] || ''); }
     const txt = {analise: 'Assumiu a análise do caso.', ativo: cli.status === 'encerrado' ? 'Cliente reativado.' : 'Caso aceito: cliente entrou na carteira.', recusado: 'Caso não aceito: ' + nota, encerrado: 'Atendimento encerrado.' + (nota ? ' ' + nota : '')}[s];
     if (await salvar(extra, txt)) { A.toast(ST_LABEL[s] + '.'); desenhar(); } });
+  A.on('cl-tipo', el => { const pj = el.value === 'PJ', a = document.getElementById('cliPF'), b = document.getElementById('cliPJ'); if (a) a.style.display = pj ? 'none' : ''; if (b) b.style.display = pj ? '' : 'none'; });
   A.on('cl-nota', async () => { const n = (document.getElementById('cNota')?.value || '').trim(); if (n && await salvar(null, n)) desenhar(); });
   A.on('cl-excluir', () => { const id = cli.id; A.confirm('Excluir cadastro', 'O cadastro e o histórico deste cliente serão apagados. Processos, prazos, documentos e lançamentos continuam, sem vínculo.', 'Excluir', async () => { if (await A.remove('clientes', id)) A.toast('Cadastro excluído.'); }); });
   A.on('cl-novo-processo', async () => { if (cli._novo && !(await salvar())) return; const id = cli.id; A.closeModal(); A.abrirProcessoNovo ? A.abrirProcessoNovo({clienteId: id}) : null; });
@@ -117,7 +127,7 @@
       <div class="box"><h4>Prazos em aberto</h4><div class="plist">${prz.slice(0, 5).map(A.pcardPrazo).join('') || '<span class="muted" style="font-size:12px">Nenhum.</span>'}</div></div>
       ${A.pode('financeiro', 'ver') ? `<div class="box"><h4>Financeiro em aberto</h4><dl class="dl"><dt>A receber</dt><dd class="num">${A.brl(fin.filter(f => f.tipo === 'receber').reduce((a, f) => a + f.valor, 0))}</dd><dt>Despesas a reembolsar</dt><dd class="num">${A.brl(A.col('fin_lancamentos').filter(f => f.clienteId === id && f.tipo === 'pagar' && f.reembolsavel && f.status !== 'cancelado').reduce((a, f) => a + f.valor, 0))}</dd></dl></div>` : ''}` : ''}
       ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do cliente</h4>${A.blocoDocumentos({clienteId: id})}</div>` : ''}
-      ${A.blocoGerarDocumento ? A.blocoGerarDocumento() : ''}`;
+      ${A.blocoGerarDocumento ? A.blocoGerarDocumento('cliente') : ''}`;
   }
   const prev = A.aoAtualizar; A.aoAtualizar = c => { prev && prev(c); if (S.ui._modalCtx && S.ui._modalCtx.tipo === 'cliente' && ['processos','prazos','fin_lancamentos','documentos'].includes(c)) relacionados(); };
 })(window.App);

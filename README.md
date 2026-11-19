@@ -22,7 +22,7 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     m-publicacoes.js  Publicações: registro, importação, tratamento
     m-clientes.js     Captação, carteira, ficha do cliente
     m-documentos.js   Documentos
-    m-modelos.js      Modelos com campos {{...}} e gerador de documentos (fichas de cliente e processo)
+    m-modelos.js      Modelos com campos {{...}}, gerador de documentos e kit de entrada (fichas de cliente e processo)
     m-equipe.js       Equipe, permissões, configurações
     m-financeiro.js   Contas a pagar/receber, custas, centros de custo
     m-fin-painel.js   Dashboard financeiro e fluxo de caixa
@@ -47,7 +47,7 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-Fora da plataforma Claude, o protótipo roda em **modo local**: os dados ficam no `localStorage` do navegador, começando com os dados de exemplo. O envio de arquivos (Documentos) só funciona na versão publicada no Claude. Isso vale também para o botão "Salvar em Documentos" do gerador de modelos. Imprimir / salvar como PDF funciona nos dois modos.
+Fora da plataforma Claude, o protótipo roda em **modo local**: os dados ficam no `localStorage` do navegador, começando com os dados de exemplo. O envio de arquivos (Documentos) só funciona na versão publicada no Claude. Isso vale também para o botão "Salvar em Documentos" do gerador de modelos. Imprimir / salvar como PDF funciona nos dois modos, inclusive no "Kit de entrada" da ficha do cliente (procuração, contrato e declaração numa única impressão).
 
 Para zerar os dados locais, abra o console do navegador e rode `localStorage.removeItem('gomes-sistema-v2')`.
 

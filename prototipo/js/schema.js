@@ -14,7 +14,7 @@ window.App.SCHEMA = {
     nacionalidade:'texto (PF)', estadoCivil:'texto (PF)', profissao:'texto (PF)', rg:'texto (PF)', representanteNome:'texto (PJ)', representanteCpf:'texto (PJ)', representanteCargo:'texto (PJ)',
     historia:'texto', urgencia:'normal|alta', status:'novo|encaminhado|analise|ativo|encerrado|recusado', encaminhadoPara:'[id equipe]', responsavelId:'id equipe',
     cadastradoPor:'id equipe', aceitoEm:'ISO', historico:'[{em, por, texto, tipo?: documento}]'},
-  processos: {numero:'CNJ', clienteId:'id', parteContraria:'texto', polo:'ativo|passivo', tribunal:'texto', comarca:'texto', vara:'texto', classe:'texto', area:'texto',
+  processos: {pasta:'inteiro (nº da pasta, único; 1 pasta = 1 processo)', numero:'CNJ (opcional até o ajuizamento)', clienteId:'id', parteContraria:'texto', polo:'ativo|passivo', tribunal:'texto', comarca:'texto', vara:'texto', classe:'texto', area:'texto',
     valorCausa:'centavos', responsavelId:'id equipe', status:'ativo|suspenso|arquivado|encerrado', distribuidoEm:'data', obs:'texto', andamentos:'[{data, texto, por}]'},
   publicacoes: {disponibilizacao:'data', publicacao:'data', tribunal:'texto', orgao:'texto', numeroProcesso:'CNJ', processoId:'id', tipo:'texto', texto:'texto',
     oab:'texto', origem:'manual|importacao', status:'nova|lida|tratada|descartada', responsavelId:'id equipe', prazoId:'id', tratadaEm:'ISO', tratadaPor:'id equipe'},

@@ -24,10 +24,10 @@
       const ref = s === 'pago' ? f.pagoEm : f.vencimento;
       if (u.status !== 'vencidos' && u.status !== 'abertos' && ((u.de && ref < u.de) || (u.ate && ref > u.ate))) return false;
       if (u.status === 'abertos' && u.ate && f.vencimento > u.ate) return false;
-      return (!u.centro || f.centroCustoId === u.centro) && (!u.cliente || f.clienteId === u.cliente) && A.match(u.busca, f.descricao, f.categoria, f.documento, A.cliente(f.clienteId)?.nome, A.processo(f.processoId)?.numero);
+      return (!u.centro || f.centroCustoId === u.centro) && (!u.cliente || f.clienteId === u.cliente) && A.match(u.busca, f.descricao, f.categoria, f.documento, A.cliente(f.clienteId)?.nome, A.processo(f.processoId)?.numero, A.rotuloPasta(A.processo(f.processoId)));
     }).sort((a, b) => (a.vencimento || '').localeCompare(b.vencimento || '')); }
   const colunas = rota => [{t:'Vencimento', v:f => f.vencimento, tipo:'date'}, {t:'Descrição', v:f => f.descricao}, {t:'Categoria', v:f => f.categoria}, {t:'Cliente', v:f => A.cliente(f.clienteId)?.nome || ''},
-    {t:'Processo', v:f => A.processo(f.processoId)?.numero || ''}, {t:'Centro de custo', v:f => A.centro(f.centroCustoId)?.nome || ''}, {t:'Situação', v:sitLabel},
+    {t:'Processo', v:f => A.rotuloProcId(f.processoId)}, {t:'Centro de custo', v:f => A.centro(f.centroCustoId)?.nome || ''}, {t:'Situação', v:sitLabel},
     ...(VIEWS[rota].custas ? [{t:'Reembolsável', v:f => f.reembolsavel ? 'Sim' : 'Não'}] : []), {t:'Valor', v:f => f.valor, tipo:'money'}, {t:'Valor pago', v:f => f.status === 'pago' ? f.valorPago : 0, tipo:'money'}];
   Object.keys(VIEWS).forEach(rota => { A.exportadores[rota] = () => { const l = filtrar(rota), u = ui();
     return {titulo: VIEWS[rota].titulo, filtros: `Período ${A.fmt(u.de)} a ${A.fmt(u.ate)} · ${u.status}`, linhas: l, colunas: colunas(rota), totais: {'Valor': l.reduce((s, f) => s + (f.status === 'cancelado' ? 0 : f.valor), 0), 'Valor pago': l.reduce((s, f) => s + (f.status === 'pago' ? f.valorPago || 0 : 0), 0)}}; }; });
@@ -39,7 +39,7 @@
     const rows = arr.map(f => { const s = A.situacaoFin(f), cli = A.cliente(f.clienteId), pr = A.processo(f.processoId);
       const reemb = v.custas && f.reembolsavel ? (A.col('fin_lancamentos').find(x => x.reembolsoDe === f.id) ? '<span class="tag">Reembolso lançado</span>' : (ed ? `<button class="btn small" data-action="fin-reembolso" data-id="${esc(f.id)}">Cobrar reembolso</button>` : '<span class="tag alta">A cobrar</span>')) : '';
       return `<tr class="${SIT[s][1]}${s === 'cancelado' ? ' done' : ''}"><td class="num" style="white-space:nowrap">${esc(A.fmt(f.vencimento))}</td><td><b>${esc(f.descricao)}</b><br><span class="muted" style="font-size:12px">${esc(f.categoria)}${f.parcela ? ' · parcela ' + f.parcela.n + '/' + f.parcela.total : ''}${f.documento ? ' · ' + esc(f.documento) : ''}</span></td>
-        <td>${esc(cli?.nome || '—')}${pr ? `<br><span class="muted proc" style="font-size:12px">${esc(pr.numero)}</span>` : ''}</td><td>${esc(A.centro(f.centroCustoId)?.nome || '—')}</td><td><span class="pill">${esc(sitLabel(f))}</span> ${reemb}</td>
+        <td>${esc(cli?.nome || '—')}${pr ? `<br><span class="muted proc" style="font-size:12px">${esc(A.rotuloProcesso(pr))}</span>` : ''}</td><td>${esc(A.centro(f.centroCustoId)?.nome || '—')}</td><td><span class="pill">${esc(sitLabel(f))}</span> ${reemb}</td>
         <td class="money"><b>${A.brl(f.valor)}</b>${f.status === 'pago' && f.valorPago !== f.valor ? `<br><span class="muted" style="font-size:12px">pago ${A.brl(f.valorPago)}</span>` : ''}</td>
         <td><div class="rowact">${ed && ['pendente','vencido','hoje'].includes(s) ? `<button class="btn small primary" data-action="fin-baixar" data-id="${esc(f.id)}">${f.tipo === 'receber' ? 'Receber' : 'Pagar'}</button>` : ''}<button class="btn small" data-action="fin-editar" data-id="${esc(f.id)}">${ed ? 'Editar' : 'Ver'}</button></div></td></tr>`; }).join('');
     const novoBtn = ed ? (v.custas ? `<button class="btn" data-action="fin-novo" data-tipo="pagar" data-cat="Despesas processuais">+ Despesa processual</button><button class="btn primary" data-action="fin-novo" data-tipo="pagar" data-cat="Custas processuais">+ Custa processual</button>`

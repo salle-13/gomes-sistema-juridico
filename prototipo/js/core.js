@@ -116,7 +116,12 @@ window.App = window.App || {};
   A.opts = (lista, val, vazio) => (vazio !== undefined ? `<option value="">${A.esc(vazio)}</option>` : '') + lista.map(o => { const [v,l] = Array.isArray(o) ? o : [o,o]; return `<option value="${A.esc(v)}"${String(v)===String(val??'')?' selected':''}>${A.esc(l)}</option>`; }).join('');
   A.optsEquipe = (val, vazio) => A.opts(A.col('equipe').map(m => [m.id, m.nome]), val, vazio ?? 'Sem responsável');
   A.optsClientes = (val, vazio) => A.opts(A.col('clientes').filter(c => !['novo','encaminhado','analise','recusado'].includes(c.status)).map(c => [c.id, c.nome]), val, vazio ?? 'Nenhum');
-  A.optsProcessos = (val, vazio) => A.opts(A.col('processos').map(p => [p.id, p.numero + ' · ' + (A.cliente(p.clienteId)?.nome || '')]), val, vazio ?? 'Nenhum');
+  /* Pasta: número interno do caso (1 pasta = 1 processo). O nº CNJ pode ficar vazio até o ajuizamento. */
+  A.rotuloPasta = p => p && p.pasta ? 'Pasta ' + p.pasta : '';
+  A.rotuloProcesso = (p, numero) => { if (!p) return numero || ''; return [A.rotuloPasta(p), p.numero || (p.pasta ? 'sem nº de processo' : '')].filter(Boolean).join(' · '); };
+  A.rotuloProcId = (id, numero) => A.rotuloProcesso(A.processo(id), numero);
+  A.proxPasta = () => A.col('processos').reduce((m, p) => Math.max(m, Number(p.pasta) || 0), 0) + 1;
+  A.optsProcessos = (val, vazio) => A.opts(A.col('processos').slice().sort((a, b) => (Number(b.pasta) || 0) - (Number(a.pasta) || 0)).map(p => [p.id, A.rotuloProcesso(p) + ' · ' + (A.cliente(p.clienteId)?.nome || '')]), val, vazio ?? 'Nenhum');
   A.field = (id, label, inner, cls) => `<div class="field${cls?' '+cls:''}"><label for="${id}">${A.esc(label)}</label>${inner}</div>`;
   A.inp = (id, label, val, extra, cls) => A.field(id, label, `<input id="${id}" value="${A.esc(val??'')}" ${extra||''}>`, cls);
   A.sel = (id, label, options, cls, extra) => A.field(id, label, `<select id="${id}" ${extra||''}>${options}</select>`, cls);

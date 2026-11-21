@@ -47,6 +47,8 @@
       PR('pr9','5005678-12.2024.8.13.0035','k9','Agropecuária Serra (exemplo)','ativo','TJMG','4ª Vara Cível','Cumprimento de sentença','Cobrança',5610000,'m1',mes(-22,9)),
       PR('pr10','5006789-34.2026.8.13.0035','k10','Imobiliária Centro (exemplo)','ativo','TJMG','1ª Vara Cível','Procedimento comum cível','Direito Civil',950000,'m4',mes(-5,17)),
     ];
+    const PASTAS = {pr1: 3412, pr2: 3297, pr3: 3301, pr4: 3420, pr5: 3388, pr6: 3415, pr7: 3431, pr8: 3436, pr9: 3104, pr10: 3398};
+    processos.forEach(p => { p.pasta = PASTAS[p.id]; });
     processos[2].andamentos = [{data:mes(-1,2), texto:'Sentença de improcedência publicada.', por:'m3'}, {data:mes(-6,15), texto:'Audiência de conciliação sem acordo.', por:'m3'}];
     const pz = (id, pr, dias, pubOff, tipo, desc, resp, prio, status) => { const p = processos.find(x => x.id === pr); const pub = add(hoje, pubOff);
       return ex({id, processo:p.numero, processoId:pr, clienteId:p.clienteId, cliente:clientes.find(c => c.id === p.clienteId).nome, tipo, descricao:desc, publicacao:pub, dias, contagem:'uteis', vencimento:P.vencimento(pub, dias, 'uteis'), responsavelId:resp, prioridade:prio||'normal', status:status||'pendente', obs:''}); };

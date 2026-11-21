@@ -106,4 +106,5 @@ erDiagram
 | `fin_lancamentos.parcela {n,total,grupo}` | Colunas `parcela_n`, `parcela_total`, `parcela_grupo` |
 | `documentos.assetId` | `storage_chave` + `sha256` (armazenamento próprio) |
 | `equipe.contaId` / `contaPendente` | `usuario_id` / `vinculo_pendente_usuario_id` |
+| Coleção `notif_estado` (por pessoa: `vistas`, `lidas`, `dispensadas` por chave) | Linhas em `avisos` com `canal = 'sistema'`: a chave vira `evento` + `entidade_id` (ex.: `prazo.vencido` + id do prazo), `destinatario_id` = membro, `criado_em` = vista, `lido_em`, `dispensado_em` (coluna nova). As regras de geração de `js/m-notificacoes.js` passam para o Worker Notificador. |
 | Campos camelCase | Colunas snake_case (mapeamento direto na migração) |

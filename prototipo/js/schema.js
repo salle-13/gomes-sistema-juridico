@@ -29,6 +29,10 @@ window.App.SCHEMA = {
     parcela:'{n, total, grupo}', obs:'texto'},
   centros_custo: {codigo:'texto', nome:'texto', ativo:'bool'},
   modelos: {nome:'texto', tipo:'Procuração|Contrato|Declaração|Petição|Outro', texto:'texto com campos {{cliente.nome}} etc. (lista em App.CAMPOS_MODELO)', ativo:'bool'},
+  notif_estado: {usuarioId:'id equipe (o id do documento é o id do membro; "conta-<id>" ou "administrador" sem vínculo)',
+    vistas:'{chave: ISO} primeira vez que a pessoa recebeu a notificação', lidas:'{chave: ISO}', dispensadas:'{chave: ISO}'},
+  // As notificações em si não são gravadas: são geradas de prazos, compromissos, publicações, processos, financeiro,
+  // clientes, documentos e equipe (js/m-notificacoes.js). A chave ("prazo:<id>:vencido:<data>") evita duplicatas.
   'config/geral': {antecedencia:'dias úteis', escritorioNome:'texto', escritorioCidade:'Cidade/UF', feriadosLocais:'[{data, nome}]', contas:'[nome]', saldosIniciais:'{conta: {data, valor}}'},
   'config/permissoes': {papeis:'{papel: {modulo: nenhum|ver|editar}}'},
 };

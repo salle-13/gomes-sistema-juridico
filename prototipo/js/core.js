@@ -38,7 +38,7 @@ window.App = window.App || {};
   A.CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
 
   /* ---------- estado ---------- */
-  const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos'];
+  const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado'];
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
     config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'},

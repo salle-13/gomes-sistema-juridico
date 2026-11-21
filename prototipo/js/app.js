@@ -2,7 +2,7 @@
 (function (A) {
   const S = A.S, P = A.P;
   const GRUPOS = [
-    ['Agenda', ['agenda']],
+    ['Agenda', ['agenda','notificacoes']],
     ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
     ['Gestão', ['relatorios','equipe','config']],
@@ -22,9 +22,9 @@
     if (A.aliases && A.aliases[rota]) { A.aliases[rota](); rota = 'agenda'; history.replaceState(null, '', '#agenda'); }
     if (!A.routes[rota]) rota = 'agenda';
     S.rota = rota;
-    renderNav(rota); renderTopo(); renderAlertas(); renderAviso();
+    renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino();
     const r = A.routes[rota], main = document.getElementById('main');
-    if (!A.pode(r.mod, 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
+    if (r.mod && !A.pode(r.mod, 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
     const lado = r.lado ? r.lado() : '';
     main.className = lado ? '' : 'single';
     const foco = document.activeElement && document.activeElement.id && main.contains(document.activeElement) ? [document.activeElement.id, document.activeElement.selectionStart] : null;
@@ -35,7 +35,7 @@
 
   function renderNav(rota) {
     const nav = document.getElementById('nav');
-    nav.innerHTML = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && A.pode(A.routes[id].mod, 'ver'));
+    nav.innerHTML = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && (!A.routes[id].mod || A.pode(A.routes[id].mod, 'ver')));
       return itens.length ? `<div class="grp"><b>${g}</b>${itens.map(id => { const r = A.routes[id]; const n = r.badge ? r.badge() : 0;
         return `<a href="#${id}" ${id === rota ? 'aria-current="page"' : ''}><span>${A.esc(r.label)}</span>${n ? `<span class="tabbadge">${n}</span>` : ''}</a>`; }).join('')}</div>` : ''; }).join('');
   }
@@ -109,6 +109,7 @@
 
   /* ---------- eventos ---------- */
   document.addEventListener('click', e => {
+    if (A.ui('notif').aberto && !e.target.closest('#notif')) A.actions['notif-fechar']();
     const t = e.target.closest('[data-action]'); if (!t) return;
     const a = t.dataset.action;
     if (a === 'modal-fundo') { if (e.target === t && !document.querySelector('.modal.wide')) A.closeModal(); return; }
@@ -122,7 +123,7 @@
   });
   document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.ui && t.tagName === 'INPUT' && !['checkbox','date','month'].includes(t.type)) setUi(t); });
   function setUi(t) { const [mod, key] = t.dataset.ui.split('.'); A.ui(mod)[key] = t.type === 'checkbox' ? t.checked : t.value; A.render(); }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.modal')) A.closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (document.querySelector('.modal')) A.closeModal(); else if (A.ui('notif').aberto) A.actions['notif-fechar'](); });
   window.addEventListener('hashchange', () => A.render());
 
   /* ---------- carregamento dos dados ---------- */
@@ -157,6 +158,6 @@
     db.doc('config/geral').onSnapshot(s => { if (s.exists) S.config = Object.assign({antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'}, s.data()); P.setLocais(S.config.feriadosLocais || []); A.render(); }, () => {});
     db.doc('config/permissoes').onSnapshot(s => { S.permissoes = s.exists ? s.data() : null; A.render(); }, () => {});
   }
-  setInterval(() => renderAlertas(), 60000);
+  setInterval(() => { renderAlertas(); A.renderSino && A.renderSino(); }, 60000);
   iniciar();
 })(window.App);

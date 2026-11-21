@@ -27,6 +27,7 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     m-financeiro.js   Contas a pagar/receber, custas, centros de custo
     m-fin-painel.js   Dashboard financeiro e fluxo de caixa
     m-relatorios.js   Relatórios
+    m-notificacoes.js Central de notificações (sino + página): gerada dos dados, leitura por pessoa
     app.js            Inicialização, navegação, eventos (carregado por último)
 banco/
   modelo-fisico.sql   DDL completo PostgreSQL 16 (28 tabelas; modelos_documento ainda sem validação)

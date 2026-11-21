@@ -667,6 +667,7 @@ CREATE TABLE avisos (                            -- notificações enviadas/pend
   status         text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','enviado','falhou','lido')),
   enviado_em     timestamptz,
   lido_em        timestamptz,
+  dispensado_em  timestamptz,                    -- central de notificações: "Dispensar" (some da lista, sem apagar)
   erro           text,
   correlacao_id  uuid,
   criado_em      timestamptz NOT NULL DEFAULT now(),

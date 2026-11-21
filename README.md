@@ -17,7 +17,7 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     seed.js           Dados de exemplo (fictícios)
     core.js           Núcleo: estado, camada de dados, permissões, interface comum
     export.js         Exportação Excel/PDF/CSV e gráficos SVG
-    m-agenda.js       Calendário anual/mensal, prazos, alertas
+    m-agenda.js       Agenda única (Ano/Mês/Semana/Dia/Lista): prazos, compromissos, alertas
     m-processos.js    Processos e ficha do processo
     m-publicacoes.js  Publicações: registro, importação, tratamento
     m-clientes.js     Captação, carteira, ficha do cliente

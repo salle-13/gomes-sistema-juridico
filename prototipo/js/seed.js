@@ -62,6 +62,22 @@
       pz('ex9','pr9',15,15,'Cumprimento de sentença','Apresentar planilha de débito','m1'),
       pz('ex10','pr10',15,-27,'Juntada de documentos','Juntar procuração e contrato','m4','normal','concluido'),
     ];
+    const util = n => { let d = n >= 0 ? P.proximoUtil(hoje) : hoje; const passo = n < 0 ? -1 : 1; for (let i = 0; i !== n; ) { d = add(d, passo); if (P.diaUtil(d)) i += passo; } return d; };
+    const cp = (id, dOff, ini, fim, tipo, titulo, resp, extra) => ex(Object.assign({id, data:util(dOff), diaInteiro:!ini, horaInicio:ini || '', horaFim:fim || '', tipo, titulo, responsavelId:resp, participantes:[], processoId:'', clienteId:'', local:'', status:'agendado', obs:''}, extra || {}));
+    const compromissos = [
+      cp('cp1', 0, '08:00', '09:00', 'Atendimento', 'Sr. Marcos Antunes (documentos da reclamação)', 'm2', {clienteId:'k2', local:'Escritório Araguari'}),
+      cp('cp2', 0, '10:00', '11:00', 'Inicial', 'Ação de cobrança · Transportes Lima', 'm1', {clienteId:'k6'}),
+      cp('cp3', 0, '14:00', '15:00', 'Reunião', 'Reunião semanal da equipe', 'm1', {participantes:['m2','m3','m4','m5'], local:'Sala de reuniões'}),
+      cp('cp4', 1, '08:40', '09:40', 'Audiência', 'Audiência inicial virtual', 'm2', {processoId:'pr7', clienteId:'k7', local:'Sala virtual do TRT3'}),
+      cp('cp5', 1, '13:30', '14:30', 'Atendimento', 'Nova cliente (indicação) · para Camila', 'm5', {participantes:['m3']}),
+      cp('cp6', 2, '09:00', '10:00', 'Consulta', 'Consulta de 2 CPFs · Farmácia Boa Saúde', 'm4', {clienteId:'k3'}),
+      cp('cp7', 2, '16:00', '17:00', 'Ligação / retorno', 'Retornar Sra. Juliana sobre perícia', 'm3', {clienteId:'k4', processoId:'pr4'}),
+      cp('cp8', 3, '', '', 'Diligência', 'Protocolo físico no Fórum de Araguari', 'm4'),
+      cp('cp9', 4, '10:00', '11:00', 'Audiência', 'Audiência de conciliação', 'm1', {processoId:'pr6', clienteId:'k6', local:'Fórum de Araguari · 2ª Vara Cível'}),
+      cp('cp10', 6, '15:00', '16:00', 'Atendimento', 'Sr. Sérgio Santos (Metalúrgica Santos)', 'm2', {clienteId:'k5'}),
+      cp('cp11', -1, '09:00', '10:00', 'Atendimento', 'Entrega de documentos · Padaria Pão Dourado', 'm5', {clienteId:'k7', status:'concluido'}),
+      cp('cp12', -2, '14:00', '15:30', 'Reunião', 'Estratégia do agravo · Plano de Saúde Regional', 'm3', {processoId:'pr8', participantes:['m1'], status:'concluido'}),
+    ];
     const pub = (id, pr, dispOff, tipo, texto, status, prazoId) => { const p = processos.find(x => x.id === pr); const disp = add(hoje, dispOff);
       return ex({id, disponibilizacao:disp, publicacao:P.proximoUtil(add(disp,1)), tribunal:p ? p.tribunal : 'TJMG', orgao:p ? p.vara + ' de Araguari' : '2ª Vara Cível de Araguari', numeroProcesso:p ? p.numero : '5009999-01.2026.8.13.0035', processoId:p ? p.id : '', tipo, texto, oab:'MG123456', origem:'manual', status, responsavelId:p ? p.responsavelId : 'm1', prazoId:prazoId||''}); };
     const publicacoes = [
@@ -158,7 +174,7 @@ Declaro, ainda, estar ciente de que a falsidade desta declaração sujeita o dec
 _______________________________________
 {{cliente.nome}}`},
     ].map(m => ex(Object.assign(m, {criadoEm: mes(-2, 3) + 'T12:00:00.000Z', criadoPor: 'm1'})));
-    return {data:{equipe, clientes, processos, publicacoes, prazos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
+    return {data:{equipe, clientes, processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
   }
   if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;
 })(typeof window !== 'undefined' ? window : globalThis);

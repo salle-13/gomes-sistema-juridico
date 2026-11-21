@@ -2,9 +2,9 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
-Pendente: a tabela `modelos_documento` e as colunas novas de 19/11/2026 (`equipe.genero`, qualificação em `clientes`, `configuracoes.escritorio_*`) ainda não foram aplicadas num PostgreSQL 16. Rode o DDL de novo antes de considerar validado.
+Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos` e as colunas de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Para `compromissos` foram testados as restrições de horário e o registro na auditoria.
 
-## 1. Tabelas (28) por área
+## 1. Tabelas (29) por área
 
 | Área | Tabelas |
 |---|---|
@@ -14,7 +14,7 @@ Pendente: a tabela `modelos_documento` e as colunas novas de 19/11/2026 (`equipe
 | Processos | `processos`, `processo_partes`, `processo_andamentos` |
 | Coletor DJEN | `djen_alvos`, `djen_capturas`, `djen_respostas` |
 | Publicações | `publicacoes`, `publicacoes_quarentena` |
-| Prazos | `regras_prazo`, `prazos` |
+| Prazos e agenda | `regras_prazo`, `prazos`, `compromissos` |
 | Documentos | `documentos`, `modelos_documento` |
 | Financeiro | `centros_custo`, `contas_financeiras`, `fin_lancamentos` |
 | Infraestrutura | `jobs`, `avisos`, `integracoes_log`, `auditoria` |
@@ -42,6 +42,8 @@ erDiagram
   publicacoes ||--o| prazos : "gera (automático)"
   regras_prazo ||--o{ prazos : fundamenta
   processos ||--o{ prazos : tem
+  processos ||--o{ compromissos : tem
+  equipe ||--o{ compromissos : responsavel
   clientes ||--o{ documentos : tem
   processos ||--o{ documentos : tem
   centros_custo ||--o{ fin_lancamentos : classifica

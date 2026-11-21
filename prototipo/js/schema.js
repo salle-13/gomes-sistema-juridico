@@ -20,6 +20,8 @@ window.App.SCHEMA = {
     oab:'texto', origem:'manual|importacao', status:'nova|lida|tratada|descartada', responsavelId:'id equipe', prazoId:'id', tratadaEm:'ISO', tratadaPor:'id equipe'},
   prazos: {processo:'CNJ (texto)', processoId:'id', clienteId:'id', cliente:'texto', publicacaoId:'id', tipo:'texto', descricao:'texto', publicacao:'data', dias:'número',
     contagem:'uteis|corridos', vencimento:'data', responsavelId:'id equipe', prioridade:'normal|alta', status:'pendente|concluido', obs:'texto'},
+  compromissos: {tipo:'Atendimento|Audiência|Reunião|Inicial|Consulta|Diligência|Ligação / retorno|Tarefa interna|Outro', titulo:'texto', data:'data', diaInteiro:'bool', horaInicio:'HH:MM', horaFim:'HH:MM',
+    responsavelId:'id equipe', participantes:'[id equipe]', processoId:'id', clienteId:'id', local:'texto (endereço ou link)', status:'agendado|concluido', obs:'texto'},
   documentos: {nome:'texto', categoria:'texto', assetId:'id do arquivo', contentType:'texto', sizeBytes:'número', clienteId:'id', processoId:'id', enviadoPor:'id equipe', enviadoEm:'ISO'},
   fin_lancamentos: {tipo:'receber|pagar', categoria:'texto', natureza:'honorarios|custas|despesa_processual|operacional|reembolso|outros', descricao:'texto',
     valor:'centavos', vencimento:'data', competencia:'AAAA-MM', status:'pendente|pago|cancelado', pagoEm:'data', valorPago:'centavos', forma:'texto livre',

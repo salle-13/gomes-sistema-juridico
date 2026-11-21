@@ -22,7 +22,7 @@
     if (A.aliases && A.aliases[rota]) { A.aliases[rota](); rota = 'agenda'; history.replaceState(null, '', '#agenda'); }
     if (!A.routes[rota]) rota = 'agenda';
     S.rota = rota;
-    renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino();
+    renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino(); A.renderBusca && A.renderBusca();
     const r = A.routes[rota], main = document.getElementById('main');
     if (r.mod && !A.pode(r.mod, 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
     const lado = r.lado ? r.lado() : '';
@@ -110,6 +110,7 @@
   /* ---------- eventos ---------- */
   document.addEventListener('click', e => {
     if (A.ui('notif').aberto && !e.target.closest('#notif')) A.actions['notif-fechar']();
+    if (A.ui('busca').aberto && !e.target.closest('#gsearch')) A.actions['busca-fechar']();
     const t = e.target.closest('[data-action]'); if (!t) return;
     const a = t.dataset.action;
     if (a === 'modal-fundo') { if (e.target === t && !document.querySelector('.modal.wide')) A.closeModal(); return; }
@@ -121,9 +122,14 @@
     if (t.dataset && t.dataset.onchange && A.actions[t.dataset.onchange]) { A.actions[t.dataset.onchange](t, e); return; }
     if (t.dataset && t.dataset.ui && t.tagName !== 'INPUT' || (t.dataset && t.dataset.ui && (t.type === 'checkbox' || t.type === 'date' || t.type === 'month'))) setUi(t);
   });
-  document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.ui && t.tagName === 'INPUT' && !['checkbox','date','month'].includes(t.type)) setUi(t); });
+  document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.oninput && A.actions[t.dataset.oninput]) { A.actions[t.dataset.oninput](t, e); return; } if (t.dataset && t.dataset.ui && t.tagName === 'INPUT' && !['checkbox','date','month'].includes(t.type)) setUi(t); });
   function setUi(t) { const [mod, key] = t.dataset.ui.split('.'); A.ui(mod)[key] = t.type === 'checkbox' ? t.checked : t.value; A.render(); }
-  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (document.querySelector('.modal')) A.closeModal(); else if (A.ui('notif').aberto) A.actions['notif-fechar'](); });
+  document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.onfocus && A.actions[t.dataset.onfocus]) A.actions[t.dataset.onfocus](t, e); });
+  document.addEventListener('keydown', e => { const t = e.target;
+    if (t.dataset && t.dataset.onkeydown && A.actions[t.dataset.onkeydown]) { A.actions[t.dataset.onkeydown](t, e); return; }
+    // "/" ou Ctrl+K levam à busca, a menos que a pessoa esteja digitando em outro campo
+    if ((e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable) || (e.key === 'k' && (e.ctrlKey || e.metaKey))) { const b = document.getElementById('buscaQ'); if (b && !document.querySelector('.modal')) { e.preventDefault(); b.focus(); b.select(); } return; }
+    if (e.key !== 'Escape') return; if (document.querySelector('.modal')) A.closeModal(); else if (A.ui('notif').aberto) A.actions['notif-fechar'](); });
   window.addEventListener('hashchange', () => A.render());
 
   /* ---------- carregamento dos dados ---------- */

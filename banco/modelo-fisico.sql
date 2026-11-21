@@ -245,7 +245,8 @@ CREATE INDEX ix_cli_hist ON cliente_historico (cliente_id, em DESC);
 CREATE TABLE processos (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id          uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
-  numero          text NOT NULL,                  -- como exibido (máscara CNJ)
+  pasta           integer NOT NULL CHECK (pasta > 0),  -- nº interno do caso (1 pasta = 1 processo); vem do Projuris na migração
+  numero          text CHECK (numero IS NULL OR btrim(numero) <> ''),  -- como exibido (máscara CNJ); NULL enquanto não ajuizado
   numero_digitos  text GENERATED ALWAYS AS (app.so_digitos(numero)) STORED,
   numero_valido   boolean GENERATED ALWAYS AS (app.cnj_valido(numero)) STORED,
   cliente_id      uuid REFERENCES clientes(id) ON DELETE SET NULL,
@@ -272,7 +273,20 @@ CREATE TABLE processos (
   criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL
 );
-CREATE UNIQUE INDEX ux_processos_numero ON processos (org_id, numero_digitos);
+CREATE UNIQUE INDEX ux_processos_numero ON processos (org_id, numero_digitos) WHERE numero IS NOT NULL;
+CREATE UNIQUE INDEX ux_processos_pasta ON processos (org_id, pasta);
+
+-- Numeração automática da pasta: se o INSERT não informar a pasta, usa a maior do escritório + 1.
+-- O advisory lock por escritório impede que dois cadastros simultâneos peguem o mesmo número.
+CREATE OR REPLACE FUNCTION tg_processos_pasta() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.pasta IS NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtext('pasta:' || NEW.org_id::text));
+    SELECT coalesce(max(pasta), 0) + 1 INTO NEW.pasta FROM app.processos WHERE org_id = NEW.org_id;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER tg_processos_pasta BEFORE INSERT ON processos FOR EACH ROW EXECUTE FUNCTION tg_processos_pasta();
 CREATE INDEX ix_processos_cliente ON processos (cliente_id);
 CREATE INDEX ix_processos_resp ON processos (org_id, responsavel_id, status);
 
@@ -815,7 +829,7 @@ SELECT a.org_id, a.id AS alvo_id, a.uf_oab || a.numero_oab AS oab, a.membro_id,
  GROUP BY a.org_id, a.id;
 
 CREATE VIEW vw_prazos_abertos AS
-SELECT p.*, pr.numero AS processo_numero_cadastrado, cl.nome AS cliente_cadastrado, e.nome AS responsavel_nome
+SELECT p.*, pr.pasta AS processo_pasta, pr.numero AS processo_numero_cadastrado, cl.nome AS cliente_cadastrado, e.nome AS responsavel_nome
   FROM prazos p
   LEFT JOIN processos pr ON pr.id = p.processo_id
   LEFT JOIN clientes cl ON cl.id = p.cliente_id

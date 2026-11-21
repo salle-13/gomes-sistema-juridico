@@ -9,10 +9,10 @@
 
   function lista() { const u = ui();
     return A.col('processos').filter(p => (!u.status || p.status === u.status) && (!u.area || p.area === u.area) && (!u.resp || p.responsavelId === u.resp))
-      .filter(p => A.match(u.busca, p.numero, A.cliente(p.clienteId)?.nome, p.parteContraria, p.vara, p.classe))
-      .sort((a, b) => (A.cliente(a.clienteId)?.nome || '').localeCompare(A.cliente(b.clienteId)?.nome || '', 'pt-BR')); }
+      .filter(p => A.match(u.busca, String(p.pasta || ''), 'pasta ' + (p.pasta || ''), p.numero, A.cliente(p.clienteId)?.nome, p.parteContraria, p.vara, p.classe))
+      .sort((a, b) => (Number(b.pasta) || 0) - (Number(a.pasta) || 0)); }
   A.exportadores.processos = () => ({titulo: 'Processos', filtros: 'Situação: ' + (ST_LABEL[ui().status] || 'todas'), linhas: lista(), colunas: [
-    {t:'Número', v:p => p.numero}, {t:'Cliente', v:p => A.cliente(p.clienteId)?.nome || ''}, {t:'Parte contrária', v:p => p.parteContraria}, {t:'Polo', v:p => p.polo},
+    {t:'Pasta', v:p => p.pasta || ''}, {t:'Número', v:p => p.numero}, {t:'Cliente', v:p => A.cliente(p.clienteId)?.nome || ''}, {t:'Parte contrária', v:p => p.parteContraria}, {t:'Polo', v:p => p.polo},
     {t:'Órgão', v:p => [p.tribunal, p.vara, p.comarca].filter(Boolean).join(' · ')}, {t:'Área', v:p => p.area}, {t:'Valor da causa', v:p => p.valorCausa, tipo:'money'},
     {t:'Responsável', v:p => A.membro(p.responsavelId)?.nome || ''}, {t:'Situação', v:p => ST_LABEL[p.status]}, {t:'Prazos em aberto', v:p => abertosDe(p.id).length}]});
 
@@ -20,15 +20,15 @@
     const u = ui(), arr = lista(), ed = A.pode('processos', 'editar');
     const rows = arr.map(p => { const c = A.cliente(p.clienteId), m = A.membro(p.responsavelId), ab = abertosDe(p.id);
       const urg = ab.filter(x => ['vencido','hoje','critico'].includes(A.sitPrazo(x))).length;
-      return `<tr class="row-click" data-action="abrir-processo" data-id="${esc(p.id)}"><td><span class="proc">${esc(p.numero)}</span><br><span class="muted" style="font-size:12px">${esc(p.classe || '')}</span></td>
+      return `<tr class="row-click" data-action="abrir-processo" data-id="${esc(p.id)}"><td class="num"><b>${esc(p.pasta || '—')}</b></td><td><span class="proc">${esc(p.numero || 'Sem nº (não ajuizado)')}</span><br><span class="muted" style="font-size:12px">${esc(p.classe || '')}</span></td>
         <td>${esc(c?.nome || '—')}<br><span class="muted" style="font-size:12px">x ${esc(p.parteContraria || '—')}</span></td><td>${esc([p.vara, p.comarca].filter(Boolean).join(' · '))}<br><span class="muted" style="font-size:12px">${esc(p.tribunal || '')}</span></td>
         <td><span class="tag">${esc(p.area || '—')}</span></td><td><span class="who">${A.avatar(m)}${esc(m?.nome || '—')}</span></td>
         <td class="num">${ab.length}${urg ? ` <span class="pill s-vencido">${urg} urgente${urg > 1 ? 's' : ''}</span>` : ''}</td><td>${esc(ST_LABEL[p.status] || p.status)}</td></tr>`; }).join('');
-    return `<section class="panel"><div class="vhead"><h2>Processos</h2><span class="muted num">${arr.length} processo(s)</span>${A.botoesExport('processos')}${ed ? '<button class="btn primary" data-action="novo-processo">+ Novo processo</button>' : ''}</div>
-      <div class="filters"><input id="prBusca" type="search" data-ui="processos.busca" placeholder="Buscar número, cliente, parte contrária, vara…" value="${esc(u.busca)}" style="flex:1 1 260px">
+    return `<section class="panel"><div class="vhead"><h2>Processos</h2><span class="muted num">${arr.length} processo(s)</span>${A.botoesExport('processos')}${ed ? '<button class="btn primary" data-action="novo-processo">+ Nova pasta</button>' : ''}</div>
+      <div class="filters"><input id="prBusca" type="search" data-ui="processos.busca" placeholder="Buscar pasta, número, cliente, parte contrária, vara…" value="${esc(u.busca)}" style="flex:1 1 260px">
         <select id="prSt" data-ui="processos.status">${A.opts(STATUS, u.status, 'Todas as situações')}</select><select id="prArea" data-ui="processos.area">${A.opts(A.AREAS, u.area, 'Todas as áreas')}</select>
         <select id="prResp" data-ui="processos.resp">${A.optsEquipe(u.resp, 'Todos os responsáveis')}</select></div>
-      <div class="tablewrap"><table><thead><tr><th>Número</th><th>Cliente x parte contrária</th><th>Órgão</th><th>Área</th><th>Responsável</th><th>Prazos abertos</th><th>Situação</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="empty" style="padding:16px">Nenhum processo encontrado.</td></tr>'}</tbody></table></div></section>`;
+      <div class="tablewrap"><table><thead><tr><th>Pasta</th><th>Número</th><th>Cliente x parte contrária</th><th>Órgão</th><th>Área</th><th>Responsável</th><th>Prazos abertos</th><th>Situação</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="empty" style="padding:16px">Nenhum processo encontrado.</td></tr>'}</tbody></table></div></section>`;
   }
   A.route('processos', {label: 'Processos', mod: 'processos', render: vLista});
 
@@ -40,13 +40,14 @@
   A.abrirProcessoNovo = preset => abrir(null, preset);
   function abrir(p, preset) {
     const novo = !p, ed = A.pode('processos', 'editar'), ro = ed ? '' : 'disabled';
-    atual = Object.assign({id: A.uid(), _novo: true, numero: '', clienteId: '', parteContraria: '', polo: 'ativo', tribunal: 'TJMG', comarca: 'Araguari', vara: '', classe: '', area: '', valorCausa: 0, responsavelId: A.me()?.id || '', status: 'ativo', distribuidoEm: '', obs: '', andamentos: []}, p ? JSON.parse(JSON.stringify(p)) : {}, preset || {});
+    atual = Object.assign({id: A.uid(), _novo: true, pasta: A.proxPasta(), numero: '', clienteId: '', parteContraria: '', polo: 'ativo', tribunal: 'TJMG', comarca: 'Araguari', vara: '', classe: '', area: '', valorCausa: 0, responsavelId: A.me()?.id || '', status: 'ativo', distribuidoEm: '', obs: '', andamentos: []}, p ? JSON.parse(JSON.stringify(p)) : {}, preset || {});
     if (p) delete atual._novo;
     S.ui._modalCtx = {tipo: 'processo', id: atual.id};
-    A.modal(`${A.modalHead(novo ? 'Novo processo' : atual.numero, !novo ? `<span class="tag">${esc(ST_LABEL[atual.status])}</span>` : '')}
+    A.modal(`${A.modalHead(novo ? 'Nova pasta' : A.rotuloProcesso(atual), !novo ? `<span class="tag">${esc(ST_LABEL[atual.status])}</span>` : '')}
     <form id="fProc"><div class="cgrid"><div>
       <div class="two">
-        ${A.inp('prNum', 'Nº do processo (CNJ)', atual.numero, `required placeholder="0000000-00.0000.0.00.0000" ${ro}`)}
+        ${A.inp('prPasta', 'Nº da pasta', atual.pasta || '', `type="number" min="1" step="1" required ${ro}`)}
+        ${A.inp('prNum', 'Nº do processo (CNJ)', atual.numero, `placeholder="Vazio se ainda não foi ajuizado" ${ro}`)}
         ${A.sel('prCli', 'Cliente', A.optsClientes(atual.clienteId, 'Selecione'), '', ro)}
         ${A.inp('prParte', 'Parte contrária', atual.parteContraria, ro)}
         ${A.sel('prPolo', 'Nosso cliente é', A.opts([['ativo','Autor / requerente'],['passivo','Réu / requerido']], atual.polo), '', ro)}
@@ -69,10 +70,12 @@
     document.getElementById('fProc').addEventListener('submit', async e => { e.preventDefault(); if (await salvar()) { A.closeModal(); A.toast('Processo salvo.'); } });
   }
   function ler() { const v = A.v;
-    Object.assign(atual, {numero: v('prNum'), clienteId: v('prCli'), parteContraria: v('prParte'), polo: v('prPolo'), tribunal: v('prTrib'), comarca: v('prCom'), vara: v('prVara'), classe: v('prClasse'),
+    Object.assign(atual, {pasta: Number(v('prPasta')) || 0, numero: v('prNum'), clienteId: v('prCli'), parteContraria: v('prParte'), polo: v('prPolo'), tribunal: v('prTrib'), comarca: v('prCom'), vara: v('prVara'), classe: v('prClasse'),
       area: v('prArea'), valorCausa: A.cents(v('prValor')), responsavelId: v('prResp'), distribuidoEm: v('prDist'), status: v('prSt'), obs: v('prObs')}); return atual; }
-  async function salvar(extra) { const p = ler(); if (!p.numero) { A.toast('Informe o número do processo.'); return null; }
-    if (!A.CNJ_RE.test(p.numero)) A.toast('Atenção: o número não está no padrão CNJ (0000000-00.0000.0.00.0000).');
+  async function salvar(extra) { const p = ler();
+    if (!p.pasta || p.pasta < 1) { A.toast('Informe o número da pasta.'); return null; }
+    const dup = A.col('processos').find(o => o.id !== p.id && Number(o.pasta) === p.pasta); if (dup) { A.toast('A pasta ' + p.pasta + ' já existe (' + (A.cliente(dup.clienteId)?.nome || 'sem cliente') + '). Próxima livre: ' + A.proxPasta() + '.'); return null; }
+    if (p.numero && !A.CNJ_RE.test(p.numero)) A.toast('Atenção: o número não está no padrão CNJ (0000000-00.0000.0.00.0000).');
     const obj = Object.assign({}, p, extra || {}); delete obj._novo; const r = await A.save('processos', obj); if (r) { atual = JSON.parse(JSON.stringify(r)); } return r; }
   A.on('pr-andamento', async () => { const txt = A.v('anTxt'); if (!txt) return; ler(); atual.andamentos = [...(atual.andamentos || []), {data: A.v('anData') || A.hoje(), texto: txt, por: S.meId || null}];
     if (await salvar()) { abrir(atual); A.toast('Andamento registrado.'); } });

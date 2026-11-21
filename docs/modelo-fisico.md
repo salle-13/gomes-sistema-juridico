@@ -2,7 +2,7 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
-Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos` e as colunas de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Para `compromissos` foram testados as restrições de horário e o registro na auditoria.
+Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos`, `processos.pasta` e as colunas de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Foram testados as restrições de horário de `compromissos`, a numeração automática e a unicidade da pasta, processo sem número CNJ e o registro na auditoria.
 
 ## 1. Tabelas (29) por área
 
@@ -92,6 +92,7 @@ erDiagram
 | Protótipo (`js/schema.js`) | Banco definitivo |
 |---|---|
 | `processos.andamentos` (lista dentro do processo) | Tabela `processo_andamentos` (origem manual/DataJud/fornecedor) |
+| `processos.pasta` (nº da pasta, 1 pasta = 1 processo) | `processos.pasta`, único por escritório; numerado pelo banco (maior + 1) quando não informado. `processos.numero` passa a aceitar NULL até o ajuizamento |
 | `clientes.encaminhadoPara` e `clientes.historico` (listas) | Tabelas `cliente_encaminhamentos` e `cliente_historico` |
 | `config/geral.feriadosLocais` | Tabela `feriados` (com comarca e tribunal) |
 | `config/geral.contas` + `saldosIniciais` | Tabela `contas_financeiras`; `fin_lancamentos.conta` vira `conta_id` |

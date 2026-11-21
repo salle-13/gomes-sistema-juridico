@@ -5072,3 +5072,4 @@ button.notification-copy:focus-visible { outline: 2px solid var(--accent); outli
 .notif-page .notif-acts { flex-direction: row; opacity: 1; }
 .notif-page .notif-act { width: 30px; height: 30px; }
 @media (max-width: 600px) { .notification-popover { position: fixed; top: 70px; left: 12px; right: 12px; width: auto; } }
+.evtag2{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 6px;font-size:11px;font-weight:700;margin-right:2px}

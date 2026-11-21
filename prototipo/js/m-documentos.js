@@ -10,7 +10,7 @@
   function linha(d, contexto) {
     const c = A.cliente(d.clienteId), p = A.processo(d.processoId), ed = A.pode('documentos', 'editar');
     return `<div class="doc"><span class="ft">${icone(d.contentType)}</span><div style="min-width:0"><a href="/_blob/${esc(d.assetId)}" target="_blank" rel="noopener">${esc(d.nome)}</a>
-      <small>${esc(d.categoria || 'Outros')} · ${esc(A.tamanho(d.sizeBytes))} · ${esc(d.enviadoPor ? A.nomeDe(d.enviadoPor) : 'Equipe')}, ${esc(A.quando(d.enviadoEm))}${contexto ? ' · ' + esc([c?.nome, p?.numero].filter(Boolean).join(' · ') || 'Documento geral') : ''}</small></div>
+      <small>${esc(d.categoria || 'Outros')} · ${esc(A.tamanho(d.sizeBytes))} · ${esc(d.enviadoPor ? A.nomeDe(d.enviadoPor) : 'Equipe')}, ${esc(A.quando(d.enviadoEm))}${contexto ? ' · ' + esc([c?.nome, p ? A.rotuloProcesso(p) : ''].filter(Boolean).join(' · ') || 'Documento geral') : ''}</small></div>
       ${ed ? `<button type="button" class="btn small" data-action="doc-excluir" data-id="${esc(d.id)}" aria-label="Excluir ${esc(d.nome)}">Excluir</button>` : '<span></span>'}</div>`;
   }
   function upload(alvo) { // alvo: {clienteId, processoId} ou {sel:true}
@@ -60,8 +60,8 @@
 
   function lista() { const u = ui();
     return ordenados(A.col('documentos').filter(d => (!u.cat || d.categoria === u.cat) && (!u.cli || (u.cli === 'geral' ? !d.clienteId && !d.processoId : d.clienteId === u.cli)) && (!u.proc || d.processoId === u.proc))
-      .filter(d => A.match(u.busca, d.nome, d.categoria, A.cliente(d.clienteId)?.nome, A.processo(d.processoId)?.numero))); }
-  A.exportadores.documentos = () => ({titulo: 'Documentos', linhas: lista(), colunas: [{t:'Arquivo', v:d => d.nome}, {t:'Tipo', v:d => d.categoria}, {t:'Cliente', v:d => A.cliente(d.clienteId)?.nome || ''}, {t:'Processo', v:d => A.processo(d.processoId)?.numero || ''},
+      .filter(d => A.match(u.busca, d.nome, d.categoria, A.cliente(d.clienteId)?.nome, A.processo(d.processoId)?.numero, A.rotuloPasta(A.processo(d.processoId))))); }
+  A.exportadores.documentos = () => ({titulo: 'Documentos', linhas: lista(), colunas: [{t:'Arquivo', v:d => d.nome}, {t:'Tipo', v:d => d.categoria}, {t:'Cliente', v:d => A.cliente(d.clienteId)?.nome || ''}, {t:'Processo', v:d => A.rotuloProcId(d.processoId)},
     {t:'Enviado por', v:d => d.enviadoPor ? A.nomeDe(d.enviadoPor) : ''}, {t:'Enviado em', v:d => String(d.enviadoEm || '').slice(0, 10), tipo:'date'}, {t:'Tamanho', v:d => A.tamanho(d.sizeBytes)}]});
   function vDocs() {
     const u = ui(), arr = lista();

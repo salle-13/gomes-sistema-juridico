@@ -27,7 +27,7 @@ Convenções de dados, válidas para todos os módulos:
 **Objetivo:** manter a carteira de ações do escritório e concentrar, numa ficha única, tudo o que acontece em cada processo.
 
 ### Telas
-- **Lista de processos:** busca por número, cliente, parte contrária ou vara. Filtros por situação, área e responsável. Mostra prazos em aberto e quantos são urgentes. Exporta em Excel, PDF e CSV.
+- **Lista de processos:** ordenada pela pasta, da mais recente para a mais antiga. Busca por pasta, número, cliente, parte contrária ou vara. Filtros por situação, área e responsável. Mostra prazos em aberto e quantos são urgentes. Exporta em Excel, PDF e CSV.
 - **Ficha do processo:**
   - Esquerda: dados do processo e andamentos.
   - Direita: prazos, publicações, financeiro e documentos daquele processo.
@@ -36,7 +36,8 @@ Convenções de dados, válidas para todos os módulos:
 
 | Campo | Nome na tela | Tipo | Obrigatório | Regra / descrição |
 |---|---|---|---|---|
-| `numero` | Nº do processo (CNJ) | texto | Sim | Padrão CNJ `0000000-00.0000.0.00.0000`. Fora do padrão, o sistema avisa mas permite salvar |
+| `pasta` | Nº da pasta | inteiro | Sim | Número interno do caso, como no Projuris. **1 pasta = 1 processo**; um cliente pode ter várias pastas. Sugerido automaticamente (maior pasta + 1), pode ser editado e não pode se repetir. Na migração, mantém o número do Projuris |
+| `numero` | Nº do processo (CNJ) | texto | Não | Vazio enquanto o caso não foi ajuizado (consulta, extrajudicial, administrativo). Padrão CNJ `0000000-00.0000.0.00.0000`. Fora do padrão, o sistema avisa mas permite salvar |
 | `clienteId` | Cliente | id | Recomendado | Só clientes da carteira (ativos ou encerrados) |
 | `parteContraria` | Parte contrária | texto | Não | |
 | `polo` | Nosso cliente é | `ativo` \| `passivo` | Sim | Autor/requerente ou réu/requerido |
@@ -53,6 +54,7 @@ Convenções de dados, válidas para todos os módulos:
 | `andamentos` | Andamentos | lista `{data, texto, por}` | Não | Linha do tempo manual, do mais recente para o mais antigo |
 
 ### Regras
+- **Pasta em todo o sistema:** o rótulo "Pasta N" aparece nos cartões da agenda, nos prazos, nas publicações vinculadas, no financeiro, em documentos e nos relatórios. Os modelos podem usar o campo `{{processo.pasta}}`.
 - **Excluir** um processo não apaga os prazos vinculados; eles continuam na agenda, sem vínculo. Para processos finalizados, o recomendado é mudar a situação para **Encerrado**.
 - **"+ Novo prazo neste processo"** abre o cadastro de prazo com número, cliente e responsável já preenchidos.
 - **"+ Custa", "+ Despesa" e "+ Honorários"** abrem o lançamento financeiro já vinculado ao processo e ao cliente.

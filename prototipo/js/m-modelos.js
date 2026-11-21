@@ -73,6 +73,7 @@
       ['cliente.telefone', 'Telefone', c => c.cliente?.telefone],
     ]],
     ['Processo', [
+      ['processo.pasta', 'Nº da pasta', c => c.processo?.pasta ? String(c.processo.pasta) : ''],
       ['processo.numero', 'Número (CNJ)', c => c.processo?.numero],
       ['processo.vara', 'Vara / órgão', c => c.processo?.vara],
       ['processo.comarca', 'Comarca', c => c.processo?.comarca],
@@ -243,7 +244,7 @@
         <div class="box"><h4>Dados</h4>
           ${seletor}
           ${A.sel('gerCli', 'Cliente', A.opts(A.col('clientes').slice().sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')).map(c => [c.id, c.nome]), g.clienteId, 'Nenhum'), '', 'data-onchange="ger-campo"')}
-          ${A.sel('gerProc', 'Processo', A.opts(procs.map(p => [p.id, p.numero]), g.processoId, 'Nenhum'), '', 'data-onchange="ger-campo"')}
+          ${A.sel('gerProc', 'Processo', A.opts(procs.map(p => [p.id, A.rotuloProcesso(p)]), g.processoId, 'Nenhum'), '', 'data-onchange="ger-campo"')}
           ${A.sel('gerAdv', 'Advogado(a) que assina', A.opts(advogados().map(m => [m.id, m.nome + (m.oab ? ' · ' + m.oab : '')]), g.advId, 'Nenhum(a)'), '', 'data-onchange="ger-campo"')}
           ${hon}
           <p class="muted" style="margin:0;font-size:12px">Trocar um dado gera o texto de novo a partir do modelo (edições manuais são descartadas).</p>
@@ -291,7 +292,7 @@
     const c = A.cliente(g.clienteId); if (!c) return;
     const novos = itens.filter(it => !g.registrados.has(it.modeloId)); if (!novos.length) return;
     const em = new Date().toISOString();
-    const hist = [...(c.historico || []), ...novos.map(it => ({em, por: S.meId || null, tipo: 'documento', texto: 'Documento gerado: ' + it.nome + (g.processoId ? ' (processo ' + (A.processo(g.processoId)?.numero || '') + ')' : '') + '.'}))];
+    const hist = [...(c.historico || []), ...novos.map(it => ({em, por: S.meId || null, tipo: 'documento', texto: 'Documento gerado: ' + it.nome + (g.processoId ? ' (' + A.rotuloProcId(g.processoId) + ')' : '') + '.'}))];
     if (await A.save('clientes', Object.assign({}, c, {historico: hist}))) novos.forEach(it => g.registrados.add(it.modeloId));
   }
 

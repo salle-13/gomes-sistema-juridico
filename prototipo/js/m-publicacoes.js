@@ -8,11 +8,11 @@
 
   function lista() { const u = ui();
     return A.col('publicacoes').filter(p => (!u.status || p.status === u.status) && (!u.resp || p.responsavelId === u.resp))
-      .filter(p => A.match(u.busca, p.numeroProcesso, p.texto, p.orgao, p.tipo, A.cliente(A.processo(p.processoId)?.clienteId)?.nome))
+      .filter(p => A.match(u.busca, p.numeroProcesso, A.rotuloPasta(A.processo(p.processoId)), String(A.processo(p.processoId)?.pasta || ''), p.texto, p.orgao, p.tipo, A.cliente(A.processo(p.processoId)?.clienteId)?.nome))
       .sort((a, b) => (b.disponibilizacao || '').localeCompare(a.disponibilizacao || '')); }
   A.exportadores.publicacoes = () => ({titulo: 'Publicações', filtros: 'Situação: ' + (A.PUB_LABEL[ui().status] || 'todas'), linhas: lista(), colunas: [
     {t:'Disponibilização', v:p => p.disponibilizacao, tipo:'date'}, {t:'Publicação', v:p => p.publicacao, tipo:'date'}, {t:'Tribunal', v:p => p.tribunal}, {t:'Órgão', v:p => p.orgao},
-    {t:'Processo', v:p => p.numeroProcesso}, {t:'Cliente', v:p => A.cliente(A.processo(p.processoId)?.clienteId)?.nome || ''}, {t:'Tipo', v:p => p.tipo}, {t:'Situação', v:p => A.PUB_LABEL[p.status]},
+    {t:'Pasta', v:p => A.processo(p.processoId)?.pasta || ''}, {t:'Processo', v:p => p.numeroProcesso}, {t:'Cliente', v:p => A.cliente(A.processo(p.processoId)?.clienteId)?.nome || ''}, {t:'Tipo', v:p => p.tipo}, {t:'Situação', v:p => A.PUB_LABEL[p.status]},
     {t:'Responsável', v:p => A.membro(p.responsavelId)?.nome || ''}, {t:'Texto', v:p => (p.texto || '').slice(0, 300)}]});
 
   function vLista() {
@@ -21,7 +21,7 @@
     const cards = arr.map(p => { const pr = A.processo(p.processoId), cli = A.cliente(pr?.clienteId), m = A.membro(p.responsavelId), prz = A.byId('prazos', p.prazoId);
       return `<div class="pcard" style="--c:${p.status === 'nova' ? 'var(--accent)' : 'var(--line)'};cursor:default">
         <div class="meta" style="justify-content:space-between"><span><b class="num">${esc(A.fmt(p.disponibilizacao))}</b> disponibilizada · publicação ${esc(A.fmt(p.publicacao))} · ${esc(p.tribunal || '')} · ${esc(p.orgao || '')}</span><span class="tag">${esc(A.PUB_LABEL[p.status])}</span></div>
-        <span class="t">${esc(p.tipo || 'Publicação')} · <span class="proc">${esc(p.numeroProcesso || 'sem número')}</span>${cli ? ' · ' + esc(cli.nome) : ''}</span>
+        <span class="t">${esc(p.tipo || 'Publicação')} · ${A.processo(p.processoId)?.pasta ? `<span class="evtag2">Pasta ${esc(A.processo(p.processoId).pasta)}</span> ` : ''}<span class="proc">${esc(p.numeroProcesso || 'sem número')}</span>${cli ? ' · ' + esc(cli.nome) : ''}</span>
         <span style="font-size:13px">${esc((p.texto || '').slice(0, 260))}${(p.texto || '').length > 260 ? '…' : ''}</span>
         <span class="meta">${A.avatar(m)} ${esc(m?.nome || 'Sem responsável')}${pr ? '' : ' · <b style="color:var(--warn)">processo não cadastrado</b>'}${prz ? ` · prazo gerado: ${esc(prz.tipo)} até ${esc(A.fmt(prz.vencimento))}` : ''}</span>
         <div class="rowact" style="justify-content:flex-start"><button class="btn small" data-action="abrir-pub" data-id="${esc(p.id)}">Abrir</button>

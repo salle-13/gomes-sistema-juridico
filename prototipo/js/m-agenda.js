@@ -37,16 +37,16 @@
   function evCard(it, compacto) {
     if (it.k === 'prazo') { const p = it.o, m = A.membro(p.responsavelId);
       return `<button class="evc s-${it.s}${it.s === 'concluido' ? ' done' : ''}" data-action="editar-prazo" data-id="${esc(p.id)}" title="${esc('Prazo · ' + p.tipo + ' · ' + nomeCliente(p) + ' · ' + (p.processo || '') + ' · ' + LABEL[it.s])}">
-        <b>PRAZO · ${esc(p.tipo)}${p.prioridade === 'alta' ? ' !' : ''}</b>${nomeCliente(p) ? `<span class="evx">${esc(nomeCliente(p))}</span>` : ''}<span class="evr">${esc(m ? m.nome : 'Sem responsável')}</span>${compacto ? '' : `<span class="evtag">${esc(LABEL[it.s])}${p.processo ? ' · ' + esc(p.processo) : ''}</span>`}</button>`; }
+        <b>PRAZO · ${esc(p.tipo)}${p.prioridade === 'alta' ? ' !' : ''}</b>${nomeCliente(p) ? `<span class="evx">${esc(nomeCliente(p))}</span>` : ''}<span class="evr">${esc(m ? m.nome : 'Sem responsável')}</span>${compacto ? (A.rotuloPasta(A.processo(p.processoId)) ? `<span class="evtag">${esc(A.rotuloPasta(A.processo(p.processoId)))}</span>` : '') : `<span class="evtag">${esc(LABEL[it.s])}${(p.processoId || p.processo) ? ' · ' + esc(A.rotuloProcId(p.processoId, p.processo)) : ''}</span>`}</button>`; }
     const c = it.o, m = A.membro(c.responsavelId), outros = (c.participantes || []).filter(id => id !== c.responsavelId).map(id => A.membro(id)?.nome).filter(Boolean), proc = A.processo(c.processoId);
     return `<button class="evc comp${c.status === 'concluido' ? ' done' : ''}" style="--rc:${esc(m ? m.cor : '#8893A3')}" data-action="editar-comp" data-id="${esc(c.id)}" title="${esc(horario(c) + ' · ' + c.tipo + ' · ' + c.titulo + (c.local ? ' · ' + c.local : ''))}">
-      <b>${esc(horario(c))} ${esc(c.tipo.toUpperCase())} - ${esc(c.titulo)}</b><span class="evr">${esc(m ? m.nome : 'Sem responsável')}${outros.length ? ' + ' + esc(outros.join(', ')) : ''}</span>${proc ? `<span class="evtag">${esc(proc.numero)}</span>` : ''}${!compacto && c.local ? `<span class="evx">${esc(c.local)}</span>` : ''}</button>`;
+      <b>${esc(horario(c))} ${esc(c.tipo.toUpperCase())} - ${esc(c.titulo)}</b><span class="evr">${esc(m ? m.nome : 'Sem responsável')}${outros.length ? ' + ' + esc(outros.join(', ')) : ''}</span>${proc ? `<span class="evtag">${esc(A.rotuloPasta(proc) || proc.numero)}</span>` : ''}${!compacto && c.local ? `<span class="evx">${esc(c.local)}</span>` : ''}</button>`;
   }
 
   A.pcardPrazo = function (p) { const s = sit(p), m = A.membro(p.responsavelId);
     return `<button class="pcard s-${s}" data-action="editar-prazo" data-id="${esc(p.id)}"><span class="t">${esc(p.tipo)}${p.prioridade === 'alta' ? ' · <span style="color:var(--danger)">prioridade alta</span>' : ''}</span>
       <span class="meta"><span class="pill">${esc(LABEL[s])}</span><span class="num">${esc(A.fmt(p.vencimento))}</span><span>${s === 'concluido' ? '' : esc(restam(p))}</span></span>
-      <span class="meta">${esc(nomeCliente(p))}</span><span class="meta proc">${esc(p.processo || '')}</span><span class="meta">${A.avatar(m)} ${esc(m ? m.nome : 'Sem responsável')}</span></button>`; };
+      <span class="meta">${esc(nomeCliente(p))}</span><span class="meta proc">${esc(A.rotuloProcId(p.processoId, p.processo))}</span><span class="meta">${A.avatar(m)} ${esc(m ? m.nome : 'Sem responsável')}</span></button>`; };
 
   /* ---------- barra de ferramentas única ---------- */
   function rotulo() { const u = ui(), r = ref();
@@ -129,23 +129,23 @@
   /* ---------- Lista ---------- */
   function listaFiltrada() { const u = ui(), aberto = x => x.status !== 'concluido';
     const ok = x => u.status === 'todos' || (u.status === 'concluidos' ? !aberto(x) : aberto(x));
-    const prz = u.mostrar === 'compromissos' ? [] : vis().filter(ok).filter(p => A.match(u.busca, p.processo, nomeCliente(p), p.tipo, p.descricao, p.obs, A.membro(p.responsavelId)?.nome)).map(p => ({k: 'prazo', o: p, data: p.vencimento, hora: '', s: sit(p)}));
-    const cps = u.mostrar === 'prazos' ? [] : visComp().filter(ok).filter(c => A.match(u.busca, c.titulo, c.tipo, c.local, c.obs, A.processo(c.processoId)?.numero, A.cliente(c.clienteId)?.nome, A.membro(c.responsavelId)?.nome)).map(c => ({k: 'comp', o: c, data: c.data, hora: c.horaInicio || ''}));
+    const prz = u.mostrar === 'compromissos' ? [] : vis().filter(ok).filter(p => A.match(u.busca, p.processo, A.rotuloPasta(A.processo(p.processoId)), nomeCliente(p), p.tipo, p.descricao, p.obs, A.membro(p.responsavelId)?.nome)).map(p => ({k: 'prazo', o: p, data: p.vencimento, hora: '', s: sit(p)}));
+    const cps = u.mostrar === 'prazos' ? [] : visComp().filter(ok).filter(c => A.match(u.busca, c.titulo, c.tipo, c.local, c.obs, A.processo(c.processoId)?.numero, A.rotuloPasta(A.processo(c.processoId)), A.cliente(c.clienteId)?.nome, A.membro(c.responsavelId)?.nome)).map(c => ({k: 'comp', o: c, data: c.data, hora: c.horaInicio || ''}));
     return [...prz, ...cps].sort((a, b) => (u.status !== 'concluidos' && a.k === 'prazo' && b.k === 'prazo' ? ORDER[a.s] - ORDER[b.s] : 0) || (a.data || '').localeCompare(b.data || '') || a.hora.localeCompare(b.hora)); }
   A.exportadores.prazos = () => ({titulo: 'Agenda', filtros: 'Situação: ' + ui().status + ' · ' + rotulo() + (ui().resp !== 'todos' ? ' · Responsável: ' + A.nomeDe(ui().resp) : ''), linhas: listaFiltrada(),
     colunas: [{t:'Item', v:i => i.k === 'prazo' ? 'Prazo' : 'Compromisso'}, {t:'Situação', v:i => i.k === 'prazo' ? LABEL[i.s] : (i.o.status === 'concluido' ? 'Concluído' : 'Agendado')}, {t:'Data', v:i => i.data, tipo:'date'}, {t:'Horário', v:i => i.k === 'prazo' ? '' : horario(i.o)},
-      {t:'Tipo', v:i => i.o.tipo}, {t:'Descrição', v:i => i.k === 'prazo' ? (i.o.descricao || '') : i.o.titulo}, {t:'Processo', v:i => i.k === 'prazo' ? i.o.processo : (A.processo(i.o.processoId)?.numero || '')},
+      {t:'Tipo', v:i => i.o.tipo}, {t:'Descrição', v:i => i.k === 'prazo' ? (i.o.descricao || '') : i.o.titulo}, {t:'Processo', v:i => A.rotuloProcId(i.o.processoId, i.k === 'prazo' ? i.o.processo : '')},
       {t:'Cliente', v:i => i.k === 'prazo' ? nomeCliente(i.o) : (A.cliente(i.o.clienteId)?.nome || '')}, {t:'Responsável', v:i => A.membro(i.o.responsavelId)?.nome || ''}]});
   function vLista() {
     const u = ui(), arr = listaFiltrada(), ed = A.pode('prazos', 'editar');
     const rows = arr.map(it => { const o = it.o, m = A.membro(o.responsavelId);
       if (it.k === 'prazo') { const s = it.s;
         return `<tr class="s-${s}${s === 'concluido' ? ' done' : ''}"><td><span class="pill">${esc(LABEL[s])}</span></td><td class="num" style="white-space:nowrap"><b>${esc(A.fmt(o.vencimento))}</b><br><span class="muted" style="font-size:12px">${s === 'concluido' ? '' : esc(restam(o))}</span></td>
-          <td>Prazo · ${esc(o.tipo)}${o.prioridade === 'alta' ? ' <span style="color:var(--danger);font-size:11px;font-weight:600">ALTA</span>' : ''}</td><td><span class="proc">${esc(o.processo)}</span><br><span class="muted" style="font-size:12px">${esc(nomeCliente(o))}</span></td>
+          <td>Prazo · ${esc(o.tipo)}${o.prioridade === 'alta' ? ' <span style="color:var(--danger);font-size:11px;font-weight:600">ALTA</span>' : ''}</td><td><span class="proc">${esc(A.rotuloProcId(o.processoId, o.processo))}</span><br><span class="muted" style="font-size:12px">${esc(nomeCliente(o))}</span></td>
           <td><span class="who">${A.avatar(m)}${esc(m ? m.nome : '—')}</span></td><td><div class="rowact">${ed ? `<button class="btn small" data-action="concluir-prazo" data-id="${esc(o.id)}">${s === 'concluido' ? 'Reabrir' : 'Concluir'}</button>` : ''}<button class="btn small" data-action="editar-prazo" data-id="${esc(o.id)}">${ed ? 'Editar' : 'Ver'}</button></div></td></tr>`; }
       const done = o.status === 'concluido', proc = A.processo(o.processoId), cli = A.cliente(o.clienteId);
       return `<tr class="s-comp${done ? ' done' : ''}"><td><span class="pill">${done ? 'Concluído' : 'Agendado'}</span></td><td class="num" style="white-space:nowrap"><b>${esc(A.fmt(o.data))}</b><br><span class="muted" style="font-size:12px">${esc(horario(o))}</span></td>
-        <td>${esc(o.tipo)} · ${esc(o.titulo)}</td><td><span class="proc">${esc(proc ? proc.numero : '')}</span><br><span class="muted" style="font-size:12px">${esc(cli ? cli.nome : (o.local || ''))}</span></td>
+        <td>${esc(o.tipo)} · ${esc(o.titulo)}</td><td><span class="proc">${esc(proc ? A.rotuloProcesso(proc) : '')}</span><br><span class="muted" style="font-size:12px">${esc(cli ? cli.nome : (o.local || ''))}</span></td>
         <td><span class="who">${A.avatar(m)}${esc(m ? m.nome : '—')}</span></td><td><div class="rowact">${ed ? `<button class="btn small" data-action="concluir-comp" data-id="${esc(o.id)}">${done ? 'Reabrir' : 'Concluir'}</button>` : ''}<button class="btn small" data-action="editar-comp" data-id="${esc(o.id)}">${ed ? 'Editar' : 'Ver'}</button></div></td></tr>`; }).join('');
     return quadro(`<div class="filters"><select id="pzSt" data-ui="agenda.status">${A.opts([['abertos','Em aberto'],['concluidos','Concluídos'],['todos','Todos']], u.status)}</select>
       <input id="pzBusca" type="search" data-ui="agenda.busca" placeholder="Buscar processo, cliente, tipo, título…" value="${esc(u.busca)}" style="flex:1 1 240px"><span class="muted num">${arr.length} item(ns)</span></div>
@@ -239,7 +239,7 @@
     if (p.processoId && !p.processo) { const pr = A.processo(p.processoId); if (pr) { p.processo = pr.numero; p.clienteId = p.clienteId || pr.clienteId; p.responsavelId = p.responsavelId || pr.responsavelId; } }
     A.modal(`${A.modalHead(novo ? 'Novo prazo' : 'Prazo', !novo ? `<span class="pill s-${sit(p)}">${esc(LABEL[sit(p)])}</span>` : '')}
     <form id="fPrazo"><div class="body">
-      ${A.sel('pProcId', 'Processo cadastrado', A.optsProcessos(p.processoId, 'Não vinculado'), 'full', ro)}
+      ${A.sel('pProcId', 'Pasta / processo', A.optsProcessos(p.processoId, 'Não vinculado'), 'full', ro)}
       ${A.inp('pProc', 'Nº do processo (CNJ)', p.processo, `placeholder="0000000-00.0000.0.00.0000" ${ro}`)}
       ${A.sel('pCli', 'Cliente', A.optsClientes(p.clienteId, p.cliente || 'Nenhum'), '', ro)}
       ${A.field('pTipo', 'Tipo de prazo', `<input id="pTipo" list="tiposList" value="${esc(p.tipo)}" required ${ro}><datalist id="tiposList">${TIPOS.map(t => `<option value="${esc(t)}">`).join('')}</datalist>`)}

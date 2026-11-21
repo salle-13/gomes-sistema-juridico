@@ -31,7 +31,7 @@ There is no build, package manager, linter or test suite.
 - Shared helpers include `A.esc` (always escape interpolated values), form builders (`A.inp/sel/area/field`, `A.v(id)` to read values), `A.modal/closeModal/confirm/toast`, and money/date formatters.
 
 **app.js** handles boot, navigation and event delegation:
-- Hash routing (`#ano`, `#processos`, `#fin-pagar`, …). The sidebar groups live in `GRUPOS`, so a new route must be added there to appear in the nav.
+- Hash routing (`#agenda`, `#processos`, `#fin-pagar`, …). Old hashes `#ano`, `#mes` and `#prazos` are aliases (`A.aliases`) that open the Agenda in the matching view. The sidebar groups live in `GRUPOS`, so a new route must be added there to appear in the nav.
 - One delegated listener per event type: `data-action="x"` on click → `A.actions.x(el, e)`, `data-onchange="x"` on change, and `data-ui="mod.key"` writes straight into `A.ui(mod)[key]` and re-renders. Wire UI through these attributes rather than adding listeners.
 - **Two storage modes.** If `window.claude.use('db')` exists (published as a Claude artifact), the app uses a shared realtime DB with `onSnapshot` per collection, and `S.mode` is `db`/`slow`/`erro`. Otherwise it runs in `local` mode on `localStorage`. File uploads (Documentos) and user identity (`isOwner`, `contaId`) only work in the Claude mode.
 

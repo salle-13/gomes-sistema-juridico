@@ -2,7 +2,7 @@
 (function (A) {
   const S = A.S, P = A.P;
   const GRUPOS = [
-    ['Agenda', ['ano','mes','prazos']],
+    ['Agenda', ['agenda']],
     ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
     ['Gestão', ['relatorios','equipe','config']],
@@ -18,8 +18,9 @@
   /* ---------- render principal ---------- */
   A.renderNow = function () {
     resolverUsuario();
-    let rota = (location.hash || '#ano').slice(1);
-    if (!A.routes[rota]) rota = 'ano';
+    let rota = (location.hash || '#agenda').slice(1);
+    if (A.aliases && A.aliases[rota]) { A.aliases[rota](); rota = 'agenda'; history.replaceState(null, '', '#agenda'); }
+    if (!A.routes[rota]) rota = 'agenda';
     S.rota = rota;
     renderNav(rota); renderTopo(); renderAlertas(); renderAviso();
     const r = A.routes[rota], main = document.getElementById('main');
@@ -67,6 +68,7 @@
     const urg = [...g.vencido, ...g.hoje, ...g.critico, ...g.atencao].sort((a, b) => (a.vencimento || '').localeCompare(b.vencimento || ''));
     const quente = g.vencido.length + g.hoje.length + g.critico.length;
     const c = (k, txt) => g[k].length ? `<span class="count s-${k}">${g[k].length} ${txt}</span>` : '';
+    if (A.pode('prazos', 'ver')) { const n = A.col('compromissos').filter(c => c.data === h && c.status !== 'concluido' && (filtro === 'todos' || c.responsavelId === filtro || (c.participantes || []).includes(filtro))).length; if (n) chips.push(`<button class="achip" data-action="ag-ver-dia" data-dia="${h}" style="font-weight:600">${n} compromisso(s) hoje</button>`); }
     if (A.pode('publicacoes', 'ver')) { const n = A.col('publicacoes').filter(p => p.status === 'nova').length; if (n) chips.push(`<a class="achip" href="#publicacoes" style="border-color:var(--accent);color:var(--accent);font-weight:600;text-decoration:none">${n} publicação(ões) nova(s) para tratar</a>`); }
     if (A.pode('clientes', 'ver')) { const n = A.aguardando ? A.aguardando().length : 0; if (n) chips.push(`<a class="achip" href="#clientes" style="border-color:var(--accent);color:var(--accent);font-weight:600;text-decoration:none">${n} caso(s) novo(s) aguardando análise</a>`); }
     if (A.pode('financeiro', 'ver')) { const v = A.col('fin_lancamentos').filter(f => f.status === 'pendente' && f.vencimento <= h);
@@ -85,7 +87,7 @@
     const tem = A.COLS.some(c => A.col(c).some(x => x.exemplo));
     el.innerHTML = tem && A.pode('equipe', 'editar') ? `<div class="notice"><span>O sistema está com <strong>dados de exemplo</strong> para testes. Quando for usar de verdade, remova-os.</span><button class="btn small" data-action="limpar-exemplos">Remover exemplos</button></div>` : '';
   }
-  A.on('limpar-exemplos', () => A.confirm('Remover dados de exemplo', 'Todos os registros de exemplo (equipe, clientes, processos, publicações, prazos e financeiro) serão apagados. O que vocês cadastraram continua.', 'Remover exemplos', async () => {
+  A.on('limpar-exemplos', () => A.confirm('Remover dados de exemplo', 'Todos os registros de exemplo (equipe, clientes, processos, publicações, prazos, compromissos e financeiro) serão apagados. O que vocês cadastraram continua.', 'Remover exemplos', async () => {
     for (const c of A.COLS) for (const x of A.col(c).filter(x => x.exemplo)) await A.remove(c, x.id);
     A.toast('Exemplos removidos.');
   }));

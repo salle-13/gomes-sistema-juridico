@@ -475,6 +475,33 @@ CREATE INDEX ix_prazos_resp ON prazos (org_id, responsavel_id, vencimento) WHERE
 CREATE INDEX ix_prazos_proc ON prazos (processo_id);
 CREATE UNIQUE INDEX ux_prazo_auto_pub ON prazos (publicacao_id) WHERE origem = 'automatica';  -- 1 sugestão por publicação
 
+-- Compromissos da agenda (atendimentos, audiências, reuniões): têm horário, diferentemente dos prazos.
+CREATE TABLE compromissos (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  tipo             text NOT NULL DEFAULT 'Atendimento',  -- Atendimento, Audiência, Reunião, Inicial, Consulta, Diligência…
+  titulo           text NOT NULL,
+  data             date NOT NULL,
+  dia_inteiro      boolean NOT NULL DEFAULT false,
+  hora_inicio      time,
+  hora_fim         time,
+  responsavel_id   uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  participantes    uuid[] NOT NULL DEFAULT '{}',          -- outros membros da equipe
+  processo_id      uuid REFERENCES processos(id) ON DELETE SET NULL,
+  cliente_id       uuid REFERENCES clientes(id) ON DELETE SET NULL,
+  local            text,                                  -- endereço ou link da sala virtual
+  status           text NOT NULL DEFAULT 'agendado' CHECK (status IN ('agendado','concluido','cancelado')),
+  obs              text,
+  exemplo          boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  CHECK (dia_inteiro OR hora_inicio IS NOT NULL),
+  CHECK (hora_fim IS NULL OR hora_inicio IS NULL OR hora_fim >= hora_inicio)
+);
+CREATE INDEX ix_comp_data ON compromissos (org_id, data, hora_inicio);
+CREATE INDEX ix_comp_resp ON compromissos (org_id, responsavel_id, data);
+CREATE INDEX ix_comp_part ON compromissos USING gin (participantes);
+
 -- ---------------------------------------------------------------------
 -- 9. Documentos
 -- ---------------------------------------------------------------------
@@ -735,11 +762,11 @@ END $$;
 DO $$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
+  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','compromissos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_rastreio BEFORE INSERT OR UPDATE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_rastreio()', t);
   END LOOP;
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_encaminhamentos','processos',
-                           'publicacoes','regras_prazo','prazos','documentos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
+                           'publicacoes','regras_prazo','prazos','compromissos','documentos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_auditar AFTER INSERT OR UPDATE OR DELETE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_auditar()', t);
   END LOOP;
 END $$;
@@ -751,7 +778,7 @@ DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_historico','processos','processo_andamentos',
-                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','documentos','modelos_documento',
+                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','compromissos','documentos','modelos_documento',
                            'centros_custo','contas_financeiras','fin_lancamentos','jobs','avisos','integracoes_log','auditoria'] LOOP
     EXECUTE format('ALTER TABLE app.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('CREATE POLICY pol_org ON app.%I USING (org_id = app.org_atual()) WITH CHECK (org_id = app.org_atual())', t);

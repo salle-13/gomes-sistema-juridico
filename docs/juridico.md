@@ -90,6 +90,15 @@ Convenções de dados, válidas para todos os módulos:
 | `prazoId` | — | id | Automático | Prazo gerado a partir da publicação |
 | `tratadaEm` / `tratadaPor` | — | data e hora / id | Automático | Quem tratou e quando |
 
+### Importação do Projuris
+Botão **Importar do Projuris** (Clientes). Lê a planilha "Pessoas em planilha" (CSV, XLS ou XLSX) **no próprio navegador**: o arquivo não é enviado a nenhum servidor.
+- Entram só as pessoas da categoria **Cliente**, na Carteira (situação `ativo`), com `importado = 'projuris'`. "Outro" e "Advogado" ficam para a importação de processos (partes contrárias).
+- **Não entram (lista para conferir, exportável em CSV):** CPF/CNPJ já cadastrado ou repetido na planilha; nome repetido sem CPF/CNPJ; cadastros que parecem órgão público ou do tribunal.
+- **Entram com anotação "REVISAR" nas observações:** CPF/CNPJ inválido; empresa cadastrada como pessoa física; nome só com iniciais; estado civil, nacionalidade ou data de nascimento que não deu para interpretar.
+- Padroniza nacionalidade e estado civil, limpa nomes que começam com "." ou "-", converte datas para AAAA-MM-DD. CNH, título de eleitor, inscrições e a coluna "Qualificação" vão para as observações.
+- Mostra um resumo antes de gravar. **Desfazer a importação** apaga só os clientes importados.
+- Primeira planilha real (22/11/2026): 1.957 clientes → 1.917 entram (195 com algo a revisar) e 40 vão para conferência.
+
 ### Fluxo de situação
 ```
 Nova ──► Lida ──► Tratada (prazo gerado)
@@ -122,6 +131,9 @@ Nova ──► Lida ──► Tratada (prazo gerado)
 | `telefone` | Telefone / WhatsApp | texto | Não | |
 | `email` | E-mail | texto | Não | |
 | `endereco` | Endereço | texto | Não | |
+| `dataNascimento`, `naturalidade`, `nomeMae`, `nomePai` | Nascimento, naturalidade, filiação | data / texto | Não | Só pessoa física. Úteis em ações trabalhistas, previdenciárias e de família |
+| `empresa`, `ctps`, `pis` | Empregador, CTPS, PIS/PASEP | texto | Não | Só pessoa física |
+| `obs` | Observações | texto longo | Não | CNH, título de eleitor, inscrições, pendências de cadastro. A busca da Carteira procura aqui também |
 | `area` | Área | lista | Não | Mesma lista de Processos |
 | `origem` | Como chegou | texto | Não | Indicação, site, Instagram, WhatsApp, telefone, presencial, parceiro |
 | `urgencia` | Urgência | `normal` \| `alta` | Sim | Alta = prazo correndo ou audiência próxima |

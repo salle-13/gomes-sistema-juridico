@@ -5104,3 +5104,9 @@ button.notification-copy:focus-visible { outline: 2px solid var(--accent); outli
   .gsearch kbd { display: none; }
   .gsearch-res { min-width: 0; }
 }
+
+/* Importação do Projuris */
+.passos{margin:0 0 6px;padding-left:20px;line-height:1.6}
+.aviso-imp{background:var(--warn-soft,#FFF4D6);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
+.imp-kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:10px}
+@media (max-width:700px){.imp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}

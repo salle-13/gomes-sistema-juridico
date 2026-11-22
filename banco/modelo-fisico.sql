@@ -196,6 +196,16 @@ CREATE TABLE clientes (
   representante_nome  text,                      -- qualificação (PJ)
   representante_cpf   text,
   representante_cargo text,
+  data_nascimento  date,                          -- PF; trazidos do Projuris e usados em ações trabalhistas/previdenciárias
+  naturalidade     text,
+  nome_mae         text,
+  nome_pai         text,
+  empresa          text,                          -- empregador (PF)
+  ctps             text,
+  pis              text,
+  obs              text,                          -- observações gerais (CNH, título, inscrições, pendências)
+  importado_de     text CHECK (importado_de IS NULL OR importado_de IN ('projuris')),  -- permite desfazer a importação
+  revisar          boolean NOT NULL DEFAULT false, -- importado com campo a conferir
   uf               char(2),
   origem           text,                         -- como chegou
   area             text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD')),

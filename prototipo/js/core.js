@@ -77,6 +77,28 @@ window.App = window.App || {};
     try { const {id, ...data} = obj; await S.db.collection(Store.path(col)).doc(id).set(data); return obj; }
     catch (e) { A.falha(e); return null; }
   };
+  /* Gravação em lote (importações). No modo local grava tudo e salva uma vez só; se o navegador
+     não tiver espaço, desfaz e avisa. No modo compartilhado grava em paralelo, poucos por vez. */
+  A.saveLote = async function (col, objs, progresso) {
+    const agora = new Date().toISOString(), prontos = objs.map(o => Object.assign({}, o, {id: o.id || A.uid(), criadoEm: o.criadoEm || agora, criadoPor: o.criadoPor || S.meId || null, atualizadoEm: agora, atualizadoPor: S.meId || null}));
+    if (Store.local()) {
+      const antes = S.data[col].slice(), ids = new Set(prontos.map(o => o.id));
+      S.data[col] = S.data[col].filter(x => !ids.has(x.id)).concat(prontos);
+      try { localStorage.setItem('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes})); }
+      catch (e) { S.data[col] = antes; A.toast('O navegador não tem espaço para guardar tudo. Nada foi gravado.'); return false; }
+      progresso && progresso(prontos.length, prontos.length); A.render(); A.aoAtualizar && A.aoAtualizar(col); return true;
+    }
+    let feitos = 0, erro = null; const fila = prontos.slice();
+    const trabalhador = async () => { while (fila.length && !erro) { const {id, ...data} = fila.shift();
+      try { await S.db.collection(Store.path(col)).doc(id).set(data); feitos++; progresso && progresso(feitos, prontos.length); } catch (e) { erro = e; } } };
+    await Promise.all([1, 2, 3, 4].map(trabalhador));
+    if (erro) { A.falha(erro); A.toast(`Gravados ${feitos} de ${prontos.length}. Tente importar de novo: os já gravados aparecem como duplicados e não entram outra vez.`); return false; }
+    return true;
+  };
+  A.removeLote = async function (col, ids) {
+    if (Store.local()) { const set = new Set(ids); S.data[col] = S.data[col].filter(x => !set.has(x.id)); Store.persistLocal(); A.render(); return true; }
+    try { for (const id of ids) await S.db.collection(Store.path(col)).doc(id).delete(); return true; } catch (e) { A.falha(e); return false; }
+  };
   A.remove = async function (col, id) {
     if (Store.local()) { S.data[col] = S.data[col].filter(x => x.id !== id); Store.persistLocal(); A.render(); return true; }
     try { await S.db.collection(Store.path(col)).doc(id).delete(); return true; } catch (e) { A.falha(e); return false; }

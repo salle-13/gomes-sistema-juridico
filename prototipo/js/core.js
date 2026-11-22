@@ -95,9 +95,15 @@ window.App = window.App || {};
     if (erro) { A.falha(erro); A.toast(`Gravados ${feitos} de ${prontos.length}. Tente importar de novo: os já gravados aparecem como duplicados e não entram outra vez.`); return false; }
     return true;
   };
-  A.removeLote = async function (col, ids) {
+  A.removeLote = async function (col, ids, progresso) {
     if (Store.local()) { const set = new Set(ids); S.data[col] = S.data[col].filter(x => !set.has(x.id)); Store.persistLocal(); A.render(); return true; }
-    try { for (const id of ids) await S.db.collection(Store.path(col)).doc(id).delete(); return true; } catch (e) { A.falha(e); return false; }
+    /* O banco compartilhado limita escritas seguidas: apaga com pausa curta e tenta de novo, esperando mais a cada recusa. */
+    const pausa = ms => new Promise(r => setTimeout(r, ms)); let feitos = 0, erro = null;
+    for (const id of ids) { let ok = false;
+      for (let t = 0; t < 6 && !ok; t++) { try { await S.db.collection(Store.path(col)).doc(id).delete(); ok = true; } catch (e) { erro = e; await pausa(1500 * (t + 1)); } }
+      if (!ok) break; feitos++; if (progresso) progresso(feitos, ids.length); await pausa(120); }
+    if (feitos < ids.length) { A.falha(erro); A.toast(`Apagadas ${feitos} de ${ids.length}. Toque de novo para continuar.`); return false; }
+    return true;
   };
   A.remove = async function (col, id) {
     if (Store.local()) { S.data[col] = S.data[col].filter(x => x.id !== id); Store.persistLocal(); A.render(); return true; }

@@ -1,6 +1,6 @@
 # Gomes · Sistema Jurídico
 
-Sistema de gestão jurídica da Gomes Assessoria Jurídica (Araguari/MG · Uberlândia/MG): agenda e prazos, processos, publicações do DJEN, clientes (captação e carteira), documentos, modelos de documentos (procuração, contrato, declaração), equipe e permissões, financeiro e relatórios.
+Sistema de gestão jurídica da Gomes Assessoria Jurídica (Araguari/MG): agenda e prazos, processos, publicações do DJEN, clientes (captação e carteira), documentos, modelos de documentos (procuração, contrato, declaração), equipe e permissões, financeiro e relatórios.
 
 > **Fase atual:** protótipo funcional, para uma única organização (single-tenant), com dados de exemplo fictícios. O sistema definitivo terá backend próprio (PostgreSQL + coletor DJEN), já especificado em `docs/`.
 

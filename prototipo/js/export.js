@@ -55,7 +55,7 @@
         const W = doc.internal.pageSize.getWidth();
         doc.setFillColor(39, 56, 132); doc.rect(0, 0, W, 54, 'F');
         doc.setTextColor(234, 233, 233); doc.setFontSize(13); doc.text('GOMES · Assessoria Jurídica', 36, 24);
-        doc.setFontSize(9); doc.text('Araguari/MG · Uberlândia/MG', 36, 40);
+        doc.setFontSize(9); doc.text((A.S.config && A.S.config.escritorioCidade) || 'Araguari/MG', 36, 40);
         doc.setTextColor(19, 18, 11); doc.setFontSize(15); doc.text(def.titulo, 36, 82);
         doc.setFontSize(9); doc.setTextColor(84, 89, 95);
         doc.text((def.filtros ? def.filtros + '   ·   ' : '') + 'Gerado em ' + A.quando(new Date().toISOString()), 36, 98);

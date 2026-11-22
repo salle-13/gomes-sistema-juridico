@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Legal-practice management system for Gomes Assessoria Jurídica (Araguari/Uberlândia, MG). It covers agenda/deadlines (prazos), processes, DJEN publications, clients (intake and portfolio), documents, team/permissions, finance and reports. The UI, code identifiers and docs are in **Portuguese (pt-BR)**, so keep new code and text in Portuguese.
+Legal-practice management system for Gomes Assessoria Jurídica (Araguari/MG; a single office). It covers agenda/deadlines (prazos), processes, DJEN publications, clients (intake and portfolio), documents, team/permissions, finance and reports. The UI, code identifiers and docs are in **Portuguese (pt-BR)**, so keep new code and text in Portuguese.
 
 Current phase: a single-tenant **prototype** with fictitious sample data. The future backend (PostgreSQL + DJEN collector) is specified in `docs/` and `banco/`, but none of it is implemented yet.
 

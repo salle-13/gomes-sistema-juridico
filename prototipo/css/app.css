@@ -5110,3 +5110,10 @@ button.notification-copy:focus-visible { outline: 2px solid var(--accent); outli
 .aviso-imp{background:var(--warn-soft,#FFF4D6);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
 .imp-kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:10px}
 @media (max-width:700px){.imp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.imp-etapas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.imp-etapa{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.imp-etapa h4{margin:0 0 4px}
+.imp-etapa .drop{display:block}
+.imp-etapa .drop.off{opacity:.5;cursor:not-allowed}
+.imp-lista{margin:0 0 10px;padding-left:20px;line-height:1.55;font-size:13.5px}
+@media (max-width:760px){.imp-etapas{grid-template-columns:minmax(0,1fr)}}

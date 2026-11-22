@@ -208,7 +208,7 @@ CREATE TABLE clientes (
   revisar          boolean NOT NULL DEFAULT false, -- importado com campo a conferir
   uf               char(2),
   origem           text,                         -- como chegou
-  area             text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD')),
+  area             text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD','Direito Criminal','Direito Bancário','Direito Administrativo','Direito Tributário','Direito Imobiliário','Direito Empresarial','Outras')),
   historia         text,
   urgencia         text NOT NULL DEFAULT 'normal' CHECK (urgencia IN ('normal','alta')),
   status           text NOT NULL DEFAULT 'novo'
@@ -270,7 +270,7 @@ CREATE TABLE processos (
   classe          text,
   classe_codigo   integer,                        -- TPU/CNJ
   assuntos        jsonb NOT NULL DEFAULT '[]',    -- [{codigo, nome}] TPU
-  area            text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD')),
+  area            text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD','Direito Criminal','Direito Bancário','Direito Administrativo','Direito Tributário','Direito Imobiliário','Direito Empresarial','Outras')),
   valor_causa     bigint CHECK (valor_causa IS NULL OR valor_causa >= 0),  -- centavos
   responsavel_id  uuid REFERENCES equipe(id) ON DELETE SET NULL,
   status          text NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo','suspenso','arquivado','encerrado')),
@@ -278,6 +278,8 @@ CREATE TABLE processos (
   segredo_justica boolean NOT NULL DEFAULT false,
   obs             text,
   origem_dados    text NOT NULL DEFAULT 'manual' CHECK (origem_dados IN ('manual','datajud','fornecedor')),
+  importado_de    text CHECK (importado_de IS NULL OR importado_de IN ('projuris')),  -- permite desfazer a migração
+  revisar         boolean NOT NULL DEFAULT false,  -- importado com algo a conferir
   ultima_sincronizacao timestamptz,
   exemplo         boolean NOT NULL DEFAULT false,
   criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,

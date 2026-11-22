@@ -16,6 +16,7 @@
   }
 
   /* ---------- render principal ---------- */
+  let mudouCampo = false; // true quando o redesenho vem de uma escolha feita num campo (evento change)
   A.renderNow = function () {
     resolverUsuario();
     let rota = (location.hash || '#agenda').slice(1);
@@ -25,6 +26,12 @@
     renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino(); A.renderBusca && A.renderBusca();
     const r = A.routes[rota], main = document.getElementById('main');
     if (r.mod && !A.pode(r.mod, 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
+    // Lista suspensa (select) em uso: redesenhar agora a fecharia na mão da pessoa. Adia até ela escolher ou sair do campo.
+    const ativo = document.activeElement;
+    if (!mudouCampo && ativo && ativo.tagName === 'SELECT' && main.contains(ativo)) {
+      if (!ativo._adiado) { ativo._adiado = true; ativo.addEventListener('blur', () => { ativo._adiado = false; A.render(); }, {once: true}); }
+      return; }
+    mudouCampo = false;
     const lado = r.lado ? r.lado() : '';
     main.className = lado ? '' : 'single';
     const foco = document.activeElement && document.activeElement.id && main.contains(document.activeElement) ? [document.activeElement.id, document.activeElement.selectionStart] : null;
@@ -118,7 +125,7 @@
     const f = A.actions[a]; if (f) { e.stopPropagation(); f(t, e); }
   });
   document.addEventListener('change', e => {
-    const t = e.target;
+    const t = e.target; mudouCampo = true;
     if (t.dataset && t.dataset.onchange && A.actions[t.dataset.onchange]) { A.actions[t.dataset.onchange](t, e); return; }
     if (t.dataset && t.dataset.ui && t.tagName !== 'INPUT' || (t.dataset && t.dataset.ui && (t.type === 'checkbox' || t.type === 'date' || t.type === 'month'))) setUi(t);
   });

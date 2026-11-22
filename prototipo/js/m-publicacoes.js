@@ -161,7 +161,7 @@
         <p class="muted" style="font-size:12.5px">A consulta é pública (API do CNJ). Publicações já importadas não entram de novo.</p>
         <div id="djRes" class="djres"></div>`
       : '<p>Nenhum membro da Equipe tem OAB cadastrada. Cadastre em <b>Equipe e permissões</b> (campo OAB, ex.: OAB/MG 181.253).</p>'}
-    </div><footer><button class="btn" data-action="modal-fechar">Fechar</button>${advs.length ? '<button class="btn primary" data-action="pub-djen-buscar">Buscar</button>' : ''}</footer>`, {wide: true});
+    </div><footer>${A.col('publicacoes').some(p => p.origem === 'djen') ? `<button class="btn danger left" data-action="pub-djen-desfazer">Apagar as ${A.col('publicacoes').filter(p => p.origem === 'djen').length} importadas do DJEN</button>` : ''}<button class="btn" data-action="modal-fechar">Fechar</button>${advs.length ? '<button class="btn primary" data-action="pub-djen-buscar">Buscar</button>' : ''}</footer>`, {wide: true});
   });
   A.on('pub-djen-buscar', async el => {
     const res = document.getElementById('djRes'), ini = document.getElementById('djIni').value, fim = document.getElementById('djFim').value, sel = document.getElementById('djAdv').value;
@@ -188,6 +188,9 @@
     res.innerHTML = `<p><b>${itens.length}</b> publicação(ões) encontradas, <b>${r.n}</b> nova(s) importada(s).${r.semResp ? ` ${r.semResp} ficaram sem responsável.` : ''}</p>${falhas.map(f => `<p class="erro">${esc(f)}</p>`).join('')}`;
     ui().status = 'nova'; A.render();
   });
+  A.on('pub-djen-desfazer', () => { const ids = A.col('publicacoes').filter(p => p.origem === 'djen' && !p.prazoId).map(p => p.id), comPrazo = A.col('publicacoes').filter(p => p.origem === 'djen' && p.prazoId).length;
+    A.confirm('Apagar publicações do DJEN', `Serão apagadas ${ids.length} publicação(ões) trazidas do DJEN${comPrazo ? ` (as ${comPrazo} que já geraram prazo ficam)` : ''}. As cadastradas à mão e as de exemplo continuam. Dá para buscar de novo depois.`, 'Apagar', async () => {
+      if (await A.removeLote('publicacoes', ids)) A.toast(ids.length + ' publicação(ões) do DJEN apagada(s).'); }); });
   A.on('pub-djen-colar', async () => { const t = document.getElementById('djCola')?.value || ''; let itens;
     try { itens = parse(t); const sel = document.getElementById('djAdv')?.value; if (sel && sel !== '*') itens.forEach(x => { x.buscaAdv = sel; }); } catch (e) { A.toast('Não reconheci o texto. Copie a página inteira do DJEN, começando por {"status"...'); return; }
     const r = await importarItens(itens); if (!r) return; document.getElementById('djCola').value = '';

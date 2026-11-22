@@ -92,6 +92,8 @@ erDiagram
 | Protótipo (`js/schema.js`) | Banco definitivo |
 |---|---|
 | `processos.andamentos` (lista dentro do processo) | Tabela `processo_andamentos` (origem manual/DataJud/fornecedor) |
+| `processos.importado`, `revisar` | `processos.importado_de`, `revisar` (migração do Projuris); andamentos importados vão para `processo_andamentos` com origem `manual` e texto completo |
+| `A.AREAS` (lista de áreas) | `CHECK` de `clientes.area` e `processos.area`, ampliado com Criminal, Bancário, Administrativo, Tributário, Imobiliário, Empresarial e Outras |
 | `processos.pasta` (nº da pasta, 1 pasta = 1 processo) | `processos.pasta`, único por escritório; numerado pelo banco (maior + 1) quando não informado. `processos.numero` passa a aceitar NULL até o ajuizamento |
 | `clientes.encaminhadoPara` e `clientes.historico` (listas) | Tabelas `cliente_encaminhamentos` e `cliente_historico` |
 | `config/geral.feriadosLocais` | Tabela `feriados` (com comarca e tribunal) |

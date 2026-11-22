@@ -98,6 +98,14 @@ Botão **Importar do Projuris** (Clientes). Lê a planilha "Pessoas em planilha"
 - Padroniza nacionalidade e estado civil, limpa nomes que começam com "." ou "-", converte datas para AAAA-MM-DD. CNH, título de eleitor, inscrições e a coluna "Qualificação" vão para as observações.
 - Mostra um resumo antes de gravar. **Desfazer a importação** apaga só os clientes importados.
 - Primeira planilha real (22/11/2026): 1.957 clientes → 1.917 entram (195 com algo a revisar) e 40 vão para conferência.
+- **Pastas e processos** (etapa 2, liberada depois dos clientes): no Projuris, **Casos → selecionar todos → ícone do Excel → Detalhado**. Aceita o `.zip` exportado ou os arquivos `pastas`, `processos` e `movimentacao` juntos (o .zip é aberto no próprio navegador).
+  - Cada pasta entra com o **número original** do Projuris. Processos de exemplo que usem o mesmo número são renumerados para 9000+.
+  - O cliente é ligado pelo nome. Se houver mais de um cliente com o mesmo nome, a pasta entra sem cliente e marcada para revisar. Se o cliente não existir (não estava como "Cliente" em Pessoas), ele é criado e marcado para revisar.
+  - "Advogado principal" vira o responsável; nomes que não estão na Equipe são cadastrados como advogado(a).
+  - Natureza vira a área; tribunal e comarca (TJMG: Araguari, Uberlândia) vêm do número CNJ; instância vai para "vara"; data do desdobramento vira "distribuído em".
+  - Andamentos: as N movimentações mais recentes de cada pasta (5 por padrão). No modo local, o texto de cada uma é encurtado para 400 caracteres por causa do limite de espaço do navegador.
+  - O Projuris não exporta se o cliente é autor ou réu nessa planilha: todas entram como polo ativo.
+  - Primeira exportação real (22/11/2026): 1.210 pastas ativas → todas entram; 1.179 ligadas ao cliente, 31 a revisar, 6 clientes criados, 85.855 movimentações no arquivo.
 
 ### Fluxo de situação
 ```

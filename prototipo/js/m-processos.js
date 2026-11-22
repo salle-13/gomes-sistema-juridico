@@ -4,7 +4,7 @@
   const ui = () => A.ui('processos', {busca: '', status: 'ativo', area: '', resp: ''});
   const STATUS = [['ativo','Ativo'],['suspenso','Suspenso'],['arquivado','Arquivado'],['encerrado','Encerrado']];
   const ST_LABEL = Object.fromEntries(STATUS);
-  A.AREAS = ['Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD'];
+  A.AREAS = ['Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD','Direito Criminal','Direito Bancário','Direito Administrativo','Direito Tributário','Direito Imobiliário','Direito Empresarial','Outras'];
   const abertosDe = id => A.col('prazos').filter(p => p.processoId === id && p.status !== 'concluido');
 
   function lista() { const u = ui();
@@ -18,7 +18,7 @@
 
   function vLista() {
     const u = ui(), arr = lista(), ed = A.pode('processos', 'editar');
-    const rows = arr.map(p => { const c = A.cliente(p.clienteId), m = A.membro(p.responsavelId), ab = abertosDe(p.id);
+    const LIM = 300, rows = arr.slice(0, LIM).map(p => { const c = A.cliente(p.clienteId), m = A.membro(p.responsavelId), ab = abertosDe(p.id);
       const urg = ab.filter(x => ['vencido','hoje','critico'].includes(A.sitPrazo(x))).length;
       return `<tr class="row-click" data-action="abrir-processo" data-id="${esc(p.id)}"><td class="num"><b>${esc(p.pasta || '—')}</b></td><td><span class="proc">${esc(p.numero || 'Sem nº (não ajuizado)')}</span><br><span class="muted" style="font-size:12px">${esc(p.classe || '')}</span></td>
         <td>${esc(c?.nome || '—')}<br><span class="muted" style="font-size:12px">x ${esc(p.parteContraria || '—')}</span></td><td>${esc([p.vara, p.comarca].filter(Boolean).join(' · '))}<br><span class="muted" style="font-size:12px">${esc(p.tribunal || '')}</span></td>
@@ -28,7 +28,7 @@
       <div class="filters"><input id="prBusca" type="search" data-ui="processos.busca" placeholder="Buscar pasta, número, cliente, parte contrária, vara…" value="${esc(u.busca)}" style="flex:1 1 260px">
         <select id="prSt" data-ui="processos.status">${A.opts(STATUS, u.status, 'Todas as situações')}</select><select id="prArea" data-ui="processos.area">${A.opts(A.AREAS, u.area, 'Todas as áreas')}</select>
         <select id="prResp" data-ui="processos.resp">${A.optsEquipe(u.resp, 'Todos os responsáveis')}</select></div>
-      <div class="tablewrap"><table><thead><tr><th>Pasta</th><th>Número</th><th>Cliente x parte contrária</th><th>Órgão</th><th>Área</th><th>Responsável</th><th>Prazos abertos</th><th>Situação</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="empty" style="padding:16px">Nenhum processo encontrado.</td></tr>'}</tbody></table></div></section>`;
+      <div class="tablewrap"><table><thead><tr><th>Pasta</th><th>Número</th><th>Cliente x parte contrária</th><th>Órgão</th><th>Área</th><th>Responsável</th><th>Prazos abertos</th><th>Situação</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="empty" style="padding:16px">Nenhum processo encontrado.</td></tr>'}</tbody></table></div>${arr.length > LIM ? `<p class="muted" style="padding:10px 14px">Mostrando ${LIM} de ${arr.length} pastas. Use a busca ou os filtros para encontrar as demais (a exportação traz todas).</p>` : ''}</section>`;
   }
   A.route('processos', {label: 'Processos', mod: 'processos', render: vLista});
 

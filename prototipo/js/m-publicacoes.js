@@ -42,8 +42,9 @@
   const rotuloSug = s => s ? (s.legal ? 'Prazo legal (definir dias)' : `Prazo sugerido: ${s.dias} dias ${s.contagem === 'corridos' ? 'corridos' : 'úteis'}`) : '';
 
 
-  function lista() { const u = ui();
-    return A.col('publicacoes').filter(p => (!u.status || p.status === u.status) && (!u.resp || A.pubDoMembro(p, u.resp)))
+  /* Lista com os filtros da tela. semStatus: ignora a aba de situação (usado nos contadores das abas). */
+  function lista(semStatus) { const u = ui();
+    return A.col('publicacoes').filter(p => (semStatus || !u.status || p.status === u.status) && (!u.resp || A.pubDoMembro(p, u.resp)))
       .filter(p => A.match(u.busca, p.numeroProcesso, A.rotuloPasta(A.processo(p.processoId)), String(A.processo(p.processoId)?.pasta || ''), p.texto, p.orgao, p.tipo, A.cliente(A.processo(p.processoId)?.clienteId)?.nome))
       .sort((a, b) => (b.disponibilizacao || '').localeCompare(a.disponibilizacao || '')); }
   A.exportadores.publicacoes = () => ({titulo: 'Publicações', filtros: 'Situação: ' + (A.PUB_LABEL[ui().status] || 'todas'), linhas: lista(), colunas: [
@@ -53,7 +54,7 @@
 
   function vLista() {
     const u = ui(), arr = lista(), ed = A.pode('publicacoes', 'editar');
-    const cont = k => A.col('publicacoes').filter(p => p.status === k).length;
+    const base = lista(true), cont = k => k ? base.filter(p => p.status === k).length : base.length;
     const cards = arr.map(p => { const pr = A.processo(p.processoId), cli = A.cliente(pr?.clienteId), m = A.respPub(p), prz = A.byId('prazos', p.prazoId), txt = A.textoLimpo(p.texto), sug = A.prazoSugerido(txt);
       return `<div class="pcard" style="--c:${p.status === 'nova' ? 'var(--accent)' : 'var(--line)'};cursor:default">
         <div class="meta" style="justify-content:space-between"><span><b class="num">${esc(A.fmt(p.disponibilizacao))}</b> disponibilizada · publicação ${esc(A.fmt(p.publicacao))} · ${esc(p.tribunal || '')} · ${esc(p.orgao || '')}</span><span class="tag">${esc(A.PUB_LABEL[p.status])}</span></div>
@@ -65,7 +66,7 @@
           ${ed && p.status === 'nova' ? `<button class="btn small" data-action="pub-status" data-st="lida" data-id="${esc(p.id)}">Marcar como lida</button>` : ''}
           ${ed && ['nova','lida'].includes(p.status) ? `<button class="btn small" data-action="pub-status" data-st="descartada" data-id="${esc(p.id)}">Sem providência</button>` : ''}</div></div>`; }).join('');
     return `<section class="panel"><div class="vhead"><h2>Publicações</h2>${A.botoesExport('publicacoes')}${ed ? '<button class="btn" data-action="pub-djen">Buscar no DJEN</button><button class="btn" data-action="pub-importar">Importar</button><button class="btn primary" data-action="pub-nova">+ Registrar publicação</button>' : ''}</div>
-      <div class="filters"><div class="subtabs">${ST.map(([k, l]) => `<button data-action="pub-filtro" data-st="${k}" aria-pressed="${u.status === k}">${l} <span class="num">${cont(k)}</span></button>`).join('')}<button data-action="pub-filtro" data-st="" aria-pressed="${!u.status}">Todas</button></div>
+      <div class="filters"><div class="subtabs">${ST.map(([k, l]) => `<button data-action="pub-filtro" data-st="${k}" aria-pressed="${u.status === k}">${l} <span class="num">${cont(k)}</span></button>`).join('')}<button data-action="pub-filtro" data-st="" aria-pressed="${!u.status}">Todas <span class="num">${cont('')}</span></button></div>
         <input id="pbBusca" type="search" data-ui="publicacoes.busca" placeholder="Buscar no texto, processo, órgão, cliente…" value="${esc(u.busca)}" style="flex:1 1 240px"><select id="pbResp" data-ui="publicacoes.resp">${A.optsEquipe(u.resp, 'Todos os responsáveis')}</select></div>
       <div class="notice" style="margin:12px 14px 0"><span>Use <b>Buscar no DJEN</b> para trazer as publicações de cada advogado(a) pela OAB (<a href="https://comunica.pje.jus.br/" target="_blank" rel="noopener">comunica.pje.jus.br</a>). O sistema limpa o texto, liga ao advogado e ao processo e sugere o prazo; quem confirma o prazo é sempre uma pessoa. A busca automática diária fica para o servidor definitivo.</span></div>
       <div class="plist" style="padding:14px">${cards || '<div class="empty">Nenhuma publicação nesta situação.</div>'}</div></section>`;

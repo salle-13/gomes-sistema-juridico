@@ -64,7 +64,7 @@
         add({chave: `pub:${p.id}:nova`, cat: 'publicacoes', prio: 'atencao', titulo: `Publicação para tratar · ${p.tipo || 'Publicação'}`,
           texto: [p.numeroProcesso, A.cliente(A.processo(p.processoId)?.clienteId)?.nome, resumo(p.texto, 90)].filter(Boolean).join(' · '),
           ref: p.disponibilizacao || p.publicacao, refTxt: 'Disponibilizada ' + A.fmt(p.disponibilizacao || p.publicacao), origem: p.criadoEm,
-          resp: p.responsavelId, acao: {rota: 'publicacoes', a: 'abrir-pub', id: p.id}, dispensavel: false});
+          resp: A.respPub ? (A.respPub(p)?.id || '') : p.responsavelId, acao: {rota: 'publicacoes', a: 'abrir-pub', id: p.id}, dispensavel: false});
       });
 
     if (A.pode('processos', 'ver'))

@@ -23,6 +23,14 @@
     const u = uf[1] || uf[2] || '', n = (s.replace(/\b(OAB)\b/g, '').match(/\d[\d.]*/) || [''])[0].replace(/\D/g, '').replace(/^0+/, ''); return u && n ? u + n : ''; };
   const oabsDoTexto = t => [...String(t || '').matchAll(/OAB[\s/:]*([A-Z]{2})?\s*([\d.]{3,9}[A-Z]?)(?:\s*\/\s*([A-Z]{2}))?/gi)].map(m => A.oabChave((m[1] || m[3] || '') + ' ' + m[2])).filter(Boolean);
   const membroPorOab = () => new Map(A.col('equipe').filter(m => m.oab && m.ativo !== false).map(m => [A.oabChave(m.oab), m]).filter(([k]) => k));
+  /* OABs intimadas na publicação (gravadas na importação ou lidas do texto). */
+  const oabsDaPub = p => [...new Set([p.oab, ...(p.oabs || [])].map(o => A.oabChave(o)).filter(Boolean))];
+  /* Responsável efetivo: o gravado, se o membro ainda existe; senão, o membro da equipe dono de uma das OABs intimadas.
+     Cobre publicações importadas antes de a OAB estar cadastrada ou ligadas a um cadastro apagado. */
+  A.respPub = p => { if (!p) return null; const m = A.membro(p.responsavelId); if (m) return m;
+    const porOab = membroPorOab(); return oabsDaPub(p).map(k => porOab.get(k)).find(Boolean) || null; };
+  /* Filtro por pessoa: publicações sob a responsabilidade dela ou que intimam a OAB dela. */
+  A.pubDoMembro = (p, id) => { if (A.respPub(p)?.id === id) return true; const m = A.membro(id), k = m && A.oabChave(m.oab); return !!k && oabsDaPub(p).includes(k); };
   const EXT = {um: 1, uma: 1, dois: 2, duas: 2, tres: 3, 'três': 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, quinze: 15, vinte: 20, trinta: 30, quarenta: 40, sessenta: 60, noventa: 90};
   /* Lê no texto um prazo em dias. Só sugere: quem confirma é sempre uma pessoa. */
   A.prazoSugerido = function (texto) { const t = A.textoLimpo(texto).toLowerCase(); let m;
@@ -35,18 +43,18 @@
 
 
   function lista() { const u = ui();
-    return A.col('publicacoes').filter(p => (!u.status || p.status === u.status) && (!u.resp || p.responsavelId === u.resp))
+    return A.col('publicacoes').filter(p => (!u.status || p.status === u.status) && (!u.resp || A.pubDoMembro(p, u.resp)))
       .filter(p => A.match(u.busca, p.numeroProcesso, A.rotuloPasta(A.processo(p.processoId)), String(A.processo(p.processoId)?.pasta || ''), p.texto, p.orgao, p.tipo, A.cliente(A.processo(p.processoId)?.clienteId)?.nome))
       .sort((a, b) => (b.disponibilizacao || '').localeCompare(a.disponibilizacao || '')); }
   A.exportadores.publicacoes = () => ({titulo: 'Publicações', filtros: 'Situação: ' + (A.PUB_LABEL[ui().status] || 'todas'), linhas: lista(), colunas: [
     {t:'Disponibilização', v:p => p.disponibilizacao, tipo:'date'}, {t:'Publicação', v:p => p.publicacao, tipo:'date'}, {t:'Tribunal', v:p => p.tribunal}, {t:'Órgão', v:p => p.orgao},
     {t:'Pasta', v:p => A.processo(p.processoId)?.pasta || ''}, {t:'Processo', v:p => p.numeroProcesso}, {t:'Cliente', v:p => A.cliente(A.processo(p.processoId)?.clienteId)?.nome || ''}, {t:'Tipo', v:p => p.tipo}, {t:'Situação', v:p => A.PUB_LABEL[p.status]},
-    {t:'Responsável', v:p => A.membro(p.responsavelId)?.nome || ''}, {t:'Texto', v:p => (p.texto || '').slice(0, 300)}]});
+    {t:'Responsável', v:p => A.respPub(p)?.nome || ''}, {t:'Texto', v:p => (p.texto || '').slice(0, 300)}]});
 
   function vLista() {
     const u = ui(), arr = lista(), ed = A.pode('publicacoes', 'editar');
     const cont = k => A.col('publicacoes').filter(p => p.status === k).length;
-    const cards = arr.map(p => { const pr = A.processo(p.processoId), cli = A.cliente(pr?.clienteId), m = A.membro(p.responsavelId), prz = A.byId('prazos', p.prazoId), txt = A.textoLimpo(p.texto), sug = A.prazoSugerido(txt);
+    const cards = arr.map(p => { const pr = A.processo(p.processoId), cli = A.cliente(pr?.clienteId), m = A.respPub(p), prz = A.byId('prazos', p.prazoId), txt = A.textoLimpo(p.texto), sug = A.prazoSugerido(txt);
       return `<div class="pcard" style="--c:${p.status === 'nova' ? 'var(--accent)' : 'var(--line)'};cursor:default">
         <div class="meta" style="justify-content:space-between"><span><b class="num">${esc(A.fmt(p.disponibilizacao))}</b> disponibilizada · publicação ${esc(A.fmt(p.publicacao))} · ${esc(p.tribunal || '')} · ${esc(p.orgao || '')}</span><span class="tag">${esc(A.PUB_LABEL[p.status])}</span></div>
         <span class="t">${esc(p.tipo || 'Publicação')} · ${A.processo(p.processoId)?.pasta ? `<span class="evtag2">Pasta ${esc(A.processo(p.processoId).pasta)}</span> ` : ''}<span class="proc">${esc(p.numeroProcesso || 'sem número')}</span>${cli ? ' · ' + esc(cli.nome) : ''}</span>
@@ -68,7 +76,7 @@
     if (await A.save('publicacoes', Object.assign({}, p, {status: el.dataset.st, tratadaEm: new Date().toISOString(), tratadaPor: S.meId || null}))) { A.toast('Publicação marcada como ' + A.PUB_LABEL[el.dataset.st].toLowerCase() + '.'); if (document.getElementById('fPub')) A.closeModal(); } });
   A.on('pub-prazo', el => { const p = A.byId('publicacoes', el.dataset.id); if (!p) return; A.closeModal();
     const sug = A.prazoSugerido(p.texto), extra = sug && !sug.legal ? {dias: sug.dias, contagem: sug.contagem} : {};
-    A.formPrazo(null, Object.assign({processoId: p.processoId || '', processo: p.processoId ? '' : (p.numeroProcesso || ''), publicacao: p.publicacao, publicacaoId: p.id, responsavelId: p.responsavelId || '', descricao: A.textoLimpo(p.texto).replace(/\s+/g, ' ').slice(0, 120)}, extra));
+    A.formPrazo(null, Object.assign({processoId: p.processoId || '', processo: p.processoId ? '' : (p.numeroProcesso || ''), publicacao: p.publicacao, publicacaoId: p.id, responsavelId: A.respPub(p)?.id || '', descricao: A.textoLimpo(p.texto).replace(/\s+/g, ' ').slice(0, 120)}, extra));
     if (sug) A.toast(sug.legal ? 'O texto fala em "prazo legal": informe os dias.' : `Dias preenchidos pelo texto (${sug.trecho}). Confira antes de salvar.`); });
 
   /* ---------- registrar / abrir ---------- */
@@ -77,6 +85,7 @@
   function form(p) {
     const novo = !p, ed = A.pode('publicacoes', 'editar'), ro = ed ? '' : 'disabled';
     p = Object.assign({id: '', disponibilizacao: A.hoje(), publicacao: P.proximoUtil(P.addDays(A.hoje(), 1)), tribunal: 'TJMG', orgao: '', numeroProcesso: '', processoId: '', tipo: 'Intimação', texto: '', oab: '', origem: 'manual', status: 'nova', responsavelId: '', prazoId: ''}, p || {});
+    if (!A.membro(p.responsavelId)) p.responsavelId = A.respPub(p)?.id || '';
     A.modal(`${A.modalHead(novo ? 'Registrar publicação' : 'Publicação', !novo ? `<span class="tag">${esc(A.PUB_LABEL[p.status])}</span>` : '')}
       <form id="fPub"><div class="body">
         ${A.area('pbTexto', 'Texto da publicação (cole aqui)', A.textoLimpo(p.texto), 9, `${ro} placeholder="Cole o teor da intimação. O número do processo é reconhecido automaticamente."`)}

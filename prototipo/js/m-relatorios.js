@@ -49,8 +49,8 @@
       return {colunas: [{t: 'Responsável', v: p => A.membro(p.responsavelId)?.nome || ''}, {t: 'Pasta', v: p => p.pasta || ''}, {t: 'Processo', v: p => p.numero}, {t: 'Cliente', v: p => nomeCli(p.clienteId)}, {t: 'Área', v: p => p.area}, {t: 'Órgão', v: p => [p.vara, p.comarca].filter(Boolean).join(' · ')}, {t: 'Situação', v: p => p.status},
         {t: 'Prazos em aberto', v: p => A.col('prazos').filter(x => x.processoId === p.id && x.status !== 'concluido').length}, {t: 'Valor da causa', v: p => p.valorCausa || 0, tipo: 'money'}], linhas, totais: {'Valor da causa': linhas.reduce((s, p) => s + (p.valorCausa || 0), 0)}}; }},
     {id: 'pubs', nome: 'Publicações do período', mod: 'publicacoes', desc: 'Publicações disponibilizadas no período e como foram tratadas.', gerar(u) {
-      const linhas = A.col('publicacoes').filter(p => noPer(p.disponibilizacao, u) && (!u.resp || p.responsavelId === u.resp)).sort((a, b) => a.disponibilizacao.localeCompare(b.disponibilizacao));
-      return {colunas: [{t: 'Disponibilização', v: p => p.disponibilizacao, tipo: 'date'}, {t: 'Processo', v: p => p.numeroProcesso}, {t: 'Tipo', v: p => p.tipo}, {t: 'Situação', v: p => A.PUB_LABEL[p.status]}, {t: 'Responsável', v: p => A.membro(p.responsavelId)?.nome || ''}, {t: 'Prazo gerado', v: p => A.byId('prazos', p.prazoId)?.vencimento || '', tipo: 'date'}], linhas}; }},
+      const linhas = A.col('publicacoes').filter(p => noPer(p.disponibilizacao, u) && (!u.resp || A.pubDoMembro(p, u.resp))).sort((a, b) => a.disponibilizacao.localeCompare(b.disponibilizacao));
+      return {colunas: [{t: 'Disponibilização', v: p => p.disponibilizacao, tipo: 'date'}, {t: 'Processo', v: p => p.numeroProcesso}, {t: 'Tipo', v: p => p.tipo}, {t: 'Situação', v: p => A.PUB_LABEL[p.status]}, {t: 'Responsável', v: p => A.respPub(p)?.nome || ''}, {t: 'Prazo gerado', v: p => A.byId('prazos', p.prazoId)?.vencimento || '', tipo: 'date'}], linhas}; }},
   ];
   const atual = () => RELS.filter(r => A.pode(r.mod, 'ver')).find(r => r.id === ui().id) || RELS.find(r => A.pode(r.mod, 'ver'));
   A.exportadores.relatorio = () => { const r = atual(), u = ui(), g = r.gerar(u);

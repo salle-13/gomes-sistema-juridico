@@ -39,7 +39,7 @@ There is no build, package manager, linter or test suite.
 
 **Exports:** each module registers `A.exportadores[name] = () => ({titulo, filtros, linhas, colunas:[{t, v, tipo?}]})` and renders `A.botoesExport(name)`. `export.js` lazy-loads SheetJS and jsPDF from cdnjs.
 
-**Sample data:** every seeded record carries `exemplo: true`, which is what the "Remover exemplos" button deletes.
+**Sample data:** every seeded record carries `exemplo: true`, which is what the "Remover exemplos" button deletes. The exception is `seed.equipeFixa` (the real team, e.g. Dr. Lucas Fernando, OAB/MG 181.253): no `exemplo` flag, and `app.js` re-adds any missing fixed member on load (matched by id or OAB), in both local and shared mode.
 
 ## Domain rules
 

@@ -1,6 +1,11 @@
 /* Dados de exemplo (fictícios). Usados no modo local e para popular a base compartilhada.
    Todos levam exemplo:true para o botão "Remover exemplos". */
 (function (root) {
+  /* Equipe real do escritório: NÃO leva exemplo:true (não sai com "Remover exemplos").
+     O app.js garante que estes membros existam mesmo em dados já salvos (comparando pela OAB). */
+  const EQUIPE_FIXA = [
+    {id:'lucas-fernando', nome:'Dr. Lucas Fernando Barbosa Gomes', cargo:'Advogado', papel:'admin', oab:'OAB/MG 181.253', email:'', cor:'#1F5C99', genero:'M'},
+  ];
   function seed(hoje, P) {
     const add = (s, n) => P.addDays(s, n);
     const mes = (n, dia) => { const d = P.parse(hoje); d.setDate(1); d.setMonth(d.getMonth() + n); d.setDate(dia); return P.ymd(d); };
@@ -13,6 +18,7 @@
       {id:'m5', nome:'Bianca Lopes', cargo:'Assistente administrativa (captação)', papel:'assistente', oab:'', email:'bianca@exemplo.adv.br', cor:'#5B4FA8', genero:'F'},
       {id:'m6', nome:'Paula Reis', cargo:'Financeiro', papel:'financeiro', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C', genero:'F'},
     ].map(ex);
+    equipe.unshift(...EQUIPE_FIXA.map(m => Object.assign({}, m)));
     const C = (id, nome, tp, doc, area, resp, extra) => ex(Object.assign({id, nome, tipoPessoa:tp, documento:doc, telefone:'(34) 9' + (8000 + id.length * 111) + '-' + String(1000 + nome.length * 37).slice(0,4), email:'', origem:'Indicação de cliente', area, historia:'', urgencia:'normal', status:'ativo', encaminhadoPara:[resp], responsavelId:resp, cadastradoPor:'m5', criadoEm:mes(-6, 10) + 'T12:00:00.000Z', aceitoEm:mes(-6, 11) + 'T12:00:00.000Z', historico:[]}, extra || {}));
     const clientes = [
       C('k1','Construtora Alvorada (exemplo)','PJ','11.111.111/0001-11','Direito Civil','m1'),
@@ -178,5 +184,6 @@ _______________________________________
     ].map(m => ex(Object.assign(m, {criadoEm: mes(-2, 3) + 'T12:00:00.000Z', criadoPor: 'm1'})));
     return {data:{equipe, clientes, processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
   }
+  seed.equipeFixa = EQUIPE_FIXA;
   if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -140,6 +140,8 @@
   window.addEventListener('hashchange', () => A.render());
 
   /* ---------- carregamento dos dados ---------- */
+  /* Membros fixos da equipe (seed.equipeFixa) que ainda não existem, por id ou pela OAB. */
+  const faltamFixos = equipe => (A.seed.equipeFixa || []).filter(f => !equipe.some(m => m.id === f.id || (m.oab && A.oabChave && A.oabChave(m.oab) === A.oabChave(f.oab))));
   function iniciarLocal() {
     S.mode = 'local'; let d = null;
     try { d = JSON.parse(A.lsGet('gomes-sistema-v2') || 'null'); } catch (e) {}
@@ -147,6 +149,7 @@
     // Coleção criada depois que os dados locais foram salvos (ex.: modelos): começa com os exemplos do seed.
     const faltam = A.COLS.filter(c => !(d.data && d.data[c])); if (faltam.length && d.data) { const s = A.seed(A.hoje(), P); faltam.forEach(c => d.data[c] = s.data[c] || []); }
     A.COLS.forEach(c => S.data[c] = (d.data && d.data[c]) || []);
+    const fixos = faltamFixos(S.data.equipe); if (fixos.length) { S.data.equipe.unshift(...fixos.map(m => Object.assign({}, m))); A.Store.persistLocal(); }
     S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null;
     P.setLocais(S.config.feriadosLocais || []); A.render(); A.depoisDeCarregar && A.depoisDeCarregar();
   }
@@ -163,7 +166,8 @@
     const timer = setTimeout(() => { if (!S.loaded.prazos) { S.mode = 'slow'; A.render(); } }, 10000);
     const err = e => { clearTimeout(timer); S.mode = 'erro'; A.render(); };
     let avisou = false;
-    const pronto = () => { if (['equipe','prazos'].every(c => S.loaded[c]) && !avisou) { avisou = true; clearTimeout(timer); if (S.mode === 'slow') S.mode = 'db'; A.depoisDeCarregar && A.depoisDeCarregar(); } };
+    const pronto = () => { if (['equipe','prazos'].every(c => S.loaded[c]) && !avisou) { avisou = true; clearTimeout(timer); if (S.mode === 'slow') S.mode = 'db';
+      if (S.canWrite !== false) faltamFixos(S.data.equipe).forEach(m => A.save('equipe', Object.assign({}, m))); A.depoisDeCarregar && A.depoisDeCarregar(); } };
     A.COLS.forEach(c => db.collection(A.Store.path(c)).onSnapshot(snap => {
       S.data[c] = snap.docs.map(d => Object.assign({id: d.id}, d.data()));
       if (!snap.metadata.fromCache) S.loaded[c] = true; A.render(); pronto(); A.aoAtualizar && A.aoAtualizar(c);

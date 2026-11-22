@@ -5117,3 +5117,9 @@ button.notification-copy:focus-visible { outline: 2px solid var(--accent); outli
 .imp-etapa .drop.off{opacity:.5;cursor:not-allowed}
 .imp-lista{margin:0 0 10px;padding-left:20px;line-height:1.55;font-size:13.5px}
 @media (max-width:760px){.imp-etapas{grid-template-columns:minmax(0,1fr)}}
+/* DJEN */
+.sugprazo{align-self:flex-start;background:var(--warn-soft,#FFF4D6);color:#7A4B00;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600}
+.djres{margin-top:10px;font-size:13.5px}
+.djres textarea{width:100%}
+.djres .erro{color:var(--danger)}
+.djlinks{padding-left:18px;line-height:1.7}

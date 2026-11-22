@@ -62,6 +62,15 @@ Convenções de dados, válidas para todos os módulos:
 
 ---
 
+
+### Buscar no DJEN (protótipo)
+- Botão **Buscar no DJEN** em Publicações: escolhe o(a) advogado(a) da Equipe que tem OAB cadastrada (ou todos) e o período (padrão: últimos 7 dias). Consulta a API pública `comunicaapi.pje.jus.br/api/v1/comunicacao` pela OAB, de 100 em 100, com pausa entre páginas; erro 429 pede para esperar 1 minuto.
+- Se o navegador bloquear a chamada direta, o sistema mostra o link pronto de cada advogado e uma caixa para colar o conteúdo da página.
+- **Texto limpo:** o HTML do DJEN é convertido em texto simples na importação (e na exibição de publicações antigas).
+- **Advogado pela OAB:** a publicação é ligada ao processo pelo número CNJ e ao membro da Equipe pela OAB dos destinatários ou citada no texto; na busca de um advogado, o que vier sem OAB fica com ele.
+- **Prazo sugerido:** quando o texto diz "prazo de N dias", "N (extenso) dias", "em até N dias" ou "prazo legal", a publicação mostra a sugestão e o botão Gerar prazo já preenche os dias. O prazo nunca é criado sozinho.
+- Duplicadas não entram (id do DJEN ou número + data + início do texto).
+
 ## 2. Publicações
 
 **Objetivo:** garantir que toda intimação seja lida, tratada e, quando houver prazo, transformada em prazo na agenda.

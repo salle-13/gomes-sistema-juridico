@@ -20,7 +20,7 @@ window.App.SCHEMA = {
     valorCausa:'centavos', responsavelId:'id equipe', status:'ativo|suspenso|arquivado|encerrado', distribuidoEm:'data', obs:'texto', andamentos:'[{data, texto, por, origem?: projuris}]',
     importado:'projuris (só nos importados)', revisar:'bool (importação com algo a conferir)'},
   publicacoes: {disponibilizacao:'data', publicacao:'data', tribunal:'texto', orgao:'texto', numeroProcesso:'CNJ', processoId:'id', tipo:'texto', texto:'texto',
-    oab:'texto', origem:'manual|importacao', status:'nova|lida|tratada|descartada', responsavelId:'id equipe', prazoId:'id', tratadaEm:'ISO', tratadaPor:'id equipe'},
+    oab:'UF+número (ex.: MG181253)', oabs:'[OABs citadas]', djenId:'id/hash do DJEN (evita duplicar)', link:'url DJEN', origem:'manual|importacao|djen', status:'nova|lida|tratada|descartada', responsavelId:'id equipe', prazoId:'id', tratadaEm:'ISO', tratadaPor:'id equipe'},
   prazos: {processo:'CNJ (texto)', processoId:'id', clienteId:'id', cliente:'texto', publicacaoId:'id', tipo:'texto', descricao:'texto', publicacao:'data', dias:'número',
     contagem:'uteis|corridos', vencimento:'data', responsavelId:'id equipe', prioridade:'normal|alta', status:'pendente|concluido', obs:'texto'},
   compromissos: {tipo:'Atendimento|Audiência|Reunião|Inicial|Consulta|Diligência|Ligação / retorno|Tarefa interna|Outro', titulo:'texto', data:'data', diaInteiro:'bool', horaInicio:'HH:MM', horaFim:'HH:MM',

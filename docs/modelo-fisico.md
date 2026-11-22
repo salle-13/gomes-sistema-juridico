@@ -2,7 +2,7 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
-Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos`, `processos.pasta` e as colunas de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Foram testados as restrições de horário de `compromissos`, a numeração automática e a unicidade da pasta, processo sem número CNJ e o registro na auditoria.
+Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos`, `processos.pasta`, as colunas novas de `clientes` e as de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Foram testados as restrições de horário de `compromissos`, a numeração automática e a unicidade da pasta, processo sem número CNJ e o registro na auditoria.
 
 ## 1. Tabelas (29) por área
 
@@ -100,6 +100,7 @@ erDiagram
 | Coleção `modelos` | Tabela `modelos_documento` (`tipo` com `CHECK`, nome único por organização) |
 | `equipe.genero` (M/F/vazio) | `equipe.genero char(1)`, nulo permitido (modelos usam "Dr(a)." e "advogado(a)") |
 | `clientes.nacionalidade`, `estadoCivil`, `profissao`, `rg`, `representanteNome`, `representanteCpf`, `representanteCargo` | Colunas `nacionalidade`, `estado_civil`, `profissao`, `rg`, `representante_nome`, `representante_cpf`, `representante_cargo` (qualificação PF/PJ nos modelos) |
+| `clientes.dataNascimento`, `naturalidade`, `nomeMae`, `nomePai`, `empresa`, `ctps`, `pis`, `obs`, `importado`, `revisar` | Colunas `data_nascimento`, `naturalidade`, `nome_mae`, `nome_pai`, `empresa`, `ctps`, `pis`, `obs`, `importado_de`, `revisar` (importação do Projuris) |
 | `clientes.historico[].tipo = 'documento'` ("Documento gerado: …") | `cliente_historico.tipo = 'documento'` (valor já previsto no `CHECK`) |
 | `config/geral.escritorioNome` / `escritorioCidade` | `configuracoes.escritorio_nome` / `escritorio_cidade` |
 | Honorários informados ao gerar documento | Não são gravados: valem só para o documento gerado (o PDF guardado em `documentos` é o registro) |

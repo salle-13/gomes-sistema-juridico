@@ -12,6 +12,8 @@ window.App.SCHEMA = {
   equipe: {nome:'texto', cargo:'texto', papel:'admin|advogado|assistente|estagiario|financeiro', oab:'texto', email:'texto', genero:'M|F|vazio (Dr/Dra, advogado/advogada nos modelos)', cor:'#hex', ativo:'bool', contaId:'id da conta de acesso vinculada'},
   clientes: {nome:'texto', tipoPessoa:'PF|PJ', documento:'CPF/CNPJ', telefone:'texto', email:'texto', endereco:'texto', origem:'texto', area:'texto',
     nacionalidade:'texto (PF)', estadoCivil:'texto (PF)', profissao:'texto (PF)', rg:'texto (PF)', representanteNome:'texto (PJ)', representanteCpf:'texto (PJ)', representanteCargo:'texto (PJ)',
+    dataNascimento:'data (PF)', naturalidade:'texto (PF)', nomeMae:'texto (PF)', nomePai:'texto (PF)', empresa:'texto (PF, empregador)', ctps:'texto (PF)', pis:'texto (PF)', obs:'texto',
+    importado:'projuris (só nos importados)', revisar:'bool (importação com campo a revisar)',
     historia:'texto', urgencia:'normal|alta', status:'novo|encaminhado|analise|ativo|encerrado|recusado', encaminhadoPara:'[id equipe]', responsavelId:'id equipe',
     cadastradoPor:'id equipe', aceitoEm:'ISO', historico:'[{em, por, texto, tipo?: documento}]'},
   processos: {pasta:'inteiro (nº da pasta, único; 1 pasta = 1 processo)', numero:'CNJ (opcional até o ajuizamento)', clienteId:'id', parteContraria:'texto', polo:'ativo|passivo', tribunal:'texto', comarca:'texto', vara:'texto', classe:'texto', area:'texto',

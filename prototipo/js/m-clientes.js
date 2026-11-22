@@ -17,7 +17,7 @@
       <span class="meta"><span class="tag">${esc(c.area || 'Área não informada')}</span>${c.urgencia === 'alta' ? '<span class="tag alta">Urgente</span>' : ''}${paraMim ? '<span class="tag">Para você</span>' : ''}</span>
       ${c.historia ? `<span class="hist">${esc(c.historia)}</span>` : ''}<span class="meta">${nd} documento${nd === 1 ? '' : 's'} · ${esc(A.haDias(c.criadoEm))}${(c.encaminhadoPara || []).length ? ` · <span class="avs">${c.encaminhadoPara.map(id => A.avatar(A.membro(id))).join('')}</span>` : ''}</span></button>`;
   }
-  function filtrados() { const u = ui(); let arr = A.col('clientes').filter(c => A.match(u.busca, c.nome, c.documento, c.area, c.historia, c.telefone, c.email));
+  function filtrados() { const u = ui(); let arr = A.col('clientes').filter(c => A.match(u.busca, c.nome, c.documento, String(c.documento || '').replace(/\D/g, ''), c.area, c.historia, c.telefone, c.email, c.obs));
     if (u.paraMim && S.meId) arr = arr.filter(c => (c.encaminhadoPara || []).includes(S.meId) || c.cadastradoPor === S.meId || c.responsavelId === S.meId); return arr; }
   function carteira() { const u = ui(); return filtrados().filter(c => u.cart === 'todos' ? ['ativo','encerrado'].includes(st(c)) : st(c) === u.cart).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')); }
   A.exportadores.carteira = () => ({titulo: 'Carteira de clientes', linhas: carteira(), colunas: [{t:'Cliente', v:c => c.nome}, {t:'Tipo', v:c => c.tipoPessoa}, {t:'CPF/CNPJ', v:c => c.documento}, {t:'Telefone', v:c => c.telefone}, {t:'E-mail', v:c => c.email},
@@ -33,21 +33,21 @@
         return `<div class="col"><h3><span>${esc(nome)}</span><span class="num">${l.length}</span></h3>${l.map(card).join('') || '<span class="muted" style="font-size:12px">Nenhum</span>'}</div>`; }).join('')}</div>
         <div class="legend">A assistente cadastra o cliente, conta a história do caso, anexa documentos e encaminha às advogadas. Quando a advogada aceita, o caso sai do funil e entra na Carteira de clientes (fica visível aqui por 7 dias como confirmação). Casos não aceitos vão para o arquivo.</div>`;
     } else if (u.aba === 'carteira') {
-      const lst = carteira();
+      const todos = carteira(), LIM = 300, lst = todos.slice(0, LIM);
       corpo = `<div class="filters"><div class="subtabs">${[['ativo','Ativos'],['encerrado','Encerrados'],['todos','Todos']].map(([k, l]) => `<button data-action="cli-cart" data-v="${k}" aria-pressed="${u.cart === k}">${l}</button>`).join('')}</div>${A.botoesExport('carteira')}</div>
         <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Área</th><th>Responsável</th><th>Processos</th><th>Prazos abertos</th>${A.pode('financeiro', 'ver') ? '<th class="money">A receber</th>' : ''}</tr></thead><tbody>
         ${lst.map(c => { const procs = A.col('processos').filter(p => p.clienteId === c.id).length, prz = A.col('prazos').filter(p => p.clienteId === c.id && p.status !== 'concluido').length, m = A.membro(c.responsavelId);
           const rec = A.col('fin_lancamentos').filter(f => f.clienteId === c.id && f.tipo === 'receber' && f.status === 'pendente').reduce((s, f) => s + f.valor, 0);
           return `<tr class="row-click" data-action="abrir-cliente" data-id="${esc(c.id)}"><td><b>${esc(c.nome)}</b><br><span class="muted" style="font-size:12px">${esc(c.tipoPessoa === 'PJ' ? 'CNPJ' : 'CPF')} ${esc(c.documento || '—')}</span></td>
             <td>${esc(c.telefone || '')}<br><span class="muted" style="font-size:12px">${esc(c.email || '')}</span></td><td><span class="tag">${esc(c.area || '—')}</span></td><td><span class="who">${A.avatar(m)}${esc(m?.nome || '—')}</span></td>
-            <td class="num">${procs}</td><td class="num">${prz}</td>${A.pode('financeiro', 'ver') ? `<td class="money">${rec ? A.brl(rec) : '—'}</td>` : ''}</tr>`; }).join('') || '<tr><td colspan="7" class="empty" style="padding:16px">Nenhum cliente.</td></tr>'}</tbody></table></div>`;
+            <td class="num">${procs}</td><td class="num">${prz}</td>${A.pode('financeiro', 'ver') ? `<td class="money">${rec ? A.brl(rec) : '—'}</td>` : ''}</tr>`; }).join('') || '<tr><td colspan="7" class="empty" style="padding:16px">Nenhum cliente.</td></tr>'}</tbody></table></div>${todos.length > LIM ? `<p class="muted" style="padding:10px 14px">Mostrando ${LIM} de ${todos.length} clientes. Use a busca para encontrar os demais (a exportação traz todos).</p>` : ''}`;
     } else {
       const lst = arr.filter(c => st(c) === 'recusado');
       corpo = `<div class="plist" style="padding:14px">${lst.map(c => `<button class="pcard" style="--c:var(--line)" data-action="abrir-cliente" data-id="${esc(c.id)}"><span class="t">${esc(c.nome)}</span><span class="meta">${esc(c.area || '')} · ${esc(A.haDias(c.criadoEm))}</span><span class="meta">${esc(((c.historico || []).filter(h => /não aceito/i.test(h.texto)).pop() || {}).texto || '')}</span></button>`).join('') || '<div class="empty">Nenhum caso arquivado.</div>'}</div>`;
     }
-    return `<section class="panel"><div class="vhead"><h2>Clientes</h2>${ed ? '<button class="btn primary" data-action="novo-cliente">+ Cadastrar novo cliente</button>' : ''}</div>
+    return `<section class="panel"><div class="vhead"><h2>Clientes</h2>${ed ? '<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-action="imp-abrir">Importar do Projuris</button><button class="btn primary" data-action="novo-cliente">+ Cadastrar novo cliente</button></span>' : ''}</div>
       <div class="tabs-inline">${abas.map(([k, l]) => `<button data-action="cli-aba" data-v="${k}" aria-pressed="${u.aba === k}">${l}</button>`).join('')}</div>
-      <div class="filters"><input id="clBusca" type="search" data-ui="clientes.busca" placeholder="Buscar nome, CPF/CNPJ, área, história…" value="${esc(u.busca)}" style="flex:1 1 260px">
+      <div class="filters"><input id="clBusca" type="search" data-ui="clientes.busca" placeholder="Buscar nome, CPF/CNPJ, telefone, observações (ex.: revisar)…" value="${esc(u.busca)}" style="flex:1 1 260px">
         <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="clMim" data-ui="clientes.paraMim" ${u.paraMim ? 'checked' : ''} ${S.meId ? '' : 'disabled'}> Só os meus</label></div>${corpo}</section>`;
   }
   A.route('clientes', {label: 'Clientes', mod: 'clientes', render: vClientes, badge: () => A.aguardando().length});
@@ -80,11 +80,15 @@
       <div id="cliPF" class="two" style="${c.tipoPessoa === 'PJ' ? 'display:none' : ''}">
         ${A.inp('cNac', 'Nacionalidade', c.nacionalidade, `list="nacList" placeholder="brasileiro(a)" ${ro}`)}<datalist id="nacList"><option value="brasileiro"><option value="brasileira"></datalist>
         ${A.inp('cEstCiv', 'Estado civil', c.estadoCivil, `list="ecList" ${ro}`)}<datalist id="ecList">${['solteiro','solteira','casado','casada','divorciado','divorciada','viúvo','viúva','em união estável'].map(o => `<option value="${o}">`).join('')}</datalist>
-        ${A.inp('cProf', 'Profissão', c.profissao, ro)}${A.inp('cRg', 'RG (nº e órgão emissor)', c.rg, `placeholder="MG-12.345.678 SSP/MG" ${ro}`)}</div>
+        ${A.inp('cProf', 'Profissão', c.profissao, ro)}${A.inp('cRg', 'RG (nº e órgão emissor)', c.rg, `placeholder="MG-12.345.678 SSP/MG" ${ro}`)}
+        ${A.inp('cNasc', 'Data de nascimento', c.dataNascimento, `type="date" ${ro}`)}${A.inp('cNatur', 'Naturalidade', c.naturalidade, `placeholder="Araguari/MG" ${ro}`)}
+        ${A.inp('cMae', 'Nome da mãe', c.nomeMae, ro)}${A.inp('cPai', 'Nome do pai', c.nomePai, ro)}
+        ${A.inp('cEmpresa', 'Empresa (empregador)', c.empresa, ro)}${A.inp('cCtps', 'CTPS', c.ctps, ro)}${A.inp('cPis', 'PIS/PASEP', c.pis, ro)}</div>
       <div id="cliPJ" class="two" style="${c.tipoPessoa === 'PJ' ? '' : 'display:none'}">
         ${A.inp('cRepNome', 'Representante legal', c.representanteNome, ro)}${A.inp('cRepCpf', 'CPF do representante', c.representanteCpf, ro)}
         ${A.inp('cRepCargo', 'Cargo do representante', c.representanteCargo, `list="cargoRepList" placeholder="sócio-administrador" ${ro}`)}<datalist id="cargoRepList">${['sócio-administrador','sócia-administradora','diretor','diretora','procurador','procuradora'].map(o => `<option value="${o}">`).join('')}</datalist></div>
       <div class="muted" style="font-size:12px;margin-top:-6px">Os dados acima entram na qualificação das procurações, contratos e declarações (Modelos de documentos).</div>
+      ${A.area('cObs', 'Observações', c.obs, 3, `${ro} placeholder="CNH, título de eleitor, inscrições, pendências de cadastro…"`)}
       ${A.area('cHist', 'História do caso', c.historia, 8, `${ro} placeholder="O que aconteceu, quando, quem é a outra parte, o que o cliente quer, provas que tem, prazos que já correm…"`)}
       <div class="muted" style="font-size:12px">Cadastrado por ${esc(c.cadastradoPor ? A.nomeDe(c.cadastradoPor) : '—')} em ${esc(A.quando(c.criadoEm))}</div>
     </div><div>
@@ -100,7 +104,7 @@
   }
   function ler() { const v = A.v; if (!document.getElementById('fCliente')) return cli;
     Object.assign(cli, {nome: v('cNome'), tipoPessoa: v('cTipo'), documento: v('cDoc'), telefone: v('cTel'), email: v('cEmail'), area: v('cArea'), origem: v('cOrig'), urgencia: v('cUrg'), responsavelId: v('cResp'), endereco: v('cEnd'), historia: v('cHist'),
-      nacionalidade: v('cNac'), estadoCivil: v('cEstCiv'), profissao: v('cProf'), rg: v('cRg'), representanteNome: v('cRepNome'), representanteCpf: v('cRepCpf'), representanteCargo: v('cRepCargo'),
+      nacionalidade: v('cNac'), estadoCivil: v('cEstCiv'), profissao: v('cProf'), rg: v('cRg'), dataNascimento: v('cNasc'), naturalidade: v('cNatur'), nomeMae: v('cMae'), nomePai: v('cPai'), empresa: v('cEmpresa'), ctps: v('cCtps'), pis: v('cPis'), obs: v('cObs'), representanteNome: v('cRepNome'), representanteCpf: v('cRepCpf'), representanteCargo: v('cRepCargo'),
       encaminhadoPara: document.querySelector('input[name="enc"]') ? [...document.querySelectorAll('input[name="enc"]:checked')].map(i => i.value) : cli.encaminhadoPara}); return cli; }
   async function salvar(extra, registro) { const c = ler(); if (!c.nome) { A.toast('Informe o nome do cliente.'); return null; }
     const hist = [...(c.historico || [])], agora = new Date().toISOString();

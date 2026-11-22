@@ -22,7 +22,7 @@ There is no build, package manager, linter or test suite.
 
 ## Prototype architecture (`prototipo/`)
 
-**Script order matters.** `index.html` loads plain `<script>` tags with no modules, in this order: `prazo-logic.js` → `schema.js` → `seed.js` → `core.js` → `export.js` → `m-*.js` → `app.js` (last). Every file is an IIFE that adds to the global `window.App` (aliased `A`). `prazo-logic.js` defines the global `Prazo`, available as `A.P`.
+**Script order matters.** `index.html` loads plain `<script>` tags with no modules, in this order: `prazo-logic.js` → `schema.js` → `seed.js` → `core.js` → `export.js` → `m-*.js` (`m-inicio.js` before `m-inicio-widgets.js`) → `app.js` (last). Every file is an IIFE that adds to the global `window.App` (aliased `A`). `prazo-logic.js` defines the global `Prazo`, available as `A.P`.
 
 **core.js** is the shared kernel:
 - State lives in `A.S`. `S.data[col]` holds arrays for the collections in `A.COLS`, alongside `S.config`, `S.permissoes`, `S.mode` and `S.ui` (per-module filter state via `A.ui(mod, defaults)`).
@@ -31,11 +31,13 @@ There is no build, package manager, linter or test suite.
 - Shared helpers include `A.esc` (always escape interpolated values), form builders (`A.inp/sel/area/field`, `A.v(id)` to read values), `A.modal/closeModal/confirm/toast`, and money/date formatters.
 
 **app.js** handles boot, navigation and event delegation:
-- Hash routing (`#agenda`, `#processos`, `#fin-pagar`, …). Old hashes `#ano`, `#mes` and `#prazos` are aliases (`A.aliases`) that open the Agenda in the matching view. The sidebar groups live in `GRUPOS`, so a new route must be added there to appear in the nav.
+- Hash routing (`#inicio`, `#agenda`, `#processos`, `#fin-pagar`, …). `#inicio` (the dashboard) is the default route. Old hashes `#ano`, `#mes` and `#prazos` are aliases (`A.aliases`) that open the Agenda in the matching view. The sidebar groups live in `GRUPOS`, so a new route must be added there to appear in the nav.
 - One delegated listener per event type: `data-action="x"` on click → `A.actions.x(el, e)`, `data-onchange="x"` on change, and `data-ui="mod.key"` writes straight into `A.ui(mod)[key]` and re-renders. Wire UI through these attributes rather than adding listeners.
 - **Two storage modes.** If `window.claude.use('db')` exists (published as a Claude artifact), the app uses a shared realtime DB with `onSnapshot` per collection, and `S.mode` is `db`/`slow`/`erro`. Otherwise it runs in `local` mode on `localStorage`. File uploads (Documentos) and user identity (`isOwner`, `contaId`) only work in the Claude mode.
 
 **Permissions:** the roles are `admin|advogado|assistente|estagiario|financeiro`. Each module gets a level of `nenhum|ver|editar` (`A.PERM_PADRAO`, overridable through `config/permissoes`). Check with `A.pode(mod, 'ver'|'editar')`. Every route declares its `mod`, and `renderNow` blocks views the user can't see.
+
+**Dashboard (`#inicio`):** `m-inicio.js` holds the route, header, per-user layout prefs (localStorage `gomes-inicio-<meId>`), shortcuts (`A.ATALHOS`) and the `ini-*` actions. Widgets live in `m-inicio-widgets.js` and register with `A.widget(id, {titulo, icone, tam, visivel, render(ctx), acoes?})`. Registration order is the default order. Widgets only read data and reuse existing actions (`editar-prazo`, `concluir-prazo`, `abrir-processo`, `notif-abrir`, …). The monitoring widget reuses `A.notificacoes()`. "Tarefas" are prazos plus compromissos of type `Tarefa interna`. There is no activity log: "Últimas atividades" is derived from the `criadoEm/atualizadoEm` stamps.
 
 **Exports:** each module registers `A.exportadores[name] = () => ({titulo, filtros, linhas, colunas:[{t, v, tipo?}]})` and renders `A.botoesExport(name)`. `export.js` lazy-loads SheetJS and jsPDF from cdnjs.
 

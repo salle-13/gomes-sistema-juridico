@@ -2,7 +2,7 @@
 (function (A) {
   const S = A.S, P = A.P;
   const GRUPOS = [
-    ['Agenda', ['agenda','notificacoes']],
+    ['Rotina', ['inicio','agenda','notificacoes']],
     ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
     ['Gestão', ['relatorios','equipe','config']],
@@ -19,9 +19,9 @@
   let mudouCampo = false; // true quando o redesenho vem de uma escolha feita num campo (evento change)
   A.renderNow = function () {
     resolverUsuario();
-    let rota = (location.hash || '#agenda').slice(1);
+    let rota = (location.hash || '#inicio').slice(1);
     if (A.aliases && A.aliases[rota]) { A.aliases[rota](); rota = 'agenda'; history.replaceState(null, '', '#agenda'); }
-    if (!A.routes[rota]) rota = 'agenda';
+    if (!A.routes[rota]) rota = 'inicio';
     S.rota = rota;
     renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino(); A.renderBusca && A.renderBusca();
     const r = A.routes[rota], main = document.getElementById('main');

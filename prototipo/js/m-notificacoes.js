@@ -76,6 +76,9 @@
           add(Object.assign({}, base, {chave: `proc:${pr.id}:and:${i}:${a.data}`, prio: 'info', titulo: `Novo andamento · ${pr.numero}`,
             texto: [cli, resumo(a.texto, 110)].filter(Boolean).join(' · '), ref: a.data, refTxt: 'Registrado ' + A.fmt(a.data) + (a.por ? ' por ' + A.nomeDe(a.por) : ''), origem: a.data, dispensavel: true})); });
         if (pr.status !== 'ativo') return;
+        if (!pr.responsavelId && (visaoGeral() || A.pode('processos', 'editar')))
+          add(Object.assign({}, base, {chave: `proc:${pr.id}:sem-resp`, prio: 'atencao', titulo: `Processo sem responsável · ${A.rotuloProcesso(pr) || 'sem número'}`,
+            texto: [cli, 'defina quem acompanha este processo'].filter(Boolean).join(' · '), ref: null, refTxt: 'Processo ativo', origem: pr.criadoEm, dispensavel: true}));
         const ultimo = and.map(a => a.data).filter(Boolean).sort().pop() || pr.distribuidoEm;
         const pend = A.col('prazos').some(p => p.processoId === pr.id && p.status !== 'concluido');
         if (ultimo && !pend && dias(ultimo, h) > PARADO)

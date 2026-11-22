@@ -15,6 +15,9 @@
   const dataDe = iso => iso ? P.ymd(new Date(iso)) : '';
   const tarefas = () => A.col('compromissos').filter(c => c.tipo === TAREFA);
   const mais = (n, rotulo, attrs) => n > 0 ? `<button class="dw-mais" ${attrs}>${esc(rotulo.replace('{n}', n))}</button>` : '';
+  // Cabeçalho dos quadros: link "ver tudo" e botão "+" compacto
+  const link = (rot, attrs) => `<button class="dw-link" ${attrs}>${esc(rot)} →</button>`;
+  const novo = (rot, atalho) => `<button class="iconbtn dw-novo" data-action="ini-atalho" data-id="${atalho}" aria-label="${esc(rot)}" title="${esc(rot)}">${A.ico('mais', 16)}</button>`;
   const abrirAttrs = (a, id, rota) => `data-action="ini-abrir" data-a="${a}" data-id="${esc(id)}"${rota ? ` data-rota="${rota}"` : ''}`;
 
   /* ================= Indicadores ================= */
@@ -22,31 +25,25 @@
     visivel: () => A.pode('processos', 'ver') || A.pode('clientes', 'ver') || A.pode('prazos', 'ver'),
     render(ctx) {
       const h = ctx.h, cards = [];
-      const card = (cor, icone, valor, rotulo, desc, attrs) => cards.push(`<button class="dkpi" style="--c:${cor}" ${attrs}><span class="dkpi-ic">${A.ico(icone, 20)}</span>
-        <span class="dkpi-txt"><strong class="num">${valor}</strong><span>${esc(rotulo)}</span>${desc ? `<small>${esc(desc)}</small>` : ''}</span></button>`);
+      const card = (cor, icone, valor, rotulo, desc, attrs) => cards.push(`<button class="dkpi" style="--c:${cor}" ${attrs} title="${esc(desc || '')}"><strong class="num">${valor}</strong><span>${esc(rotulo)}</span></button>`);
       if (A.pode('processos', 'ver')) {
         const pr = A.col('processos'), ativos = pr.filter(p => p.status === 'ativo'), meus = ativos.filter(p => p.responsavelId === S.meId).length;
-        card('var(--accent)', 'processo', ativos.length, 'Processos ativos', S.meId ? `${meus} sob sua responsabilidade` : `${pr.filter(p => p.status === 'suspenso').length} suspenso(s)`, 'data-action="ini-ir" data-ir="processos" data-status="ativo"');
-        card('var(--done)', 'arquivo', pr.filter(p => p.status === 'arquivado').length, 'Processos arquivados', `${pr.filter(p => p.status === 'encerrado').length} encerrado(s)`, 'data-action="ini-ir" data-ir="processos" data-status="arquivado"');
-      }
-      if (A.pode('clientes', 'ver')) {
-        const cl = A.col('clientes'), ativos = cl.filter(c => c.status === 'ativo' || c.status === 'aceito').length, capt = cl.filter(c => ['novo','encaminhado','analise'].includes(c.status)).length;
-        card('var(--ok)', 'clientes', ativos, 'Clientes ativos', capt ? `${capt} caso(s) em captação` : 'Nenhum caso em captação', 'data-action="ini-ir" data-ir="clientes"');
+        card('transparent', 'processo', ativos.length, 'Processos ativos', S.meId ? `${meus} sob sua responsabilidade` : `${pr.filter(p => p.status === 'suspenso').length} suspenso(s)`, 'data-action="ini-ir" data-ir="processos" data-status="ativo"');
       }
       if (A.pode('prazos', 'ver')) {
         const tf = tarefas().filter(c => aberto(c) && ctx.meu(c.responsavelId, c.participantes)), atr = tf.filter(c => c.data < h).length;
-        card(atr ? 'var(--danger)' : 'var(--amber)', 'tarefa', tf.length, 'Tarefas pendentes', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="${TAREFA}"`);
+        card(atr ? 'var(--danger)' : 'transparent', 'tarefa', tf.length, atr ? `Tarefas · ${atr} atrasada(s)` : 'Tarefas pendentes', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="${TAREFA}"`);
         const pz = A.col('prazos').filter(p => aberto(p) && p.vencimento && ctx.meu(p.responsavelId)), s = pz.map(ctx.sit);
         const prox = s.filter(x => ['hoje','critico','atencao'].includes(x)).length, venc = s.filter(x => x === 'vencido').length;
-        card(venc || s.includes('hoje') ? 'var(--danger)' : 'var(--warn)', 'prazo', prox, 'Prazos próximos', `${venc ? venc + ' vencido(s) · ' : ''}até ${ctx.ant} dias úteis`, 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"');
+        card(venc || s.includes('hoje') ? 'var(--danger)' : prox ? 'var(--warn)' : 'transparent', 'prazo', prox + venc, venc ? `Prazos · ${venc} vencido(s)` : 'Prazos próximos', `${venc ? venc + ' vencido(s) · ' : ''}até ${ctx.ant} dias úteis`, 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"');
         const au = A.col('compromissos').filter(c => c.tipo === 'Audiência' && aberto(c) && c.data >= h && ctx.meu(c.responsavelId, c.participantes)).sort((a, b) => (a.data + (a.horaInicio || '')).localeCompare(b.data + (b.horaInicio || '')));
-        card('var(--accent)', 'audiencia', au.length, 'Audiências agendadas', au[0] ? `Próxima: ${diaRel(au[0].data, h).toLowerCase()} · ${horario(au[0])}` : 'Nenhuma marcada', 'data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="Audiência"');
+        card('transparent', 'audiencia', au.length, 'Audiências agendadas', au[0] ? `Próxima: ${diaRel(au[0].data, h).toLowerCase()} · ${horario(au[0])}` : 'Nenhuma marcada', 'data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="Audiência"');
       }
       return `<div class="dkpis">${cards.join('')}</div>`;
     }});
 
   /* ================= Atalhos ================= */
-  A.widget('atalhos', {titulo: 'Atalhos', icone: 'raio', tam: 'g',
+  A.widget('atalhos', {titulo: 'Atalhos', icone: 'raio', tam: 'g', oculto: true,
     visivel: () => A.ATALHOS.some(a => a.pode()),
     acoes: () => '<button class="btn small" data-action="ini-personalizar">Escolher atalhos</button>',
     render(ctx) {
@@ -58,7 +55,7 @@
   /* ================= Meu dia (prazos e tarefas) ================= */
   A.widget('meudia', {titulo: 'Meu dia', icone: 'sol',
     visivel: () => A.pode('prazos', 'ver'),
-    acoes: () => A.pode('prazos', 'editar') ? '<button class="btn small" data-action="ini-atalho" data-id="nova-tarefa">+ Tarefa</button>' : '',
+    acoes: () => link('Agenda', 'data-action="ini-ir" data-ir="agenda"') + (A.pode('prazos', 'editar') ? novo('Nova tarefa', 'nova-tarefa') : ''),
     render(ctx) {
       const h = ctx.h, ate = P.addDays(h, 7), ed = A.pode('prazos', 'editar');
       const itens = [
@@ -72,50 +69,48 @@
         concluidas: itens.filter(i => i.ok && dataDe(i.o.atualizadoEm) === h),
       };
       Object.values(grupos).forEach(g => g.sort((a, b) => a.data.localeCompare(b.data) || (a.o.prioridade === 'alta' ? -1 : 0) - (b.o.prioridade === 'alta' ? -1 : 0)));
-      const ABAS = [['atrasadas','Atrasadas'],['hoje','Para hoje'],['proximas','Próximos 7 dias'],['concluidas','Concluídas hoje']];
+      const ABAS = [['atrasadas','Atrasadas'],['hoje','Hoje'],['proximas','7 dias'],['concluidas','Feitas']];
       let aba = ctx.ui.dia; if (!grupos[aba]) aba = ['atrasadas','hoje','proximas'].find(k => grupos[k].length) || 'hoje';
       const linha = i => { const o = i.o, prazo = i.k === 'prazo', pr = A.processo(o.processoId), m = A.membro(o.responsavelId);
-        const titulo = prazo ? o.tipo || 'Prazo' : o.titulo || 'Tarefa', desc = corta(prazo ? o.descricao : o.obs, 90);
+        const titulo = prazo ? o.tipo || 'Prazo' : o.titulo || 'Tarefa';
         const proc = A.rotuloProcId(o.processoId, o.processo), cli = prazo ? nomeCli(o) : A.cliente(o.clienteId)?.nome;
         const atrasada = !i.ok && i.data < h;
         return `<li class="dtask${atrasada ? ' is-late' : ''}${i.ok ? ' is-done' : ''}">
           ${ed ? `<button class="dcheck" data-action="${prazo ? 'concluir-prazo' : 'concluir-comp'}" data-id="${esc(o.id)}" aria-label="${i.ok ? 'Reabrir' : 'Concluir'}: ${esc(titulo)}" title="${i.ok ? 'Reabrir' : 'Marcar como concluído'}">${i.ok ? A.ico('check', 14) : ''}</button>` : '<span class="dcheck" aria-hidden="true"></span>'}
           <button class="dtask-main" ${abrirAttrs(prazo ? 'editar-prazo' : 'editar-comp', o.id)}>
-            <span class="dtask-t"><span class="tag">${prazo ? 'Prazo' : 'Tarefa'}</span> ${esc(titulo)}${o.prioridade === 'alta' ? ' <span class="tag alta">Prioridade alta</span>' : ''}</span>
-            ${desc ? `<span class="dtask-d">${esc(desc)}</span>` : ''}
-            <span class="dtask-m"><span class="num${atrasada ? ' late' : ''}">${esc(atrasada ? 'Venceu ' + A.fmt(i.data) : diaRel(i.data, h) + (i.data === h ? '' : ' · ' + A.fmt(i.data).slice(0, 5)))}</span>${proc || cli ? `<span>${esc([cli, proc].filter(Boolean).join(' · '))}</span>` : ''}<span class="who">${A.avatar(m)}${esc(m ? m.nome : 'Sem responsável')}</span></span>
+            <span class="dtask-t">${esc(titulo)}${o.prioridade === 'alta' ? ' <span class="tag alta">Alta</span>' : ''}</span>
+            <span class="dtask-m"><span class="num${atrasada ? ' late' : ''}">${esc(atrasada ? 'Venceu ' + A.fmt(i.data) : diaRel(i.data, h) + (i.data === h ? '' : ' · ' + A.fmt(i.data).slice(0, 5)))}</span>${proc || cli ? `<span>${esc([cli, proc].filter(Boolean).join(' · '))}</span>` : ''}${ctx.escopo === 'equipe' ? A.avatar(m) : ''}</span>
           </button></li>`; };
-      const lst = grupos[aba], LIM = 6;
-      const vazios = {atrasadas: ['check', 'Nada atrasado.', 'Bom trabalho: nenhum prazo ou tarefa em atraso.'], hoje: ['sol', 'Nada vence hoje.', ''], proximas: ['calendario', 'Nada nos próximos 7 dias.', ''], concluidas: ['tarefa', 'Nada concluído hoje ainda.', '']};
+      const lst = grupos[aba], LIM = 3;
+      const vazios = {atrasadas: ['check', 'Nada atrasado.', ''], hoje: ['sol', 'Nada vence hoje.', ''], proximas: ['calendario', 'Nada nos próximos 7 dias.', ''], concluidas: ['tarefa', 'Nada concluído hoje ainda.', '']};
       return `<div class="subtabs dw-tabs">${ABAS.map(([k, l]) => `<button data-action="ini-aba" data-k="dia" data-v="${k}" aria-pressed="${aba === k}"${k === 'atrasadas' && grupos[k].length ? ' class="tab-late"' : ''}>${l} <span class="num">${grupos[k].length}</span></button>`).join('')}</div>
         ${lst.length ? `<ul class="dtasks">${lst.slice(0, LIM).map(linha).join('')}</ul>` : A.vazio(...vazios[aba])}
-        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} item(ns)', `data-action="ini-ir" data-ir="agenda"`)}<button class="dw-link" data-action="ini-ir" data-ir="agenda">Ver tudo na agenda →</button></div>`;
+        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} item(ns)', `data-action="ini-ir" data-ir="agenda"`)}</div>`;
     }});
 
   /* ================= Compromissos ================= */
-  A.widget('compromissos', {titulo: 'Compromissos', icone: 'calendario',
+  A.widget('compromissos', {titulo: 'Compromissos de hoje', icone: 'calendario',
     visivel: () => A.pode('prazos', 'ver'),
-    acoes: () => A.pode('prazos', 'editar') ? '<button class="btn small" data-action="ini-atalho" data-id="novo-comp">+ Compromisso</button>' : '',
+    acoes: ctx => link('Agenda do dia', `data-action="ini-ir" data-ir="agenda" data-visao="dia" data-dia="${ctx.h}"`) + (A.pode('prazos', 'editar') ? novo('Novo compromisso', 'novo-comp') : ''),
     render(ctx) {
-      const h = ctx.h, ate = P.addDays(h, 7);
-      const arr = A.col('compromissos').filter(c => c.tipo !== TAREFA && aberto(c) && c.data >= h && c.data <= ate && ctx.meu(c.responsavelId, c.participantes))
+      const h = ctx.h;
+      const arr = A.col('compromissos').filter(c => c.tipo !== TAREFA && aberto(c) && c.data === h && ctx.meu(c.responsavelId, c.participantes))
         .sort((a, b) => (a.data + (a.diaInteiro ? '' : a.horaInicio || '')).localeCompare(b.data + (b.diaInteiro ? '' : b.horaInicio || '')));
-      if (!arr.length) return A.vazio('calendario', 'Nenhum compromisso nos próximos 7 dias.', 'Audiências, reuniões, atendimentos e diligências aparecem aqui.') +
-        `<div class="dw-foot"><button class="dw-link" data-action="ini-ir" data-ir="agenda" data-visao="mes">Abrir agenda completa →</button></div>`;
-      const LIM = 7; let dia = '', html = '';
+      if (!arr.length) return A.vazio('calendario', 'Nenhum compromisso hoje.', '');
+      const LIM = 3; let html = '';
       arr.slice(0, LIM).forEach(c => {
-        if (c.data !== dia) { dia = c.data; html += `<li class="dday">${esc(diaRel(dia, h))}${dia === h ? '' : ' · ' + esc(A.fmt(dia).slice(0, 5))}</li>`; }
         const proc = A.processo(c.processoId), cli = A.cliente(c.clienteId)?.nome || A.cliente(proc?.clienteId)?.nome, link = /^https?:\/\//i.test(c.local || '');
         html += `<li class="dcomp${c.tipo === 'Audiência' ? ' is-aud' : ''}"><span class="dhora num">${esc(horario(c))}</span>
           <div class="dcomp-b"><button class="dcomp-t" ${abrirAttrs('editar-comp', c.id)}>${esc(c.titulo || c.tipo)}</button>
-            <span class="dtask-m"><span class="tag">${esc(c.tipo)}</span>${cli || proc ? `<span>${esc([cli, proc ? A.rotuloProcesso(proc) : ''].filter(Boolean).join(' · '))}</span>` : ''}
+            <span class="dtask-m"><span>${esc(c.tipo)}</span>${cli || proc ? `<span>${esc([cli, proc ? A.rotuloProcesso(proc) : ''].filter(Boolean).join(' · '))}</span>` : ''}
             ${c.local ? (link ? `<a href="${esc(c.local)}" target="_blank" rel="noopener">Abrir link da reunião</a>` : `<span>${esc(corta(c.local, 50))}</span>`) : ''}</span></div></li>`;
       });
-      return `<ul class="dcomps">${html}</ul><div class="dw-foot">${mais(arr.length - LIM, '+ {n} compromisso(s)', 'data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos"')}<button class="dw-link" data-action="ini-ir" data-ir="agenda" data-visao="semana">Abrir agenda completa →</button></div>`;
+      return `<ul class="dcomps">${html}</ul><div class="dw-foot">${mais(arr.length - LIM, '+ {n} compromisso(s)', `data-action="ini-ir" data-ir="agenda" data-visao="dia" data-dia="${h}"`)}</div>`;
     }});
 
   /* ================= Radar de prazos (7 dias) ================= */
-  A.widget('radar', {titulo: 'Radar de prazos', icone: 'radar',
+  A.widget('radar', {titulo: 'Radar de prazos', icone: 'radar', oculto: true,
+    acoes: () => link('Prazos', 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"'),
     visivel: () => A.pode('prazos', 'ver'),
     render(ctx) {
       const h = ctx.h, pz = A.col('prazos').filter(p => aberto(p) && p.vencimento && ctx.meu(p.responsavelId));
@@ -134,28 +129,29 @@
             <span class="dradar-d">${esc(c.rot)}</span><small>${esc(c.sub)}</small></button>`; }).join('')}</div>
         ${total ? '' : '<p class="muted dw-nota">Nenhum prazo vencido ou nos próximos 7 dias.</p>'}
         ${total ? `<div class="dradar-lista"><h4>${esc(sel === 'venc' ? 'Prazos vencidos em aberto' : 'Prazos de ' + diaRel(sel, h).toLowerCase() + (sel === h ? '' : ' · ' + A.fmt(sel)))}${atual.naoUtil ? ` <small class="muted">(${esc(atual.naoUtil)})</small>` : ''}</h4>
-          ${lista.length ? `<div class="plist">${lista.slice(0, 4).map(A.pcardPrazo).join('')}</div>${mais(lista.length - 4, 'Ver os outros {n} na agenda →', `data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"`)}` : '<p class="muted dw-nota">Nenhum prazo neste dia.</p>'}</div>` : ''}
-        <p class="dw-nota muted">Datas conforme cadastradas; a contagem segue as regras da agenda (dias úteis, feriados e recesso). A data oficial é a do DJEN ou do tribunal.</p>`;
+          ${lista.length ? `<div class="plist">${lista.slice(0, 3).map(A.pcardPrazo).join('')}</div>${mais(lista.length - 3, 'Ver os outros {n} na agenda →', `data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"`)}` : '<p class="muted dw-nota">Nenhum prazo neste dia.</p>'}</div>` : ''}`;
     }});
 
   /* ================= Central de monitoramento (reaproveita a Central de Notificações) ================= */
-  A.widget('monitoramento', {titulo: 'Central de monitoramento', icone: 'alerta',
+  A.widget('monitoramento', {titulo: 'Alertas', icone: 'alerta', tam: 'g',
+    acoes: () => link('Notificações', 'data-action="ini-ir" data-ir="notificacoes"'),
     visivel: () => !!A.notificacoes,
     render(ctx) {
       const NIV = [['urgente','Crítico'],['atencao','Atenção'],['info','Informativo']];
       const todas = A.notificacoes().filter(n => !n.dispensada), por = Object.fromEntries(NIV.map(([k]) => [k, todas.filter(n => n.prio === k)]));
       let nv = ctx.ui.mon; if (!por[nv]) nv = NIV.map(x => x[0]).find(k => por[k].length) || 'urgente';
-      const lst = por[nv].slice().sort((a, b) => (a.lida - b.lida) || String(a.ref || '9').localeCompare(String(b.ref || '9'))), LIM = 5;
+      const lst = por[nv].slice().sort((a, b) => (a.lida - b.lida) || String(a.ref || '9').localeCompare(String(b.ref || '9'))), LIM = 3;
       if (!todas.length) return A.vazio('check', 'Tudo em dia.', 'Nenhum alerta ou pendência no momento.');
       return `<div class="dmon-niveis">${NIV.map(([k, l]) => `<button class="dmon-n p-${k}" data-action="ini-aba" data-k="mon" data-v="${k}" aria-pressed="${nv === k}"><b class="num">${por[k].length}</b><span>${l}</span></button>`).join('')}</div>
         ${lst.length ? `<ul class="dmon">${lst.slice(0, LIM).map(n => `<li><button class="dmon-i p-${n.prio}${n.lida ? ' is-read' : ''}" data-action="notif-abrir" data-chave="${esc(n.chave)}"><span class="notification-dot" aria-hidden="true"></span>
-          <span><b>${esc(n.titulo)}</b>${n.texto ? `<span>${esc(corta(n.texto, 110))}</span>` : ''}<small>${esc(n.refTxt || '')}</small></span></button></li>`).join('')}</ul>`
+          <span><b>${esc(n.titulo)}</b><small>${esc([corta(n.texto, 70), n.refTxt].filter(Boolean).join(' · '))}</small></span></button></li>`).join('')}</ul>`
           : A.vazio('check', 'Nada neste nível.', '')}
-        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} alerta(s)', 'data-action="ini-ir" data-ir="notificacoes"')}<button class="dw-link" data-action="ini-ir" data-ir="notificacoes">Abrir central de notificações →</button></div>`;
+        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} alerta(s)', 'data-action="ini-ir" data-ir="notificacoes"')}</div>`;
     }});
 
   /* ================= Processos que exigem atenção ================= */
-  A.widget('processos-atencao', {titulo: 'Processos que exigem atenção', icone: 'processo',
+  A.widget('processos-atencao', {titulo: 'Processos que exigem atenção', icone: 'processo', oculto: true,
+    acoes: ctx => link('Processos', `data-action="ini-ir" data-ir="processos" data-status="ativo"${ctx.escopo === 'meu' ? ` data-resp="${esc(S.meId)}"` : ''}`),
     visivel: () => A.pode('processos', 'ver'),
     render(ctx) {
       const h = ctx.h, verPz = A.pode('prazos', 'ver'), verPub = A.pode('publicacoes', 'ver');
@@ -176,17 +172,17 @@
         return {pr, mot: mot.sort((a, b) => RS[a[0]] - RS[b[0]])};
       }).filter(x => x.mot.length).sort((a, b) => RS[a.mot[0][0]] - RS[b.mot[0][0]] || b.mot.length - a.mot.length);
       if (!lista.length) return A.vazio('check', 'Nenhum processo pede atenção agora.', ctx.escopo === 'meu' ? 'Considerando os processos sob sua responsabilidade.' : 'Considerando todos os processos ativos.');
-      const LIM = 6;
+      const LIM = 3;
       return `<ul class="dprocs">${lista.slice(0, LIM).map(({pr, mot}) => { const m = A.membro(pr.responsavelId);
           return `<li><button class="dproc nv-${mot[0][0]}" ${abrirAttrs('abrir-processo', pr.id, 'processos')}>
             <span class="dproc-t">${pr.pasta ? `<span class="evtag2">Pasta ${esc(pr.pasta)}</span> ` : ''}<span class="proc">${esc(pr.numero || 'sem nº de processo')}</span></span>
             <span class="dtask-m"><span>${esc(A.cliente(pr.clienteId)?.nome || '—')}</span><span class="who">${A.avatar(m)}${esc(m ? m.nome : 'Sem responsável')}</span></span>
             <span class="dmotivos">${mot.map(([n, t]) => `<span class="dmot nv-${n}">${esc(t)}</span>`).join('')}</span></button></li>`; }).join('')}</ul>
-        <div class="dw-foot">${mais(lista.length - LIM, '+ {n} processo(s) com pendência', 'data-action="ini-ir" data-ir="processos" data-status="ativo"')}<button class="dw-link" data-action="ini-ir" data-ir="processos" data-status="ativo"${ctx.escopo === 'meu' ? ` data-resp="${esc(S.meId)}"` : ''}>Ver processos →</button></div>`;
+        <div class="dw-foot">${mais(lista.length - LIM, '+ {n} processo(s) com pendência', 'data-action="ini-ir" data-ir="processos" data-status="ativo"')}</div>`;
     }});
 
   /* ================= Retornos pendentes ================= */
-  A.widget('retornos', {titulo: 'Retornos pendentes', icone: 'telefone',
+  A.widget('retornos', {titulo: 'Retornos pendentes', icone: 'telefone', oculto: true,
     visivel: () => A.pode('prazos', 'ver') || A.pode('clientes', 'ver'),
     render(ctx) {
       const h = ctx.h, itens = [];
@@ -206,12 +202,12 @@
       }
       if (!itens.length) return A.vazio('telefone', 'Nenhum retorno pendente.', 'Ligações e retornos agendados e casos em captação aparecem aqui.');
       itens.sort((a, b) => (b.late - a.late) || a.ord.localeCompare(b.ord));
-      const LIM = 6;
+      const LIM = 3;
       return `<ul class="drets">${itens.slice(0, LIM).map(i => `<li>${i.html}</li>`).join('')}</ul><div class="dw-foot">${mais(itens.length - LIM, '+ {n} retorno(s)', A.pode('clientes', 'ver') ? 'data-action="ini-ir" data-ir="clientes"' : 'data-action="ini-ir" data-ir="agenda"')}</div>`;
     }});
 
   /* ================= Aniversariantes do mês (clientes) ================= */
-  A.widget('aniversariantes', {titulo: 'Aniversariantes do mês', icone: 'bolo',
+  A.widget('aniversariantes', {titulo: 'Aniversariantes do mês', icone: 'bolo', oculto: true,
     visivel: () => A.pode('clientes', 'ver'),
     render(ctx) {
       const h = ctx.h, mes = h.slice(5, 7), hojeMD = h.slice(5), ano = Number(h.slice(0, 4));
@@ -227,7 +223,8 @@
         return `<li class="daniv${dia ? ' is-hoje' : ''}${passou ? ' is-passou' : ''}"><span class="av" style="background:${dia ? 'var(--accent)' : '#8893A3'}" aria-hidden="true">${esc(A.iniciais(c.nome))}</span>
           <span class="daniv-b"><button class="dcomp-t" ${abrirAttrs('abrir-cliente', c.id, 'clientes')}>${esc(c.nome)}</button>
             <small><span class="num">${esc(md.slice(3) + '/' + md.slice(0, 2))}</span>${idade > 0 && idade < 120 ? ` · ${dia ? 'faz' : passou ? 'fez' : 'fará'} ${idade} anos` : ''}${dia ? ' · <b>Hoje!</b>' : ''}</small></span>${contato}</li>`; };
-      return `<ul class="danivs">${arr.map(linha).join('')}</ul><p class="dw-nota muted">"Felicitar" abre o WhatsApp ou o e-mail com a mensagem pronta para revisar; nada é enviado sozinho.</p>`;
+      const prox = arr.filter(c => c.dataNascimento.slice(5, 10) >= hojeMD), lst = (prox.length ? prox : arr).slice(0, 3);
+      return `<ul class="danivs">${lst.map(linha).join('')}</ul><div class="dw-foot">${arr.length > lst.length ? `<span class="muted" style="font-size:12px">${arr.length} no mês</span>` : ''}</div>`;
     }});
 
   /* ================= Últimas atividades ================= */
@@ -244,7 +241,7 @@
     {col: 'modelos', mod: 'modelos', criou: 'Modelo de documento criado', alterou: () => 'Modelo atualizado', nome: m => m.nome, abrir: [null, 'modelos']},
     {col: 'equipe', mod: 'equipe', criou: 'Membro adicionado à equipe', alterou: () => 'Cadastro da equipe atualizado', nome: m => m.nome, abrir: [null, 'equipe']},
   ];
-  A.widget('atividades', {titulo: 'Últimas atividades', icone: 'atividade',
+  A.widget('atividades', {titulo: 'Últimas atividades', icone: 'atividade', oculto: true,
     render() {
       const ev = [], txt = (v, o) => typeof v === 'function' ? v(o) : v;
       ATIV.filter(t => A.pode(t.mod, 'ver')).forEach(t => A.col(t.col).forEach(o => {
@@ -255,16 +252,15 @@
       // Agrupa ações em lote (ex.: 160 publicações importadas no mesmo minuto pela mesma pessoa)
       const grupos = new Map();
       ev.forEach(e => { const k = [e.t.col, e.acao, e.por || '', String(e.em).slice(0, 16)].join('|'); const g = grupos.get(k); if (g) g.n++; else grupos.set(k, Object.assign(e, {n: 1})); });
-      const lst = [...grupos.values()].sort((a, b) => String(b.em).localeCompare(String(a.em))).slice(0, 12);
+      const lst = [...grupos.values()].sort((a, b) => String(b.em).localeCompare(String(a.em))).slice(0, 3);
       if (!lst.length) return A.vazio('atividade', 'Nenhuma atividade registrada ainda.', 'Cadastros e alterações feitos no sistema aparecem aqui.');
       return `<ol class="dativ">${lst.map(e => { const [a, r0] = e.t.abrir, rota = typeof r0 === 'function' ? r0(e.o) : r0, alvo = e.n > 1 ? `${e.n} registros` : e.t.nome(e.o), m = A.membro(e.por);
           const corpo = `<span class="dativ-a"><b>${esc(e.acao)}</b>${alvo ? ` <span>${esc(corta(alvo, 80))}</span>` : ''}</span><small>${esc(m ? m.nome : e.por ? 'Alguém da equipe' : S.mode === 'local' ? 'Administrador (sem nome)' : 'Sem identificação')} · ${esc(A.quando(e.em))}</small>`;
-          return `<li>${A.avatar(m)}${e.n === 1 && (a || rota) ? `<button class="dativ-i" data-action="ini-abrir"${a ? ` data-a="${a}"` : ''} data-id="${esc(e.o.id)}"${rota ? ` data-rota="${rota}"` : ''}>${corpo}</button>` : `<div class="dativ-i">${corpo}</div>`}</li>`; }).join('')}</ol>
-        <p class="dw-nota muted">Mostra o cadastro e a última alteração de cada registro.</p>`;
+          return `<li>${A.avatar(m)}${e.n === 1 && (a || rota) ? `<button class="dativ-i" data-action="ini-abrir"${a ? ` data-a="${a}"` : ''} data-id="${esc(e.o.id)}"${rota ? ` data-rota="${rota}"` : ''}>${corpo}</button>` : `<div class="dativ-i">${corpo}</div>`}</li>`; }).join('')}</ol>`;
     }});
 
   /* ================= Distribuição de tarefas da equipe ================= */
-  A.widget('equipe', {titulo: 'Distribuição da equipe', icone: 'equipe', tam: 'g',
+  A.widget('equipe', {titulo: 'Distribuição da equipe', icone: 'equipe', tam: 'g', oculto: true,
     visivel: () => A.pode('prazos', 'ver') && A.col('equipe').length > 1 && (!S.meId || ['admin', 'advogado'].includes(A.papel())),
     render(ctx) {
       const h = ctx.h, desde = P.addDays(h, -30);
@@ -281,7 +277,6 @@
         ${linhas.map(l => `<tr class="row-click" data-action="ini-ir" data-ir="agenda" data-resp="${esc(l.m.id)}"><td><span class="who">${A.avatar(l.m)}${esc(l.m.nome)}</span></td>
           <td><span class="dcarga" title="${l.pend} pendente(s), ${l.atr} atrasado(s)"><i class="atr" style="width:${l.atr / max * 100}%"></i><i style="width:${(l.pend - l.atr) / max * 100}%"></i></span></td>
           <td class="num">${l.pend}</td><td class="num">${l.atr ? `<b class="late">${l.atr}</b>` : 0}</td><td class="num">${l.hoje}</td><td class="num">${l.ok}</td></tr>`).join('')}
-        ${sem ? `<tr><td colspan="6" class="muted">${sem} prazo(s) ou tarefa(s) em aberto sem responsável.</td></tr>` : ''}</tbody></table></div>
-        <p class="dw-nota muted">Conta prazos e tarefas internas. Clique numa pessoa para ver a agenda dela.</p>`;
+        ${sem ? `<tr><td colspan="6" class="muted">${sem} prazo(s) ou tarefa(s) em aberto sem responsável.</td></tr>` : ''}</tbody></table></div>`;
     }});
 })(window.App);

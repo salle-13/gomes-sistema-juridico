@@ -35,7 +35,7 @@
   A.ico = (nome, tam) => `<svg class="ico" width="${tam || 18}" height="${tam || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[nome] || ''}</svg>`;
 
   /* ---------- registro de quadros ---------- */
-  // def: {titulo, icone, tam: 'g' (linha inteira) | 'm' (meia linha), visivel(): bool (permissões), render(ctx): html, acoes?(ctx): html}
+  // def: {titulo, icone, tam: 'g' (linha inteira) | 'm' (meia linha), oculto?: true (desligado no padrão), visivel(): bool (permissões), render(ctx): html, acoes?(ctx): html}
   A.WIDGETS = [];
   A.widget = (id, def) => { A.WIDGETS.push(Object.assign({id, tam: 'm'}, def)); };
 
@@ -59,13 +59,13 @@
 
   /* ---------- personalização (por pessoa, neste navegador) ---------- */
   const chavePrefs = () => 'gomes-inicio-' + (S.meId || (S.contaId ? 'conta-' + S.contaId : 'admin'));
-  const padrao = () => ({ordem: A.WIDGETS.map(w => w.id), ocultos: [], atalhos: ATALHOS_PADRAO.slice(), escopo: S.meId ? 'meu' : 'equipe'});
+  const padrao = () => ({ordem: A.WIDGETS.map(w => w.id), ocultos: A.WIDGETS.filter(w => w.oculto).map(w => w.id), atalhos: ATALHOS_PADRAO.slice(), escopo: S.meId ? 'meu' : 'equipe'});
   function prefs() {
     let p = null; try { p = JSON.parse(A.lsGet(chavePrefs()) || 'null'); } catch (e) {}
     const d = padrao(); if (!p || typeof p !== 'object') return d;
     const ids = A.WIDGETS.map(w => w.id), ordem = (Array.isArray(p.ordem) ? p.ordem : []).filter(id => ids.includes(id));
     ids.forEach(id => { if (!ordem.includes(id)) ordem.push(id); }); // quadro novo entra no fim
-    return {ordem, ocultos: Array.isArray(p.ocultos) ? p.ocultos : [], atalhos: Array.isArray(p.atalhos) ? p.atalhos : d.atalhos, escopo: p.escopo === 'meu' && S.meId ? 'meu' : 'equipe'};
+    return {ordem, ocultos: Array.isArray(p.ocultos) ? p.ocultos : d.ocultos, atalhos: Array.isArray(p.atalhos) ? p.atalhos : d.atalhos, escopo: p.escopo === 'meu' && S.meId ? 'meu' : 'equipe'};
   }
   const gravarPrefs = p => A.lsSet(chavePrefs(), JSON.stringify(p));
   A.inicioPrefs = prefs;
@@ -91,23 +91,25 @@
     const me = A.me(), nome = me ? me.nome : (S.mode === 'local' ? 'Administrador' : '');
     const util = P.diaUtil(A.hoje());
     return `<div class="dash-hero">
-      <div class="dash-hero-txt"><p class="dash-data">${esc(dataExtenso())}${util ? '' : ' · <span>dia não útil</span>'}</p>
-        <h2>${esc(saudacao())}${nome ? ', ' + esc(nome) : ''}</h2>
-        <p class="muted">${esc(S.config.escritorioNome || 'Gomes Assessoria Jurídica')} · ${pr.escopo === 'meu' ? 'mostrando o que é seu' : 'mostrando toda a equipe'}</p></div>
+      <div><h2>${esc(saudacao())}${nome ? ', ' + esc(nome) : ''}</h2><p class="dash-data">${esc(dataExtenso())}${util ? '' : ' · dia não útil'}</p></div>
       <div class="dash-hero-acts">
-        ${S.meId ? `<div class="seg" role="group" aria-label="Visão do painel"><button data-action="ini-escopo" data-v="meu" aria-pressed="${pr.escopo === 'meu'}">Minha visão</button><button data-action="ini-escopo" data-v="equipe" aria-pressed="${pr.escopo === 'equipe'}">Equipe</button></div>` : ''}
-        <button class="btn" data-action="ini-personalizar">${A.ico('ajustes', 16)} Personalizar</button></div></div>`;
+        ${S.meId ? `<div class="seg" role="group" aria-label="Visão do painel"><button data-action="ini-escopo" data-v="meu" aria-pressed="${pr.escopo === 'meu'}">Minha</button><button data-action="ini-escopo" data-v="equipe" aria-pressed="${pr.escopo === 'equipe'}">Equipe</button></div>` : ''}
+        <button class="iconbtn" data-action="ini-personalizar" aria-label="Personalizar o início" title="Personalizar">${A.ico('ajustes', 17)}</button></div></div>`;
   }
 
   /* ---------- quadros ---------- */
-  function caixa(w, ctx) {
+  function caixa(w, ctx, extra) {
     let corpo, acoes = '';
     try { corpo = w.render(ctx); acoes = w.acoes ? w.acoes(ctx) : ''; }
     catch (e) { console.error('Início: erro no quadro', w.id, e); corpo = A.vazio('alerta', 'Não foi possível montar este quadro.', 'Os demais continuam funcionando. Recarregue a página; se persistir, avise o suporte.'); }
-    return `<section class="dw dw-${w.tam}" aria-labelledby="dw-${w.id}"><header class="dw-head"><span class="dw-ic">${A.ico(w.icone)}</span><h3 id="dw-${w.id}">${esc(w.titulo)}</h3>${acoes ? `<span class="dw-acts">${acoes}</span>` : ''}</header><div class="dw-body">${corpo}</div></section>`;
+    return `<section class="dw dw-${w.tam}${extra || ''}" aria-labelledby="dw-${w.id}"><header class="dw-head"><h3 id="dw-${w.id}">${esc(w.titulo)}</h3>${acoes ? `<span class="dw-acts">${acoes}</span>` : ''}</header><div class="dw-body">${corpo}</div></section>`;
   }
   // Estado vazio padrão dos quadros
   A.vazio = (icone, titulo, texto) => `<div class="dw-vazio">${A.ico(icone, 26)}<b>${esc(titulo)}</b>${texto ? `<span>${esc(texto)}</span>` : ''}</div>`;
+  // Quadro de meia linha que ficaria sozinho (sem par ao lado) ocupa a linha inteira: sem buraco no layout.
+  function solo(ws, i) { let col = 0;
+    for (let j = 0; j < i; j++) col = ws[j].tam === 'g' ? 0 : (col + 1) % 2;
+    const w = ws[i], prox = ws[i + 1]; return w.tam !== 'g' && col === 0 && (!prox || prox.tam === 'g') ? ' dw-solo' : ''; }
   const visiveis = pr => pr.ordem.map(id => A.WIDGETS.find(w => w.id === id)).filter(w => w && (!w.visivel || w.visivel()));
 
   function vInicio() {
@@ -115,7 +117,7 @@
     if (S.mode === 'loading') return `<div class="dash">${cabecalho(pr)}<div class="dash-grid">${'<section class="dw dw-m dw-sk" aria-hidden="true"><span></span><span></span><span></span></section>'.repeat(4)}</div><p class="sr-only" role="status">Carregando o painel…</p></div>`;
     const ctx = contexto(pr), ws = visiveis(pr).filter(w => !pr.ocultos.includes(w.id));
     const aviso = S.mode === 'slow' ? '<div class="notice" style="margin:0"><span>Os dados ainda estão chegando; os números podem mudar em instantes.</span></div>' : '';
-    return `<div class="dash">${cabecalho(pr)}${aviso}<div class="dash-grid">${ws.map(w => caixa(w, ctx)).join('') ||
+    return `<div class="dash">${cabecalho(pr)}${aviso}<div class="dash-grid">${ws.map((w, i) => caixa(w, ctx, solo(ws, i))).join('') ||
       `<section class="dw dw-g"><div class="dw-body">${A.vazio('ajustes', 'Todos os quadros estão ocultos.', 'Use Personalizar para escolher o que aparece aqui.')}</div></section>`}</div></div>`;
   }
   A.route('inicio', {label: 'Início', mod: null, render: vInicio});

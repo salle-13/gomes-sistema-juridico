@@ -5,6 +5,11 @@
      O app.js garante que estes membros existam mesmo em dados já salvos (comparando pela OAB). */
   const EQUIPE_FIXA = [
     {id:'lucas-fernando', nome:'Dr. Lucas Fernando Barbosa Gomes', cargo:'Advogado', papel:'admin', oab:'OAB/MG 181.253', email:'', cor:'#1F5C99', genero:'M'},
+    {id:'cecilia-cafrune', nome:'Cecilia Souza Silva Cafrune', cargo:'Gerente', papel:'gerente', oab:'', email:'', cor:'#0F7C8C', genero:'F'},
+    {id:'janaina-amorim', nome:'Dra. Janaina Cardoso Amorim', cargo:'Advogada', papel:'advogado', oab:'OAB/MG 233.867', email:'', cor:'#8A3B6B', genero:'F'},
+    {id:'marcella-soares', nome:'Marcella Rosa Soares', cargo:'Assistente administrativa', papel:'assistente', oab:'', email:'', cor:'#5B4FA8', genero:'F'},
+    {id:'claudianne-santos', nome:'Claudianne Cristiane Alves dos Santos', cargo:'Assistente administrativa', papel:'assistente', oab:'', email:'', cor:'#B5651D', genero:'F'},
+    {id:'luisa-rodrigues', nome:'Luísa Caetano Moreira Rodrigues', cargo:'Estagiária', papel:'estagiario', oab:'', email:'', cor:'#2C7A4D', genero:'F'},
   ];
   function seed(hoje, P) {
     const add = (s, n) => P.addDays(s, n);

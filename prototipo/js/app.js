@@ -144,6 +144,13 @@
   const papelAntigo = equipe => equipe.filter(m => m.papel === 'financeiro');
   /* Membros fixos da equipe (seed.equipeFixa) que ainda não existem, por id ou pela OAB. */
   const faltamFixos = equipe => (A.seed.equipeFixa || []).filter(f => !equipe.some(m => m.id === f.id || (m.oab && A.oabChave && A.oabChave(m.oab) === A.oabChave(f.oab))));
+  /* Membros fixos já gravados: completa campos vazios (ex.: OAB incluída depois) e o "Dr./Dra." do nome.
+     Não sobrescreve o que foi preenchido na tela Equipe. Devolve os membros alterados (cópias). */
+  const semTitulo = n => String(n || '').replace(/^\s*dra?\.\s*/i, '').trim().toLowerCase();
+  const completarFixos = equipe => (A.seed.equipeFixa || []).map(f => { const m = equipe.find(x => x.id === f.id); if (!m) return null;
+    const muda = {}; ['oab', 'email', 'cargo', 'genero'].forEach(k => { if (!m[k] && f[k]) muda[k] = f[k]; });
+    if (m.nome !== f.nome && semTitulo(m.nome) === semTitulo(f.nome)) muda.nome = f.nome;
+    return Object.keys(muda).length ? Object.assign({}, m, muda) : null; }).filter(Boolean);
   function iniciarLocal() {
     S.mode = 'local'; let d = null;
     try { d = JSON.parse(A.lsGet('gomes-sistema-v2') || 'null'); } catch (e) {}
@@ -153,7 +160,8 @@
     A.COLS.forEach(c => S.data[c] = (d.data && d.data[c]) || []);
     const fixos = faltamFixos(S.data.equipe); if (fixos.length) S.data.equipe.unshift(...fixos.map(m => Object.assign({}, m)));
     const antigos = papelAntigo(S.data.equipe); antigos.forEach(m => m.papel = 'gerente');
-    if (fixos.length || antigos.length) A.Store.persistLocal();
+    const completos = completarFixos(S.data.equipe); completos.forEach(n => Object.assign(S.data.equipe.find(m => m.id === n.id), n));
+    if (fixos.length || antigos.length || completos.length) A.Store.persistLocal();
     S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null;
     P.setLocais(S.config.feriadosLocais || []); A.render(); A.depoisDeCarregar && A.depoisDeCarregar();
   }
@@ -171,7 +179,7 @@
     const err = e => { clearTimeout(timer); S.mode = 'erro'; A.render(); };
     let avisou = false;
     const pronto = () => { if (['equipe','prazos'].every(c => S.loaded[c]) && !avisou) { avisou = true; clearTimeout(timer); if (S.mode === 'slow') S.mode = 'db';
-      if (S.canWrite !== false) { faltamFixos(S.data.equipe).forEach(m => A.save('equipe', Object.assign({}, m))); papelAntigo(S.data.equipe).forEach(m => A.save('equipe', Object.assign({}, m, {papel: 'gerente'}))); } A.depoisDeCarregar && A.depoisDeCarregar(); } };
+      if (S.canWrite !== false) { faltamFixos(S.data.equipe).forEach(m => A.save('equipe', Object.assign({}, m))); papelAntigo(S.data.equipe).forEach(m => A.save('equipe', Object.assign({}, m, {papel: 'gerente'}))); completarFixos(S.data.equipe).forEach(m => A.save('equipe', m)); } A.depoisDeCarregar && A.depoisDeCarregar(); } };
     A.COLS.forEach(c => db.collection(A.Store.path(c)).onSnapshot(snap => {
       S.data[c] = snap.docs.map(d => Object.assign({id: d.id}, d.data()));
       if (!snap.metadata.fromCache) S.loaded[c] = true; A.render(); pronto(); A.aoAtualizar && A.aoAtualizar(c);

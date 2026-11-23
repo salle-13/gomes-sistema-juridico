@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+.env
+
+# Planilhas exportadas do Projuris: dados reais de clientes (LGPD). Nunca enviar ao GitHub.
+importacao-projuris/*
+!importacao-projuris/LEIA-ME.md
+*.csv
+*.xls
+*.xlsx

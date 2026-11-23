@@ -1,0 +1,74 @@
+[1mdiff --git a/prototipo/js/m-inicio-widgets.js b/prototipo/js/m-inicio-widgets.js[m
+[1mindex da33e61..5a69ee3 100644[m
+[1m--- a/prototipo/js/m-inicio-widgets.js[m
+[1m+++ b/prototipo/js/m-inicio-widgets.js[m
+[36m@@ -15,6 +15,9 @@[m
+   const dataDe = iso => iso ? P.ymd(new Date(iso)) : '';[m
+   const tarefas = () => A.col('compromissos').filter(c => c.tipo === TAREFA);[m
+   const mais = (n, rotulo, attrs) => n > 0 ? `<button class="dw-mais" ${attrs}>${esc(rotulo.replace('{n}', n))}</button>` : '';[m
+[32m+[m[32m  // Cabeçalho dos quadros: link "ver tudo" e botão "+" compacto[m
+[32m+[m[32m  const link = (rot, attrs) => `<button class="dw-link" ${attrs}>${esc(rot)} →</button>`;[m
+[32m+[m[32m  const novo = (rot, atalho) => `<button class="iconbtn dw-novo" data-action="ini-atalho" data-id="${atalho}" aria-label="${esc(rot)}" title="${esc(rot)}">${A.ico('mais', 16)}</button>`;[m
+   const abrirAttrs = (a, id, rota) => `data-action="ini-abrir" data-a="${a}" data-id="${esc(id)}"${rota ? ` data-rota="${rota}"` : ''}`;[m
+ [m
+   /* ================= Indicadores ================= */[m
+[36m@@ -22,31 +25,25 @@[m
+     visivel: () => A.pode('processos', 'ver') || A.pode('clientes', 'ver') || A.pode('prazos', 'ver'),[m
+     render(ctx) {[m
+       const h = ctx.h, cards = [];[m
+[31m-      const card = (cor, icone, valor, rotulo, desc, attrs) => cards.push(`<button class="dkpi" style="--c:${cor}" ${attrs}><span class="dkpi-ic">${A.ico(icone, 20)}</span>[m
+[31m-        <span class="dkpi-txt"><strong class="num">${valor}</strong><span>${esc(rotulo)}</span>${desc ? `<small>${esc(desc)}</small>` : ''}</span></button>`);[m
+[32m+[m[32m      const card = (cor, icone, valor, rotulo, desc, attrs) => cards.push(`<button class="dkpi" style="--c:${cor}" ${attrs} title="${esc(desc || '')}"><strong class="num">${valor}</strong><span>${esc(rotulo)}</span></button>`);[m
+       if (A.pode('processos', 'ver')) {[m
+         const pr = A.col('processos'), ativos = pr.filter(p => p.status === 'ativo'), meus = ativos.filter(p => p.responsavelId === S.meId).length;[m
+[31m-        card('var(--accent)', 'processo', ativos.length, 'Processos ativos', S.meId ? `${meus} sob sua responsabilidade` : `${pr.filter(p => p.status === 'suspenso').length} suspenso(s)`, 'data-action="ini-ir" data-ir="processos" data-status="ativo"');[m
+[31m-        card('var(--done)', 'arquivo', pr.filter(p => p.status === 'arquivado').length, 'Processos arquivados', `${pr.filter(p => p.status === 'encerrado').length} encerrado(s)`, 'data-action="ini-ir" data-ir="processos" data-status="arquivado"');[m
+[31m-      }[m
+[31m-      if (A.pode('clientes', 'ver')) {[m
+[31m-        const cl = A.col('clientes'), ativos = cl.filter(c => c.status === 'ativo' || c.status === 'aceito').length, capt = cl.filter(c => ['novo','encaminhado','analise'].includes(c.status)).length;[m
+[31m-        card('var(--ok)', 'clientes', ativos, 'Clientes ativos', capt ? `${capt} caso(s) em captação` : 'Nenhum caso em captação', 'data-action="ini-ir" data-ir="clientes"');[m
+[32m+[m[32m        card('transparent', 'processo', ativos.length, 'Processos ativos', S.meId ? `${meus} sob sua responsabilidade` : `${pr.filter(p => p.status === 'suspenso').length} suspenso(s)`, 'data-action="ini-ir" data-ir="processos" data-status="ativo"');[m
+       }[m
+       if (A.pode('prazos', 'ver')) {[m
+         const tf = tarefas().filter(c => aberto(c) && ctx.meu(c.responsavelId, c.participantes)), atr = tf.filter(c => c.data < h).length;[m
+[31m-        card(atr ? 'var(--danger)' : 'var(--amber)', 'tarefa', tf.length, 'Tarefas pendentes', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="${TAREFA}"`);[m
+[32m+[m[32m        card(atr ? 'var(--danger)' : 'transparent', 'tarefa', tf.length, atr ? `Tarefas · ${atr} atrasada(s)` : 'Tarefas pendentes', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="${TAREFA}"`);[m
+         const pz = A.col('prazos').filter(p => aberto(p) && p.vencimento && ctx.meu(p.responsavelId)), s = pz.map(ctx.sit);[m
+         const prox = s.filter(x => ['hoje','critico','atencao'].includes(x)).length, venc = s.filter(x => x === 'vencido').length;[m
+[31m-        card(venc || s.includes('hoje') ? 'var(--danger)' : 'var(--warn)', 'prazo', prox, 'Prazos próximos', `${venc ? venc + ' vencido(s) · ' : ''}até ${ctx.ant} dias úteis`, 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"');[m
+[32m+[m[32m        card(venc || s.includes('hoje') ? 'var(--danger)' : prox ? 'var(--warn)' : 'transparent', 'prazo', prox + venc, venc ? `Prazos · ${venc} vencido(s)` : 'Prazos próximos', `${venc ? venc + ' vencido(s) · ' : ''}até ${ctx.ant} dias úteis`, 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"');[m
+         const au = A.col('compromissos').filter(c => c.tipo === 'Audiência' && aberto(c) && c.data >= h && ctx.meu(c.responsavelId, c.participantes)).sort((a, b) => (a.data + (a.horaInicio || '')).localeCompare(b.data + (b.horaInicio || '')));[m
+[31m-        card('var(--accent)', 'audiencia', au.length, 'Audiências agendadas', au[0] ? `Próxima: ${diaRel(au[0].data, h).toLowerCase()} · ${horario(au[0])}` : 'Nenhuma marcada', 'data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="Audiência"');[m
+[32m+[m[32m        card('transparent', 'audiencia', au.length, 'Audiências agendadas', au[0] ? `Próxima: ${diaRel(au[0].data, h).toLowerCase()} · ${horario(au[0])}` : 'Nenhuma marcada', 'data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="Audiência"');[m
+       }[m
+       return `<div class="dkpis">${cards.join('')}</div>`;[m
+     }});[m
+ [m
+   /* ================= Atalhos ================= */[m
+[31m-  A.widget('atalhos', {titulo: 'Atalhos', icone: 'raio', tam: 'g',[m
+[32m+[m[32m  A.widget('atalhos', {titulo: 'Atalhos', icone: 'raio', tam: 'g', oculto: true,[m
+     visivel: () => A.ATALHOS.some(a => a.pode()),[m
+     acoes: () => '<button class="btn small" data-action="ini-personalizar">Escolher atalhos</button>',[m
+     render(ctx) {[m
+[36m@@ -58,7 +55,7 @@[m
+   /* ================= Meu dia (prazos e tarefas) ================= */[m
+   A.widget('meudia', {titulo: 'Meu dia', icone: 'sol',[m
+     visivel: () => A.pode('prazos', 'ver'),[m
+[31m-    acoes: () => A.pode('prazos', 'editar') ? '<button class="btn small" data-action="ini-atalho" data-id="nova-tarefa">+ Tarefa</button>' : '',[m
+[32m+[m[32m    acoes: () => link('Agenda', 'data-action="ini-ir" data-ir="agenda"') + (A.pode('prazos', 'editar') ? novo('Nova tarefa', 'nova-tarefa') : ''),[m
+     render(ctx) {[m
+       const h = ctx.h, ate = P.addDays(h, 7), ed = A.pode('prazos', 'editar');[m
+       const itens = [[m
+[36m@@ -72,50 +69,48 @@[m
+         concluidas: itens.filter(i => i.ok && dataDe(i.o.atualizadoEm) === h),[m
+       };[m
+       Object.values(grupos).forEach(g => g.sort((a, b) => a.data.localeCompare(b.data) || (a.o.prioridade === 'alta' ? -1 : 0) - (b.o.prioridade === 'alta' ? -1 : 0)));[m
+[31m-      const ABAS = [['atrasadas','Atrasadas'],['hoje','Para hoje'],['proximas','Próximos 7 dias'],['concluidas','Concluídas hoje']];[m
+[32m+[m[32m      const ABAS = [['atrasadas','Atrasadas'],['hoje','Hoje'],['proximas','7 dias'],['concluidas','Feitas']];[m
+       let aba = ctx.ui.dia; if (!grupos[aba]) aba = ['atrasadas','hoje','proximas'].find(k => grupos[k].length) || 'hoje';[m
+       const linha = i => { const o = i.o, prazo = i.k === 'prazo', pr = A.processo(o.processoId), m = A.membro(o.responsavelId);[m
+[31m-        const titulo = prazo ? o.tipo || 'Prazo' : o.titulo || 'Tarefa', desc = corta(prazo ? o.descricao : o.obs, 90);[m
+[32m+[m[32m        const titulo = prazo ? o.tipo || 'Prazo' : o.titulo || 'Tarefa';[m
+         const proc = A.rotuloProcId(o.processoId, o.processo), cli = prazo ? nomeCli(o) : A.cliente(o.clienteId)?.nome;[m
+         const atrasada = !i.ok && i.data < h;[m
+         return `<li class="dtask${atrasada ? ' 

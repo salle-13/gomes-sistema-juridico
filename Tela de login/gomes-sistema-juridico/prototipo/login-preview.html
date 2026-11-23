@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acesso · Gomes Sistema Jurídico</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;6&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/login-preview.css">
+</head>
+<body>
+<main class="login-page">
+  <section class="brand-panel" aria-label="Gomes Assessoria Jurídica">
+    <div class="brand-top"><img src="logo.png" alt="Gomes Assessoria Jurídica"><span>GOMES<br><small>ASSESSORIA JURÍDICA</small></span></div>
+    <div class="brand-message">
+      <span class="eyebrow">GESTÃO JURÍDICA</span>
+      <h1>Seu escritório.<br>Em <em>evolução.</em></h1>
+      <p>Organização, clareza e eficiência para acompanhar cada detalhe da rotina jurídica.</p>
+      <div class="brand-rule"><span></span><span></span><span></span></div>
+    </div>
+    <div class="brand-bottom"><span>Araguari · Uberlândia, MG</span><span>GOMES ASSESSORIA JURÍDICA</span></div>
+  </section>
+  <section class="form-panel">
+    <div class="form-wrap">
+      <div class="mobile-brand"><img src="logo.png" alt="Gomes Assessoria Jurídica"><span>Gomes <small>Assessoria Jurídica</small></span></div>
+      <div class="welcome"><span class="eyebrow">ÁREA RESTRITA</span><h2>Bem-vindo de volta</h2><p>Entre com seus dados para acessar o sistema.</p></div>
+      <form id="loginForm" novalidate>
+        <label for="email">E-mail</label>
+        <div class="field"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg><input id="email" name="email" type="email" placeholder="seu@email.com" autocomplete="username" required></div>
+        <label for="password">Senha</label>
+        <div class="field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10" width="15" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input id="password" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password" required><button class="show-password" type="button" id="togglePassword" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+        <div class="form-options"><label class="remember"><input type="checkbox" id="remember"><span>Lembrar Senha</span></label><a href="#" id="forgot">Esqueceu sua senha?</a></div>
+        <button class="submit" type="submit">Entrar no sistema <span aria-hidden="true">→</span></button>
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+      </form>
+      <div class="security-note"><span class="shield">✓</span><span>Ambiente de acesso restrito<br><small>Seus dados devem ser acessados com segurança.</small></span></div>
+      <footer>© Gomes Assessoria Jurídica <span>·</span> Sistema Jurídico</footer>
+    </div>
+  </section>
+</main>
+<script>
+(() => {
+  const form = document.getElementById('loginForm');
+  const pass = document.getElementById('password');
+  const toggle = document.getElementById('togglePassword');
+  const feedback = document.getElementById('feedback');
+  toggle.addEventListener('click', () => {
+    const showing = pass.type === 'password';
+    pass.type = showing ? 'text' : 'password';
+    toggle.setAttribute('aria-label', showing ? 'Ocultar senha' : 'Mostrar senha');
+    toggle.classList.toggle('active', showing);
+  });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    feedback.textContent = 'Esta é uma prévia da interface. A autenticação ainda precisa ser conectada ao backend.';
+    feedback.classList.add('visible');
+  });
+  document.getElementById('forgot').addEventListener('click', event => {
+    event.preventDefault();
+    feedback.textContent = 'A recuperação de senha será habilitada quando a autenticação estiver implementada.';
+    feedback.classList.add('visible');
+  });
+})();
+</script>
+</body>
+</html>

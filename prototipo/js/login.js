@@ -26,41 +26,40 @@
       || (() => { const v = ativos.filter(m => semTitulo(m.nome).split(' ')[0] === n); return v.length === 1 ? v[0] : null; })();
   }
 
-  const svgEmail = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>';
-  const svgSenha = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10" width="15" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
-  const svgOlho = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const svgOlho = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
 
   function html() {
-    const cidade = A.esc(S.config.escritorioCidade || 'Araguari/MG');
-    return `<main class="login-page">
-  <section class="brand-panel" aria-label="Gomes Assessoria Jurídica">
-    <div class="brand-top"><img src="logo.png" alt=""><span>GOMES<br><small>ASSESSORIA JURÍDICA</small></span></div>
-    <div class="brand-message">
-      <span class="eyebrow">GESTÃO JURÍDICA</span>
-      <h1>Seu escritório.<br>Em <em>evolução.</em></h1>
-      <p>Organização, clareza e eficiência para acompanhar cada detalhe da rotina jurídica.</p>
-      <div class="brand-rule"><span></span><span></span><span></span></div>
+    return `<div class="lg-login-page">
+  <section class="lg-login-card" role="main" aria-label="Acesso ao Gomes Sistema Jurídico">
+    <div class="lg-brand">
+      <img src="logo.png" alt="Gomes Assessoria Jurídica">
+      <span class="lg-brand-subtitle">Sistema Jurídico</span>
     </div>
-    <div class="brand-bottom"><span>${cidade}</span><span>GOMES ASSESSORIA JURÍDICA</span></div>
-  </section>
-  <section class="form-panel">
-    <div class="form-wrap">
-      <div class="mobile-brand"><img src="logo.png" alt=""><span>Gomes <small>Assessoria Jurídica</small></span></div>
-      <div class="welcome"><span class="eyebrow">ÁREA RESTRITA</span><h2>Bem-vindo de volta</h2><p>Entre com seus dados para acessar o sistema.</p></div>
-      <form id="loginForm" data-onsubmit="login-entrar" novalidate>
-        <label for="loginId">E-mail</label>
-        <div class="field">${svgEmail}<input id="loginId" name="email" type="text" placeholder="seu@email.com" autocomplete="username"></div>
+    <div class="lg-gold-rule" aria-hidden="true"></div>
+    <div class="lg-heading">
+      <h1>Acesso ao sistema</h1>
+      <p>Entre com suas credenciais para continuar.</p>
+    </div>
+    <form id="loginForm" data-onsubmit="login-entrar" novalidate>
+      <div class="lg-field">
+        <label for="loginId">E-mail profissional</label>
+        <div class="lg-input-wrap"><input id="loginId" name="email" type="text" placeholder="nome@escritorio.com.br" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      </div>
+      <div class="lg-field">
         <label for="loginSenha">Senha</label>
-        <div class="field">${svgSenha}<input id="loginSenha" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button class="show-password" type="button" data-action="login-ver-senha" aria-label="Mostrar senha">${svgOlho}</button></div>
-        <div class="form-options"><label class="remember"><input type="checkbox" id="loginLembrar"><span>Lembrar de mim</span></label><a href="#" data-action="login-esqueci">Esqueceu sua senha?</a></div>
-        <button class="submit" type="submit">Entrar no sistema <span aria-hidden="true">→</span></button>
-        <div class="feedback" id="loginMsg" role="status" aria-live="polite"></div>
-      </form>
-      <div class="security-note"><span class="shield">✓</span><span>Ambiente de acesso restrito<br><small>Protótipo sem autenticação: a senha não é conferida. Se o e-mail, a OAB ou o nome estiver em Equipe, você entra como essa pessoa; senão, como administrador.</small></span></div>
-      <footer>© Gomes Assessoria Jurídica <span>·</span> Sistema Jurídico</footer>
-    </div>
+        <div class="lg-input-wrap"><input class="lg-password-input" id="loginSenha" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button class="lg-toggle-password" type="button" data-action="login-ver-senha" aria-label="Mostrar senha" title="Mostrar senha">${svgOlho}</button></div>
+      </div>
+      <div class="lg-options">
+        <label class="lg-remember"><input type="checkbox" id="loginLembrar"> Lembrar de mim</label>
+        <a class="lg-forgot" href="#" data-action="login-esqueci">Esqueceu a senha?</a>
+      </div>
+      <button class="lg-submit-btn" type="submit">Entrar</button>
+      <div class="lg-notice" id="loginMsg" role="status" aria-live="polite"></div>
+    </form>
+    <p class="lg-prototipo-aviso">Protótipo sem autenticação: a senha não é conferida. Se o e-mail, a OAB ou o nome estiver em Equipe, você entra como essa pessoa; senão, como administrador.</p>
+    <div class="lg-footer"><span class="lg-lock" aria-hidden="true">◆</span>Ambiente de acesso restrito</div>
   </section>
-</main>`;
+</div>`;
   }
 
   /* Chamado por renderNow. Devolve true quando a tela de acesso está à frente (o sistema não deve ser desenhado). */
@@ -73,7 +72,7 @@
     return true;
   };
 
-  function aviso(txt, erro) { const f = document.getElementById('loginMsg'); if (!f) return; f.textContent = txt; f.classList.add('visible'); f.classList.toggle('erro', !!erro); }
+  function aviso(txt, erro) { const f = document.getElementById('loginMsg'); if (!f) return; f.textContent = txt; f.classList.add('lg-show'); f.classList.toggle('erro', !!erro); }
 
   A.on('login-entrar', (form, e) => {
     e.preventDefault();
@@ -84,7 +83,7 @@
   A.on('login-ver-senha', el => {
     const p = document.getElementById('loginSenha'), mostrar = p.type === 'password';
     p.type = mostrar ? 'text' : 'password';
-    el.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha'); el.classList.toggle('active', mostrar);
+    const r = mostrar ? 'Ocultar senha' : 'Mostrar senha'; el.setAttribute('aria-label', r); el.title = r; el.classList.toggle('lg-ativo', mostrar);
   });
   A.on('login-esqueci', (el, e) => { e.preventDefault(); aviso('A recuperação de senha será habilitada junto com a autenticação. Por enquanto, fale com o administrador do escritório.'); });
   A.on('sair', () => { lsDel(CHAVE); A.closeModal && A.closeModal(); A.render(); });

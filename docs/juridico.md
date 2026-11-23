@@ -205,12 +205,12 @@ Novo cadastro ──► Encaminhado ──► Em análise ──► Cliente ativ
 
 ## 5. Permissões padrão da seção Jurídico
 
-| Módulo | Administrador | Advogado | Assistente | Estagiário | Financeiro |
+| Módulo | Administrador | Advogado | Assistente | Estagiário | Gerente |
 |---|---|---|---|---|---|
-| Processos | Editar | Editar | Ver | Ver | Ver |
-| Publicações | Editar | Editar | Editar | Ver | Nenhum |
-| Clientes e captação | Editar | Editar | Editar | Ver | Ver |
-| Documentos | Editar | Editar | Editar | Editar | Ver |
+| Processos | Editar | Editar | Ver | Ver | Editar |
+| Publicações | Editar | Editar | Editar | Ver | Editar |
+| Clientes e captação | Editar | Editar | Editar | Ver | Editar |
+| Documentos | Editar | Editar | Editar | Editar | Editar |
 
 A matriz pode ser alterada em **Equipe e permissões → Permissões por papel**. O dono do sistema sempre tem acesso total. Nesta fase, as permissões valem na interface; no sistema definitivo, também serão aplicadas no banco de dados.
 

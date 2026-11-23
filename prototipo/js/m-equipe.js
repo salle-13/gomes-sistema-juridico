@@ -49,7 +49,7 @@
     const qtd = A.col('prazos').filter(p => p.responsavelId === m.id && p.status !== 'concluido').length;
     A.modal(`${A.modalHead(novo ? 'Adicionar pessoa' : 'Editar pessoa')}<form id="fMembro"><div class="body">
       ${A.inp('mNome', 'Nome', m.nome, 'required', 'full')}
-      ${A.inp('mCargo', 'Cargo / função', m.cargo, 'list="cargosList"')}<datalist id="cargosList">${['Advogado(a) sócio(a)','Advogado(a)','Estagiário(a)','Assistente administrativa (captação)','Financeiro','Controladoria jurídica','Secretário(a)'].map(c => `<option value="${c}">`).join('')}</datalist>
+      ${A.inp('mCargo', 'Cargo / função', m.cargo, 'list="cargosList"')}<datalist id="cargosList">${['Advogado(a) sócio(a)','Advogado(a)','Estagiário(a)','Assistente administrativa (captação)','Gerente','Controladoria jurídica','Secretário(a)'].map(c => `<option value="${c}">`).join('')}</datalist>
       ${A.sel('mPapel', 'Papel (define as permissões)', A.opts(A.PAPEIS, m.papel), '', m.id && m.contaId === S.contaId && m.papel === 'admin' && !S.isOwner ? 'disabled' : '')}
       ${A.inp('mOab', 'OAB', m.oab, 'placeholder="OAB/MG 123.456"')}${A.inp('mEmail', 'E-mail', m.email, 'type="email"')}
       ${A.sel('mGenero', 'Gênero (Dr./Dra. nos documentos)', A.opts([['','Não informado (Dr(a).)'],['F','Feminino (Dra., advogada)'],['M','Masculino (Dr., advogado)']], m.genero || ''))}

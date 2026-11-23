@@ -123,7 +123,7 @@ window.App = window.App || {};
   };
 
   /* ---------- permissões por papel ---------- */
-  A.PAPEIS = [['admin','Administrador(a)'],['advogado','Advogado(a)'],['assistente','Assistente administrativo(a)'],['estagiario','Estagiário(a)'],['financeiro','Financeiro']];
+  A.PAPEIS = [['admin','Administrador(a)'],['advogado','Advogado(a)'],['assistente','Assistente administrativo(a)'],['estagiario','Estagiário(a)'],['gerente','Gerente']];
   A.PAPEL_LABEL = Object.fromEntries(A.PAPEIS);
   A.MODULOS = [['prazos','Agenda e prazos'],['processos','Processos'],['publicacoes','Publicações'],['clientes','Clientes e captação'],['documentos','Documentos'],['modelos','Modelos de documentos'],['financeiro','Financeiro'],['relatorios','Relatórios'],['equipe','Equipe, permissões e configurações']];
   const E = 'editar', V = 'ver', N = 'nenhum';
@@ -132,9 +132,9 @@ window.App = window.App || {};
     advogado:   {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:V, relatorios:V, equipe:V},
     assistente: {prazos:V, processos:V, publicacoes:E, clientes:E, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
     estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
-    financeiro: {prazos:V, processos:V, publicacoes:N, clientes:V, documentos:V, modelos:N, financeiro:E, relatorios:E, equipe:V},
+    gerente:    {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:E, relatorios:E, equipe:V},
   };
-  A.papel = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (m.papel || 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
+  A.papel = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (A.PAPEL_LABEL[m.papel] ? m.papel : m.papel === 'financeiro' ? 'gerente' : 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
   A.nivel = mod => { if (S.isOwner) return E; const papel = A.papel(); const tab = (S.permissoes && S.permissoes.papeis) || A.PERM_PADRAO;
     return (tab[papel] && tab[papel][mod]) || (A.PERM_PADRAO[papel] || {})[mod] || N; };
   A.pode = (mod, acao) => { const n = A.nivel(mod); if (acao === 'editar') return n === E && S.canWrite; return n === E || n === V; };

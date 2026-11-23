@@ -16,7 +16,7 @@
       {id:'m3', nome:'Camila Teixeira', cargo:'Advogada', papel:'advogado', oab:'OAB/MG 345.678', email:'camila@exemplo.adv.br', cor:'#2C7A4D', genero:'F'},
       {id:'m4', nome:'Lucas Pereira', cargo:'Estagiário', papel:'estagiario', oab:'OAB/MG 98.765-E', email:'lucas@exemplo.adv.br', cor:'#B5651D', genero:'M'},
       {id:'m5', nome:'Bianca Lopes', cargo:'Assistente administrativa (captação)', papel:'assistente', oab:'', email:'bianca@exemplo.adv.br', cor:'#5B4FA8', genero:'F'},
-      {id:'m6', nome:'Paula Reis', cargo:'Financeiro', papel:'financeiro', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C', genero:'F'},
+      {id:'m6', nome:'Paula Reis', cargo:'Gerente', papel:'gerente', oab:'', email:'paula@exemplo.adv.br', cor:'#0F7C8C', genero:'F'},
     ].map(ex);
     equipe.unshift(...EQUIPE_FIXA.map(m => Object.assign({}, m)));
     const C = (id, nome, tp, doc, area, resp, extra) => ex(Object.assign({id, nome, tipoPessoa:tp, documento:doc, telefone:'(34) 9' + (8000 + id.length * 111) + '-' + String(1000 + nome.length * 37).slice(0,4), email:'', origem:'Indicação de cliente', area, historia:'', urgencia:'normal', status:'ativo', encaminhadoPara:[resp], responsavelId:resp, cadastradoPor:'m5', criadoEm:mes(-6, 10) + 'T12:00:00.000Z', aceitoEm:mes(-6, 11) + 'T12:00:00.000Z', historico:[]}, extra || {}));

@@ -109,7 +109,7 @@ CREATE TABLE equipe (
   nome            text NOT NULL,
   cargo           text,
   papel           text NOT NULL DEFAULT 'advogado'
-                  CHECK (papel IN ('admin','advogado','assistente','estagiario','financeiro')),
+                  CHECK (papel IN ('admin','advogado','assistente','estagiario','gerente')),
   oab_numero      text,                       -- só dígitos
   oab_uf          char(2),
   oab_suplementar text,                       -- texto livre (ex.: 'OAB/SP 12.345')
@@ -133,7 +133,7 @@ ALTER TABLE equipe ADD CONSTRAINT fk_equipe_atualizado_por FOREIGN KEY (atualiza
 
 CREATE TABLE permissoes_papel (
   org_id  uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
-  papel   text NOT NULL CHECK (papel IN ('admin','advogado','assistente','estagiario','financeiro')),
+  papel   text NOT NULL CHECK (papel IN ('admin','advogado','assistente','estagiario','gerente')),
   modulo  text NOT NULL CHECK (modulo IN ('prazos','processos','publicacoes','clientes','documentos','modelos','financeiro','relatorios','equipe')),
   nivel   text NOT NULL CHECK (nivel IN ('nenhum','ver','editar')),
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id),
@@ -879,9 +879,9 @@ SELECT p, m, n FROM (VALUES
  ('assistente','documentos','editar'),('assistente','financeiro','nenhum'),('assistente','relatorios','nenhum'),('assistente','equipe','ver'),
  ('estagiario','prazos','editar'),('estagiario','processos','ver'),('estagiario','publicacoes','ver'),('estagiario','clientes','ver'),
  ('estagiario','documentos','editar'),('estagiario','financeiro','nenhum'),('estagiario','relatorios','nenhum'),('estagiario','equipe','ver'),
- ('financeiro','prazos','ver'),('financeiro','processos','ver'),('financeiro','publicacoes','nenhum'),('financeiro','clientes','ver'),
- ('financeiro','documentos','ver'),('financeiro','financeiro','editar'),('financeiro','relatorios','editar'),('financeiro','equipe','ver'),
- ('admin','modelos','editar'),('advogado','modelos','editar'),('assistente','modelos','ver'),('estagiario','modelos','ver'),('financeiro','modelos','nenhum')
+ ('gerente','prazos','editar'),('gerente','processos','editar'),('gerente','publicacoes','editar'),('gerente','clientes','editar'),
+ ('gerente','documentos','editar'),('gerente','financeiro','editar'),('gerente','relatorios','editar'),('gerente','equipe','ver'),
+ ('admin','modelos','editar'),('advogado','modelos','editar'),('assistente','modelos','ver'),('estagiario','modelos','ver'),('gerente','modelos','editar')
 ) v(p, m, n);
 
 INSERT INTO feriados (data, nome, abrangencia, comarca) VALUES

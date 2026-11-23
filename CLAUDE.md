@@ -15,7 +15,7 @@ Current phase: a single-tenant **prototype** with fictitious sample data. The fu
 There is no build, package manager, linter or test suite.
 
 - Run the prototype: `cd prototipo && python -m http.server 8000`, then open http://localhost:8000. A server is needed (not `file://`).
-- Reset local data: in the browser console, run `localStorage.removeItem('gomes-sistema-v2')`. It reseeds from `seed.js` on reload. `gomes-eu` holds the logged-in member in local mode (sessionStorage, or localStorage when "Lembrar de mim" is checked); remove it from both to see the login screen again.
+- Reset local data: in the browser console, run `localStorage.removeItem('gomes-sistema-v2')`. It reseeds from `seed.js` on reload. `gomes-eu` holds the logged-in member in local mode (sessionStorage, or localStorage when "Manter conectado" is checked); remove it from both to see the login screen again.
 - Deadline logic runs in Node (it ends with `module.exports = Prazo`):
   `node -e "const P=require('./prototipo/js/prazo-logic.js'); console.log(P.vencimento('2026-03-02', 15, 'uteis'))"`
 - Database: `createdb gomes && psql -d gomes -v ON_ERROR_STOP=1 -f banco/modelo-fisico.sql`. This needs PostgreSQL 16 with `pgcrypto`, `unaccent` and `pg_trgm`.

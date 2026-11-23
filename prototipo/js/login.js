@@ -26,38 +26,39 @@
       || (() => { const v = ativos.filter(m => semTitulo(m.nome).split(' ')[0] === n); return v.length === 1 ? v[0] : null; })();
   }
 
+  const svgEmail = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>';
+  const svgSenha = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
   const svgOlho = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  /* Curvas finas dos cantos do fundo (decorativas). */
+  const svgCurvas = `<svg class="lg-curvas" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M-40 260 C 180 220, 300 90, 330 -40"/>
+      <path d="M-40 380 C 260 330, 430 150, 470 -40"/>
+      <path d="M1480 640 C 1260 680, 1140 810, 1110 940"/>
+      <path d="M1480 520 C 1180 570, 1010 750, 970 940"/>
+    </svg>`;
 
   function html() {
     return `<div class="lg-login-page">
-  <section class="lg-login-card" role="main" aria-label="Acesso ao Gomes Sistema Jurídico">
-    <div class="lg-brand">
-      <img src="logo.png" alt="Gomes Assessoria Jurídica">
-      <span class="lg-brand-subtitle">Sistema Jurídico</span>
-    </div>
-    <div class="lg-gold-rule" aria-hidden="true"></div>
+  ${svgCurvas}
+  <section class="lg-card" role="main" aria-label="Acesso ao Gomes Sistema Jurídico">
+    <img class="lg-logo" src="logo.png" alt="Gomes Assessoria Jurídica">
     <div class="lg-heading">
       <h1>Acesso ao sistema</h1>
-      <p>Entre com suas credenciais para continuar.</p>
+      <p>Entre com suas credenciais.</p>
     </div>
     <form id="loginForm" data-onsubmit="login-entrar" novalidate>
-      <div class="lg-field">
-        <label for="loginId">E-mail profissional</label>
-        <div class="lg-input-wrap"><input id="loginId" name="email" type="text" placeholder="nome@escritorio.com.br" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <label class="lg-label" for="loginId">E-mail</label>
+      <div class="lg-campo">${svgEmail}<input id="loginId" name="email" type="text" placeholder="nome@escritorio.com.br" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <label class="lg-label" for="loginSenha">Senha</label>
+      <div class="lg-campo">${svgSenha}<input id="loginSenha" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button class="lg-olho" type="button" data-action="login-ver-senha" aria-label="Mostrar senha" title="Mostrar senha">${svgOlho}</button></div>
+      <div class="lg-opcoes">
+        <label class="lg-lembrar"><input type="checkbox" id="loginLembrar"> Manter conectado</label>
+        <a class="lg-esqueci" href="#" data-action="login-esqueci">Esqueceu a senha?</a>
       </div>
-      <div class="lg-field">
-        <label for="loginSenha">Senha</label>
-        <div class="lg-input-wrap"><input class="lg-password-input" id="loginSenha" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button class="lg-toggle-password" type="button" data-action="login-ver-senha" aria-label="Mostrar senha" title="Mostrar senha">${svgOlho}</button></div>
-      </div>
-      <div class="lg-options">
-        <label class="lg-remember"><input type="checkbox" id="loginLembrar"> Lembrar de mim</label>
-        <a class="lg-forgot" href="#" data-action="login-esqueci">Esqueceu a senha?</a>
-      </div>
-      <button class="lg-submit-btn" type="submit">Entrar</button>
-      <div class="lg-notice" id="loginMsg" role="status" aria-live="polite"></div>
+      <button class="lg-entrar" type="submit">Entrar</button>
+      <div class="lg-aviso" id="loginMsg" role="status" aria-live="polite"></div>
     </form>
-    <p class="lg-prototipo-aviso">Protótipo sem autenticação: a senha não é conferida. Se o e-mail, a OAB ou o nome estiver em Equipe, você entra como essa pessoa; senão, como administrador.</p>
-    <div class="lg-footer"><span class="lg-lock" aria-hidden="true">◆</span>Ambiente de acesso restrito</div>
+    <p class="lg-prototipo">Protótipo sem autenticação: a senha não é conferida. Se o e-mail, a OAB ou o nome estiver em Equipe, você entra como essa pessoa; senão, como administrador.</p>
   </section>
 </div>`;
   }

@@ -10,7 +10,7 @@
 
   /* ---------- quem está usando ---------- */
   function resolverUsuario() {
-    if (S.mode === 'local') { const id = A.lsGet('gomes-eu'); S.meId = A.membro(id) ? id : ''; return; }
+    if (S.mode === 'local') { const id = A.sessaoId(); const m = A.membro(id); S.meId = m && m.ativo !== false ? id : ''; return; }
     const m = S.contaId ? A.col('equipe').find(x => x.contaId === S.contaId) : null;
     S.meId = m ? m.id : '';
   }
@@ -19,6 +19,7 @@
   let mudouCampo = false; // true quando o redesenho vem de uma escolha feita num campo (evento change)
   A.renderNow = function () {
     resolverUsuario();
+    if (A.renderLogin()) return; // modo local sem ninguém identificado: tela de acesso (js/login.js)
     let rota = (location.hash || '#inicio').slice(1);
     if (A.aliases && A.aliases[rota]) { A.aliases[rota](); rota = 'agenda'; history.replaceState(null, '', '#agenda'); }
     if (!A.routes[rota]) rota = 'inicio';
@@ -54,7 +55,7 @@
       : S.mode === 'erro' ? 'Não foi possível carregar os dados compartilhados' : 'Carregando…';
     const chip = document.getElementById('mechip'), me = A.me();
     if (S.mode === 'local') {
-      chip.innerHTML = `<label for="fEu" class="muted" style="font-size:12px">Você é</label><select id="fEu" data-onchange="trocar-eu">${A.opts(A.col('equipe').map(m => [m.id, m.nome]), S.meId, 'Administrador (sem nome)')}</select>`;
+      chip.innerHTML = me ? `${A.avatar(me)}<div><div>${A.esc(me.nome)}</div><div class="role">${A.esc(A.PAPEL_LABEL[me.papel] || '')}</div></div><button class="btn small" data-action="sair" title="Sair do sistema">Sair</button>` : `<span class="role">Administrador</span><button class="btn small" data-action="sair" title="Sair do sistema">Sair</button>`;
     } else if (me) {
       chip.innerHTML = `${A.avatar(me)}<div><div>${A.esc(me.nome)}</div><div class="role">${A.esc(A.PAPEL_LABEL[me.papel] || '')}${S.isOwner ? ' · dono' : ''}</div></div>`;
     } else {
@@ -98,7 +99,6 @@
     for (const c of A.COLS) for (const x of A.col(c).filter(x => x.exemplo)) await A.remove(c, x.id);
     A.toast('Exemplos removidos.');
   }));
-  A.on('trocar-eu', el => { A.lsSet('gomes-eu', el.value); A.render(); });
 
   /* ---------- vínculo da conta com a equipe ---------- */
   A.on('vincular-conta', () => {
@@ -131,6 +131,7 @@
   });
   document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.oninput && A.actions[t.dataset.oninput]) { A.actions[t.dataset.oninput](t, e); return; } if (t.dataset && t.dataset.ui && t.tagName === 'INPUT' && !['checkbox','date','month'].includes(t.type)) setUi(t); });
   function setUi(t) { const [mod, key] = t.dataset.ui.split('.'); A.ui(mod)[key] = t.type === 'checkbox' ? t.checked : t.value; A.render(); }
+  document.addEventListener('submit', e => { const t = e.target; if (t.dataset && t.dataset.onsubmit && A.actions[t.dataset.onsubmit]) A.actions[t.dataset.onsubmit](t, e); });
   document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.onfocus && A.actions[t.dataset.onfocus]) A.actions[t.dataset.onfocus](t, e); });
   document.addEventListener('keydown', e => { const t = e.target;
     if (t.dataset && t.dataset.onkeydown && A.actions[t.dataset.onkeydown]) { A.actions[t.dataset.onkeydown](t, e); return; }

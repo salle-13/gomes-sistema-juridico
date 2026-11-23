@@ -15,14 +15,14 @@ Current phase: a single-tenant **prototype** with fictitious sample data. The fu
 There is no build, package manager, linter or test suite.
 
 - Run the prototype: `cd prototipo && python -m http.server 8000`, then open http://localhost:8000. A server is needed (not `file://`).
-- Reset local data: in the browser console, run `localStorage.removeItem('gomes-sistema-v2')`. It reseeds from `seed.js` on reload. `gomes-eu` holds the "Você é" identity used in local mode.
+- Reset local data: in the browser console, run `localStorage.removeItem('gomes-sistema-v2')`. It reseeds from `seed.js` on reload. `gomes-eu` holds the logged-in member in local mode (sessionStorage, or localStorage when "Lembrar de mim" is checked); remove it from both to see the login screen again.
 - Deadline logic runs in Node (it ends with `module.exports = Prazo`):
   `node -e "const P=require('./prototipo/js/prazo-logic.js'); console.log(P.vencimento('2026-03-02', 15, 'uteis'))"`
 - Database: `createdb gomes && psql -d gomes -v ON_ERROR_STOP=1 -f banco/modelo-fisico.sql`. This needs PostgreSQL 16 with `pgcrypto`, `unaccent` and `pg_trgm`.
 
 ## Prototype architecture (`prototipo/`)
 
-**Script order matters.** `index.html` loads plain `<script>` tags with no modules, in this order: `prazo-logic.js` → `schema.js` → `seed.js` → `core.js` → `export.js` → `m-*.js` (`m-inicio.js` before `m-inicio-widgets.js`) → `app.js` (last). Every file is an IIFE that adds to the global `window.App` (aliased `A`). `prazo-logic.js` defines the global `Prazo`, available as `A.P`.
+**Script order matters.** `index.html` loads plain `<script>` tags with no modules, in this order: `prazo-logic.js` → `schema.js` → `seed.js` → `core.js` → `export.js` → `m-*.js` (`m-inicio.js` before `m-inicio-widgets.js`) → `login.js` → `app.js` (last). Every file is an IIFE that adds to the global `window.App` (aliased `A`). `prazo-logic.js` defines the global `Prazo`, available as `A.P`.
 
 **core.js** is the shared kernel:
 - State lives in `A.S`. `S.data[col]` holds arrays for the collections in `A.COLS`, alongside `S.config`, `S.permissoes`, `S.mode` and `S.ui` (per-module filter state via `A.ui(mod, defaults)`).
@@ -34,6 +34,7 @@ There is no build, package manager, linter or test suite.
 - Hash routing (`#inicio`, `#agenda`, `#processos`, `#fin-pagar`, …). `#inicio` (the dashboard) is the default route. Old hashes `#ano`, `#mes` and `#prazos` are aliases (`A.aliases`) that open the Agenda in the matching view. The sidebar groups live in `GRUPOS`, so a new route must be added there to appear in the nav.
 - One delegated listener per event type: `data-action="x"` on click → `A.actions.x(el, e)`, `data-onchange="x"` on change, and `data-ui="mod.key"` writes straight into `A.ui(mod)[key]` and re-renders. Wire UI through these attributes rather than adding listeners.
 - **Two storage modes.** If `window.claude.use('db')` exists (published as a Claude artifact), the app uses a shared realtime DB with `onSnapshot` per collection, and `S.mode` is `db`/`slow`/`erro`. Otherwise it runs in `local` mode on `localStorage`. File uploads (Documentos) and user identity (`isOwner`, `contaId`) only work in the Claude mode.
+- **Login (`login.js` + `css/login.css`, local mode only):** `renderNow` calls `A.renderLogin()`, which shows the `#login` overlay while no active member is identified. For now there is **no authentication**: "Entrar" always lets the user in. If the e-mail field matches a member (by e-mail, OAB digits, full name or a unique first name), they enter as that member; otherwise as the nameless administrator (`gomes-eu` = `*`). The "Sair" button in the header runs the `sair` action. Forms submit through `data-onsubmit="x"`.
 
 **Permissions:** the roles are `admin|advogado|assistente|estagiario|gerente` (the old `financeiro` role was removed; stored members with it are read as `gerente`). Each module gets a level of `nenhum|ver|editar` (`A.PERM_PADRAO`, overridable through `config/permissoes`). Check with `A.pode(mod, 'ver'|'editar')`. Every route declares its `mod`, and `renderNow` blocks views the user can't see.
 

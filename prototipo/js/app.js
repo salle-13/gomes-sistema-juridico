@@ -153,6 +153,7 @@
   document.addEventListener('click', e => {
     if (A.ui('notif').aberto && !e.target.closest('#notif')) A.actions['notif-fechar']();
     if (A.ui('busca').aberto && !e.target.closest('#gsearch')) A.actions['busca-fechar']();
+    const rc = A.routes[S.rota]; if (rc && rc.clique) rc.clique(e); // rota com menu próprio fecha ao clicar fora
     const t = e.target.closest('[data-action]'); if (!t) return;
     const a = t.dataset.action;
     if (a === 'modal-fundo') { if (e.target === t && !document.querySelector('.modal.wide')) A.closeModal(); return; }
@@ -170,6 +171,7 @@
   document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.onfocus && A.actions[t.dataset.onfocus]) A.actions[t.dataset.onfocus](t, e); });
   document.addEventListener('keydown', e => { const t = e.target;
     if (t.dataset && t.dataset.onkeydown && A.actions[t.dataset.onkeydown]) { A.actions[t.dataset.onkeydown](t, e); return; }
+    const rt = A.routes[S.rota]; if (rt && rt.teclas && rt.teclas(e)) return; // atalhos da rota (devolve true se tratou)
     // "/" ou Ctrl+K levam à busca, a menos que a pessoa esteja digitando em outro campo
     if ((e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable) || (e.key === 'k' && (e.ctrlKey || e.metaKey))) { const b = document.getElementById('buscaQ'); if (b && !document.querySelector('.modal')) { e.preventDefault(); b.focus(); b.select(); } return; }
     if (e.key !== 'Escape') return; if (document.querySelector('.modal')) A.closeModal(); else if (A.ui('notif').aberto) A.actions['notif-fechar'](); });

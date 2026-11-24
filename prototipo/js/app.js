@@ -63,12 +63,7 @@
     const lado = r.lado ? r.lado() : '';
     main.className = lado ? '' : 'single';
     const foco = document.activeElement && document.activeElement.id && main.contains(document.activeElement) ? [document.activeElement.id, document.activeElement.selectionStart] : null;
-    const finTabs = ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']
-      .filter(id => A.routes[id] && A.pode(A.routes[id].mod, 'ver'));
-    const barraFin = finTabs.includes(rota)
-      ? `<nav class="fin-tabs" aria-label="Navegação do financeiro">${finTabs.map(id => `<a href="#${id}"${id === rota ? ' aria-current="page"' : ''}>${A.esc(A.routes[id].label)}</a>`).join('')}</nav>`
-      : '';
-    main.innerHTML = barraFin + r.render() + lado;
+    main.innerHTML = r.render() + lado;
     if (foco) { const el = document.getElementById(foco[0]); if (el) { el.focus(); try { if (foco[1] != null) el.setSelectionRange(foco[1], foco[1]); } catch (_) {} } }
     if (r.depois) r.depois();
   };

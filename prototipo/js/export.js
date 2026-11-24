@@ -28,6 +28,7 @@
 
   /* def = {titulo, arquivo (sem extensão), colunas:[{t, v(row), tipo:'money'|'date'|'text'}], linhas, filtros:'texto', totais:{coluna: valor}} */
   A.exportar = async function (def, formato) {
+    if (A.bloqueiaGravacaoSimulada()) return false;
     const nome = (def.arquivo || def.titulo).replace(/[^\wÀ-ú -]/g, '').replace(/\s+/g, '-').toLowerCase() + '-' + A.hoje();
     try {
       if (formato === 'csv') {

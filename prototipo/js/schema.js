@@ -10,6 +10,7 @@
 window.App = window.App || {};
 window.App.SCHEMA = {
   equipe: {nome:'texto', cargo:'texto', papel:'admin|advogado|assistente|estagiario|gerente', oab:'texto', email:'texto', genero:'M|F|vazio (Dr/Dra, advogado/advogada nos modelos)', cor:'#hex', ativo:'bool', contaId:'id da conta de acesso vinculada'},
+  usuarios: {nome:'texto', email:'texto', perfil:'admin|advogado|assistente|consulta', status:'ativo|inativo|pendente', convite:{status:'nao_enviado|enviado|aceito', criadoEm:'ISO', enviadoEm:'ISO|null', aceitoEm:'ISO|null'}},
   clientes: {nome:'texto', tipoPessoa:'PF|PJ', documento:'CPF/CNPJ', telefone:'texto', email:'texto', endereco:'texto', origem:'texto', area:'texto',
     nacionalidade:'texto (PF)', estadoCivil:'texto (PF)', profissao:'texto (PF)', rg:'texto (PF)', representanteNome:'texto (PJ)', representanteCpf:'texto (PJ)', representanteCargo:'texto (PJ)',
     dataNascimento:'data (PF)', naturalidade:'texto (PF)', nomeMae:'texto (PF)', nomePai:'texto (PF)', empresa:'texto (PF, empregador)', ctps:'texto (PF)', pis:'texto (PF)', obs:'texto',

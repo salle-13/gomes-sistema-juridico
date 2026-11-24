@@ -19,7 +19,7 @@ window.App = window.App || {};
   A.haDias = iso => { const n = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); return n <= 0 ? 'hoje' : n === 1 ? 'ontem' : 'há ' + n + ' dias'; };
   A.uid = () => ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,10)).replace(/[^a-zA-Z0-9-]/g,'');
   A.lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
-  A.lsSet = (k,v) => { try { localStorage.setItem(k,v); } catch(e) {} };
+  A.lsSet = (k,v) => { if (S && S.visualizarComo) return; try { localStorage.setItem(k,v); } catch(e) {} };
   A.ssGet = k => { try { return sessionStorage.getItem(k); } catch(e) { return null; } };
   A.ssSet = (k,v) => { try { sessionStorage.setItem(k,v); } catch(e) {} };
   A.tamanho = b => b > 1048576 ? (b/1048576).toFixed(1).replace('.',',') + ' MB' : Math.max(1, Math.round((b||0)/1024)) + ' KB';
@@ -38,14 +38,14 @@ window.App = window.App || {};
   A.CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
 
   /* ---------- estado ---------- */
-  const COLS = A.COLS = ['equipe','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado'];
+  const COLS = A.COLS = ['equipe','usuarios','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado'];
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
     config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'},
     permissoes: null,
     mode: 'loading', canWrite: true, isOwner: false, contaId: null, meId: '', loaded: {},
     db: null, assets: null, downloads: null, user: null,
-    ui: {},
+    ui: {}, visualizarComo: '',
   };
   A.col = c => S.data[c] || [];
   A.byId = (c, id) => id ? A.col(c).find(x => x.id === id) : undefined;
@@ -62,7 +62,22 @@ window.App = window.App || {};
     local: () => S.mode !== 'db' && S.mode !== 'slow',
     persistLocal() { A.lsSet('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes})); },
   };
+  A.simulacaoAtiva = () => !!S.visualizarComo;
+  A.bloqueiaGravacaoSimulada = () => {
+    if (!A.simulacaoAtiva()) return false;
+    A.toast('Modo de visualização: operações reais estão bloqueadas.');
+    return true;
+  };
+  A.protegerAssets = assets => assets && new Proxy(assets, {get(target, prop) {
+    const valor = Reflect.get(target, prop, target);
+    if (['upload', 'delete'].includes(prop) && typeof valor === 'function') return (...args) => {
+      if (A.simulacaoAtiva()) return Promise.reject(Object.assign(new Error('Operação bloqueada durante a simulação.'), {code: 'simulation'}));
+      return valor.apply(target, args);
+    };
+    return typeof valor === 'function' ? valor.bind(target) : valor;
+  }});
   A.save = async function (col, obj, opts) {
+    if (A.bloqueiaGravacaoSimulada()) return null;
     obj = Object.assign({}, obj);
     const agora = new Date().toISOString();
     if (!obj.id) obj.id = A.uid();
@@ -80,6 +95,7 @@ window.App = window.App || {};
   /* Gravação em lote (importações). No modo local grava tudo e salva uma vez só; se o navegador
      não tiver espaço, desfaz e avisa. No modo compartilhado grava em paralelo, poucos por vez. */
   A.saveLote = async function (col, objs, progresso) {
+    if (A.bloqueiaGravacaoSimulada()) return false;
     const agora = new Date().toISOString(), prontos = objs.map(o => Object.assign({}, o, {id: o.id || A.uid(), criadoEm: o.criadoEm || agora, criadoPor: o.criadoPor || S.meId || null, atualizadoEm: agora, atualizadoPor: S.meId || null}));
     if (Store.local()) {
       const antes = S.data[col].slice(), ids = new Set(prontos.map(o => o.id));
@@ -96,6 +112,7 @@ window.App = window.App || {};
     return true;
   };
   A.removeLote = async function (col, ids, progresso) {
+    if (A.bloqueiaGravacaoSimulada()) return false;
     if (Store.local()) { const set = new Set(ids); S.data[col] = S.data[col].filter(x => !set.has(x.id)); Store.persistLocal(); A.render(); return true; }
     /* O banco compartilhado limita escritas seguidas: apaga com pausa curta e tenta de novo, esperando mais a cada recusa. */
     const pausa = ms => new Promise(r => setTimeout(r, ms)); let feitos = 0, erro = null;
@@ -106,10 +123,12 @@ window.App = window.App || {};
     return true;
   };
   A.remove = async function (col, id) {
+    if (A.bloqueiaGravacaoSimulada()) return false;
     if (Store.local()) { S.data[col] = S.data[col].filter(x => x.id !== id); Store.persistLocal(); A.render(); return true; }
     try { await S.db.collection(Store.path(col)).doc(id).delete(); return true; } catch (e) { A.falha(e); return false; }
   };
   A.saveDoc = async function (path, obj) { // config/geral, config/permissoes
+    if (A.bloqueiaGravacaoSimulada()) return false;
     if (path === 'config/geral') { S.config = obj; P.setLocais(obj.feriadosLocais || []); }
     if (path === 'config/permissoes') S.permissoes = obj;
     if (Store.local()) { Store.persistLocal(); A.render(); return true; }
@@ -134,9 +153,17 @@ window.App = window.App || {};
     estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
     gerente:    {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:E, relatorios:E, equipe:V},
   };
-  A.papel = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (A.PAPEL_LABEL[m.papel] ? m.papel : m.papel === 'financeiro' ? 'gerente' : 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
-  A.nivel = mod => { if (S.isOwner) return E; const papel = A.papel(); const tab = (S.permissoes && S.permissoes.papeis) || A.PERM_PADRAO;
-    return (tab[papel] && tab[papel][mod]) || (A.PERM_PADRAO[papel] || {})[mod] || N; };
+  A.papelReal = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (A.PAPEL_LABEL[m.papel] ? m.papel : m.papel === 'financeiro' ? 'gerente' : 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
+  A.podeAdministrarReal = () => S.isOwner || A.papelReal() === 'admin';
+  A.papel = () => S.visualizarComo || A.papelReal();
+  A.PAPEL_LABEL.consulta = 'Consulta';
+  A.PERM_CONSULTA = {prazos:V, processos:V, publicacoes:V, clientes:V, documentos:V, modelos:V, financeiro:V, relatorios:V, equipe:V};
+  A.nivel = mod => {
+    if (S.isOwner && (!S.visualizarComo || S.visualizarComo === 'admin')) return E;
+    const papel = A.papel(), tab = (S.permissoes && S.permissoes.papeis) || A.PERM_PADRAO;
+    if (papel === 'consulta') return A.PERM_CONSULTA[mod] || N;
+    return (tab[papel] && tab[papel][mod]) || (A.PERM_PADRAO[papel] || {})[mod] || N;
+  };
   A.pode = (mod, acao) => { const n = A.nivel(mod); if (acao === 'editar') return n === E && S.canWrite; return n === E || n === V; };
 
   /* ---------- interface comum ---------- */

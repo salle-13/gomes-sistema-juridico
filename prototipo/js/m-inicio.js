@@ -165,5 +165,5 @@
     // move entre os quadros que a pessoa pode ver (os sem permissão ficam onde estão)
     const vis = visiveis(p).map(w => w.id), i = vis.indexOf(el.dataset.id), j = i + Number(el.dataset.d); if (i < 0 || j < 0 || j >= vis.length) return;
     const a = p.ordem.indexOf(vis[i]), b = p.ordem.indexOf(vis[j]); [p.ordem[a], p.ordem[b]] = [p.ordem[b], p.ordem[a]]; }));
-  A.on('ini-padrao', () => { try { localStorage.removeItem(chavePrefs()); } catch (e) {} modalPersonalizar(); A.render(); A.toast('Layout padrão restaurado.'); });
+  A.on('ini-padrao', () => { if (A.bloqueiaGravacaoSimulada()) return; try { localStorage.removeItem(chavePrefs()); } catch (e) {} modalPersonalizar(); A.render(); A.toast('Layout padrão restaurado.'); });
 })(window.App);

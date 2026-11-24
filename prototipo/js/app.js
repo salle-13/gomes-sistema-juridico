@@ -5,8 +5,35 @@
     ['Rotina', ['inicio','agenda','notificacoes']],
     ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
-    ['Gestão', ['relatorios','equipe','config']],
+    ['Gestão', ['relatorios','usuarios','equipe','config']],
   ];
+  const ICONES_NAV = {
+    inicio: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
+    agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+    notificacoes: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+    processos: '<path d="M4 4h6l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M2 9h20"/>',
+    publicacoes: '<path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7 7h10M7 11h10M7 15h6"/>',
+    clientes: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-7.8a4 4 0 0 1 0 7.6M22 21v-2a4 4 0 0 0-3-3.87"/>',
+    documentos: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M13 2v7h7M8 13h8M8 17h8"/>',
+    modelos: '<rect x="4" y="4" width="14" height="16" rx="2"/><path d="M8 2h10a2 2 0 0 1 2 2v14M8 9h6M8 13h6"/>',
+    fin: '<rect x="3" y="6" width="18" height="15" rx="2"/><path d="M3 10h18M7 3h10M7 15h3"/>',
+    'fin-receber': '<path d="M12 3v13m0 0 5-5m-5 5-5-5"/><path d="M5 21h14"/>',
+    'fin-pagar': '<path d="M12 21V8m0 0 5 5m-5-5-5 5"/><path d="M5 3h14"/>',
+    'fin-custas': '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2"/>',
+    'fin-fluxo': '<path d="M3 3v18h18M7 14l4-4 4 3 6-7"/>',
+    'fin-centros': '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h1m4 0h1m-6 4h1m4 0h1m-5 7v-4h4v4"/>',
+    relatorios: '<path d="M4 20V10m5 10V4m5 16v-7m5 7V7"/>',
+    usuarios: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-7.8a4 4 0 0 1 0 7.6M22 21v-2a4 4 0 0 0-3-3.87"/>',
+    equipe: '<circle cx="9" cy="8" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10a4 4 0 0 0 0-8m2 10a6 6 0 0 1 3 5v1"/>',
+    config: '<path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94l-.36-2.54A.49.49 0 0 0 13.88 2h-3.76a.49.49 0 0 0-.49.42L9.27 4.96c-.59.23-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.72 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.05.31-.07.63-.07.95s.02.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.12.21.37.3.61.22l2.39-.96c.5.39 1.04.71 1.63.94l.36 2.54c.04.24.25.42.49.42h3.76c.24 0 .45-.18.49-.42l.36-2.54c.59-.23 1.13-.55 1.63-.94l2.39.96c.24.09.49-.01.61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/>',
+  };
+
+  A.on('sim-perfil', el => {
+    if (!A.podeAdministrarReal()) return;
+    const permitido = ['admin', 'advogado', 'assistente', 'consulta'];
+    if (!permitido.includes(el.value)) return;
+    S.visualizarComo = el.value === 'admin' ? '' : el.value; A.render();
+  });
 
   /* ---------- quem está usando ---------- */
   function resolverUsuario() {
@@ -43,9 +70,11 @@
 
   function renderNav(rota) {
     const nav = document.getElementById('nav');
-    nav.innerHTML = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && (!A.routes[id].mod || A.pode(A.routes[id].mod, 'ver')));
+    const grupos = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && (!A.routes[id].mod || A.pode(A.routes[id].mod, 'ver')));
       return itens.length ? `<div class="grp"><b>${g}</b>${itens.map(id => { const r = A.routes[id]; const n = r.badge ? r.badge() : 0;
-        return `<a href="#${id}" ${id === rota ? 'aria-current="page"' : ''}><span>${A.esc(r.label)}</span>${n ? `<span class="tabbadge">${n}</span>` : ''}</a>`; }).join('')}</div>` : ''; }).join('');
+        return `<a href="#${id}" ${id === rota ? 'aria-current="page"' : ''}><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES_NAV[id] || ICONES_NAV.documentos}</svg></span><span class="nav-label">${A.esc(r.label)}</span>${n ? `<span class="tabbadge">${n}</span>` : ''}</a>`; }).join('')}</div>` : ''; }).join('');
+    const saiu = S.mode === 'local' ? '<div class="side-logout"><button type="button" data-action="sair" title="Sair do sistema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Sair</span></button></div>' : '';
+    nav.innerHTML = `<div class="side-brand"><img src="logo.png" alt=""><span class="side-brand-copy"><strong>GOMES</strong><small>SISTEMA JURÍDICO</small></span></div>${grupos}${saiu}`;
   }
 
   function renderTopo() {
@@ -55,7 +84,7 @@
       : S.mode === 'erro' ? 'Não foi possível carregar os dados compartilhados' : 'Carregando…';
     const chip = document.getElementById('mechip'), me = A.me();
     if (S.mode === 'local') {
-      chip.innerHTML = me ? `${A.avatar(me)}<div><div>${A.esc(me.nome)}</div><div class="role">${A.esc(A.PAPEL_LABEL[me.papel] || '')}</div></div><button class="btn small" data-action="sair" title="Sair do sistema">Sair</button>` : `<span class="role">Administrador</span><button class="btn small" data-action="sair" title="Sair do sistema">Sair</button>`;
+      chip.innerHTML = me ? `${A.avatar(me)}<div><div>${A.esc(me.nome)}</div><div class="role">${A.esc(A.PAPEL_LABEL[me.papel] || '')}</div></div>` : `<span class="role">Administrador</span>`;
     } else if (me) {
       chip.innerHTML = `${A.avatar(me)}<div><div>${A.esc(me.nome)}</div><div class="role">${A.esc(A.PAPEL_LABEL[me.papel] || '')}${S.isOwner ? ' · dono' : ''}</div></div>`;
     } else {
@@ -64,11 +93,17 @@
         : pend ? `<span class="role">Vínculo com ${A.esc(pend.nome)} aguardando aprovação</span>`
         : S.contaId ? `<button class="btn small" data-action="vincular-conta">${S.isOwner ? 'Vincular minha conta' : 'Identificar-me na equipe'}</button>` : '';
     }
+    const sim = document.getElementById('simControl');
+    if (A.podeAdministrarReal()) {
+      sim.innerHTML = `<label class="sim-select"><span>Visualizar como</span><select aria-label="Visualizar como perfil" data-onchange="sim-perfil"><option value="admin"${S.visualizarComo === 'admin' ? ' selected' : ''}>Administrador</option><option value="advogado"${S.visualizarComo === 'advogado' ? ' selected' : ''}>Advogado</option><option value="assistente"${S.visualizarComo === 'assistente' ? ' selected' : ''}>Assistente</option><option value="consulta"${S.visualizarComo === 'consulta' ? ' selected' : ''}>Consulta</option></select></label>`;
+    } else sim.innerHTML = '';
     const n = document.querySelector('[data-action="novo-prazo"]'); if (n) n.hidden = !A.pode('prazos', 'editar');
   }
 
   function renderAlertas() {
     const el = document.getElementById('alerts');
+    if (S.rota !== 'inicio') { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
     if (S.mode === 'loading') { el.className = 'alerts'; el.innerHTML = '<span class="muted">Verificando prazos…</span>'; return; }
     const h = A.hoje(), ant = Number(S.config.antecedencia) || 5, filtro = A.ui('agenda', {resp: 'todos'}).resp;
     const chips = []; const g = {vencido: [], hoje: [], critico: [], atencao: []};
@@ -174,7 +209,7 @@
     S.db = db; S.mode = 'db';
     window.claude.use('user').then(async u => { if (!u) return; S.user = u;
       try { S.isOwner = await u.isOwner(); S.contaId = await u.id(); const c = await u.can('data.write'); if (c === false) S.canWrite = false; } catch (e) {} A.render(); });
-    window.claude.use('assets').then(a => { S.assets = a || null; A.render(); }).catch(() => {});
+    window.claude.use('assets').then(a => { S.assets = A.protegerAssets(a || null); A.render(); }).catch(() => {});
     window.claude.use('downloads').then(d => { S.downloads = d || null; }).catch(() => {});
     const timer = setTimeout(() => { if (!S.loaded.prazos) { S.mode = 'slow'; A.render(); } }, 10000);
     const err = e => { clearTimeout(timer); S.mode = 'erro'; A.render(); };

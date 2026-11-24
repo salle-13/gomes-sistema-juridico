@@ -159,3 +159,37 @@ main { padding: 24px 25px 44px; }
   .alerts { padding: 10px 12px; }
   main { padding: 15px 12px 28px; }
 }
+
+/* Dashboard financeiro: indicadores e gráficos com mais área de leitura. */
+.fin-dashboard { width: 100%; min-width: 0; }
+.fin-dashboard .vhead { min-height: 72px; padding: 20px 24px; }
+.fin-dashboard .vhead h2 { font-size: 24px; }
+.fin-dashboard .vhead select { min-width: 190px; font-size: 14px; }
+.fin-dashboard > .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 22px 24px; }
+.fin-dashboard .kpi { min-height: 116px; justify-content: center; padding: 19px 20px; gap: 8px; }
+.fin-dashboard .kpi span { font-size: 13px; }
+.fin-dashboard .kpi strong { font-size: clamp(24px, 2vw, 32px); line-height: 1.15; overflow-wrap: anywhere; }
+.fin-dashboard .kpi small { font-size: 12.5px; line-height: 1.45; }
+.fin-dashboard .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding: 0 24px 24px; }
+.fin-dashboard .grid2 > .card { min-width: 0; padding: 18px 20px; }
+.fin-dashboard .grid2 > .card:first-child { grid-column: 1 / -1; }
+.fin-dashboard .card h3 { margin-bottom: 14px; font-size: 15px; }
+.fin-dashboard .chart svg { min-height: 280px; }
+@media (max-width: 1100px) {
+  .fin-dashboard > .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .fin-dashboard .vhead { align-items: flex-start; flex-direction: column; gap: 12px; padding: 17px; }
+  .fin-dashboard .vhead h2 { font-size: 21px; }
+  .fin-dashboard > .kpis { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+  .fin-dashboard .kpi { min-height: 98px; }
+  .fin-dashboard .grid2 { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 14px 14px; }
+  .fin-dashboard .grid2 > .card:first-child { grid-column: auto; }
+  .fin-dashboard .grid2 > .card { padding: 15px; }
+  .fin-dashboard .chart svg { min-height: 220px; }
+}
+.fin-tabs { display: flex; gap: 6px; min-width: 0; overflow-x: auto; padding: 0 0 14px; scrollbar-width: thin; }
+.fin-tabs a { flex: 0 0 auto; padding: 10px 15px; border: 1px solid #dfe5ee; border-radius: 9px; background: #fff; color: #40516a; font-size: 13px; font-weight: 600; text-decoration: none; transition: color .15s ease, background .15s ease, border-color .15s ease; }
+.fin-tabs a:hover { border-color: #aebbd0; background: #f8faff; color: #1f3761; }
+.fin-tabs a[aria-current="page"] { border-color: #183862; background: #183862; color: #fff; box-shadow: 0 3px 9px rgba(24,56,98,.15); }
+@media (max-width: 600px) { .fin-tabs { margin-right: -12px; padding-right: 12px; } .fin-tabs a { padding: 9px 12px; font-size: 12px; } }

@@ -176,3 +176,25 @@ main { padding: 24px 25px 44px; }
 @media (max-width: 900px) {
   .fin-dashboard .grid2 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Acabamento profissional do dashboard financeiro, preservando sua estrutura. */
+.fin-dashboard { overflow: hidden; border-color: #dfe5ed; }
+.fin-dashboard > .vhead { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 17px 20px; background: linear-gradient(110deg, #fff 0%, #f8fafd 100%); border-bottom-color: #e5eaf1; }
+.fin-dashboard > .vhead h2 { margin: 0; color: #172b49; font-size: 21px; letter-spacing: -.025em; }
+.fin-dashboard > .vhead select { min-width: 175px; border-color: #d8e0eb; font-size: 13px; font-weight: 600; }
+.fin-dashboard > .kpis { gap: 12px; padding: 16px 18px; }
+.fin-dashboard .kpi { min-width: 0; min-height: 96px; padding: 14px 16px; border: 1px solid #e5eaf1; border-top: 3px solid var(--c, #294b9b); border-radius: 10px; box-shadow: 0 2px 7px rgba(25, 43, 73, .035); }
+.fin-dashboard .kpi span { color: #64738a; font-size: 11.5px; font-weight: 650; letter-spacing: .025em; }
+.fin-dashboard .kpi strong { color: #1b2e4b; font-size: clamp(21px, 1.55vw, 26px); font-variant-numeric: tabular-nums; }
+.fin-dashboard .kpi small { color: #718096; font-size: 11.5px; line-height: 1.4; }
+.fin-dashboard .grid2 { gap: 13px; padding: 0 18px 18px; }
+.fin-dashboard .grid2 > .card { padding: 16px 17px; border-color: #e2e8f0; border-radius: 10px; box-shadow: 0 2px 8px rgba(25, 43, 73, .04); }
+.fin-dashboard .card h3 { margin: 0 0 12px; color: #263b5a; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
+.fin-dashboard .chart text { font-size: 12px; }
+.fin-dashboard .chart-legend { gap: 14px; color: #65748a; font-size: 11.5px; }
+@media (max-width: 600px) {
+  .fin-dashboard > .vhead { align-items: flex-start; flex-direction: column; padding: 15px; }
+  .fin-dashboard > .vhead select { width: 100%; }
+  .fin-dashboard > .kpis { padding: 12px; }
+  .fin-dashboard .grid2 { padding: 0 12px 12px; }
+}

@@ -100,13 +100,13 @@
 .fd-area { fill-opacity: .14; stroke: none; }
 .fd-area-linha { fill-opacity: 0; }
 .fd-zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.fd-grafico circle:hover { r: 5.5; }
+.fd-grafico circle:hover { opacity: .72; }
 
 /* rosca */
 .fd-rosca { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 24px; }
 .fd-rosca svg { width: 100%; height: auto; display: block; }
-.fd-fatia { fill: none; stroke-width: 30; transition: stroke-width .15s; cursor: default; }
-.fd-fatia:hover { stroke-width: 36; }
+.fd-fatia { fill: none; stroke-width: 30; transition: opacity .15s; cursor: default; }
+.fd-fatia:hover { opacity: .78; }
 .fd-rosca-rot { fill: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-body); }
 .fd-rosca-val { fill: var(--ink); font-size: 22px; font-weight: 700; font-family: var(--font-body); }
 .fd-rosca-leg { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }

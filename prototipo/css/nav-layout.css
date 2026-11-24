@@ -159,3 +159,20 @@ main { padding: 24px 25px 44px; }
   .alerts { padding: 10px 12px; }
   main { padding: 15px 12px 28px; }
 }
+
+/* Lista financeira com linhas maiores e leitura mais confortável. */
+.fin-list .tablewrap table { min-width: 920px; font-size: 14px; }
+.fin-list .tablewrap th { padding: 15px 16px; font-size: 11px; }
+.fin-list .tablewrap td { padding: 15px 16px; line-height: 1.5; }
+@media (max-width: 700px) {
+  .fin-list .tablewrap th, .fin-list .tablewrap td { padding: 13px 12px; }
+}
+
+/* Dashboard financeiro: destaque equilibrado para a tendência mensal. */
+.fin-dashboard .grid2 { grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); align-items: stretch; }
+.fin-dashboard .fin-trend { padding: 20px 22px; }
+.fin-dashboard .fin-trend .chart svg { max-height: 390px; }
+.fin-dashboard .fin-trend .chart-legend { gap: 16px; font-size: 13px; }
+@media (max-width: 900px) {
+  .fin-dashboard .grid2 { grid-template-columns: minmax(0, 1fr); }
+}

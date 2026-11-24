@@ -31,7 +31,7 @@
     const prox = abertos.filter(f => f.vencimento >= h && f.vencimento <= P.addDays(h, 7)).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
     const linhaVenc = f => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px dashed var(--line)"><span><b class="num">${esc(A.fmt(f.vencimento).slice(0, 5))}</b> · ${esc(f.descricao)}</span><span class="num ${f.tipo === 'receber' ? 'pos' : 'neg'}">${f.tipo === 'receber' ? '+' : '−'} ${A.brl(f.valor)}</span></div>`;
     const ymOpts = []; for (let i = -12; i <= 3; i++) { const m = A.addMonths(A.hoje().slice(0, 8) + '01', i).slice(0, 7); ymOpts.push([m, A.MESES[Number(m.slice(5)) - 1] + ' de ' + m.slice(0, 4)]); }
-    return `<section class="panel"><div class="vhead"><h2>Dashboard financeiro</h2><select id="fdYm" data-ui="findash.ym" aria-label="Mês">${A.opts(ymOpts, u.ym)}</select></div>
+    return `<section class="panel fin-dashboard"><div class="vhead"><h2>Dashboard financeiro</h2><select id="fdYm" data-ui="findash.ym" aria-label="Mês">${A.opts(ymOpts, u.ym)}</select></div>
       <div class="kpis">
         <div class="kpi" style="--c:var(--ok)"><span>Recebido no mês</span><strong>${A.brl(rec)}</strong><small>${A.brl(aRec)} ainda a receber no mês</small></div>
         <div class="kpi" style="--c:var(--danger)"><span>Pago no mês</span><strong>${A.brl(pag)}</strong><small>${A.brl(aPag)} ainda a pagar no mês</small></div>
@@ -40,7 +40,7 @@
         <div class="kpi" style="--c:var(--warn)"><span>Inadimplência</span><strong>${A.brl(soma(inad, 'valor'))}</strong><small>${inad.length} recebimento(s) em atraso</small></div>
         <div class="kpi" style="--c:var(--danger)"><span>Contas a pagar vencidas</span><strong>${A.brl(soma(pagVenc, 'valor'))}</strong><small>${pagVenc.length} conta(s)</small></div>
       </div>
-      <div class="grid2"><div class="card"><h3>Receitas e despesas realizadas · últimos 12 meses</h3>${A.chartBarras({labels: meses.map(A.ymLabel), series: [{nome: 'Receitas', cor: '#2C7A4D', valores: serieR}, {nome: 'Despesas', cor: '#B8322A', valores: serieP}], linha: {nome: 'Resultado', cor: '#273884', valores: serieR.map((v, i) => v - serieP[i])}})}</div>
+      <div class="grid2"><div class="card fin-trend"><h3>Receitas e despesas realizadas · últimos 12 meses</h3>${A.chartBarras({labels: meses.map(A.ymLabel), series: [{nome: 'Receitas', cor: '#2C7A4D', valores: serieR}, {nome: 'Despesas', cor: '#B8322A', valores: serieP}], linha: {nome: 'Resultado', cor: '#273884', valores: serieR.map((v, i) => v - serieP[i])}, altura: 300})}</div>
         <div class="card"><h3>Próximos 7 dias</h3>${prox.map(linhaVenc).join('') || '<span class="muted">Nada vence nos próximos 7 dias.</span>'}
           ${inad.length ? `<h3 style="margin-top:14px">Recebimentos em atraso</h3>${inad.sort((a, b) => a.vencimento.localeCompare(b.vencimento)).slice(0, 6).map(f => linhaVenc(f).replace('</span><span', ' · ' + esc(A.cliente(f.clienteId)?.nome || '') + '</span><span')).join('')}` : ''}</div>
         <div class="card"><h3>Despesas do mês por categoria</h3>${A.chartHBar(top(porCat).map(i => Object.assign(i, {cor: '#B8322A'})))}</div>

@@ -44,7 +44,7 @@
         <td><div class="rowact">${ed && ['pendente','vencido','hoje'].includes(s) ? `<button class="btn small primary" data-action="fin-baixar" data-id="${esc(f.id)}">${f.tipo === 'receber' ? 'Receber' : 'Pagar'}</button>` : ''}<button class="btn small" data-action="fin-editar" data-id="${esc(f.id)}">${ed ? 'Editar' : 'Ver'}</button></div></td></tr>`; }).join('');
     const novoBtn = ed ? (v.custas ? `<button class="btn" data-action="fin-novo" data-tipo="pagar" data-cat="Despesas processuais">+ Despesa processual</button><button class="btn primary" data-action="fin-novo" data-tipo="pagar" data-cat="Custas processuais">+ Custa processual</button>`
       : `<button class="btn primary" data-action="fin-novo" data-tipo="${v.tipo}">+ Nova conta a ${v.tipo === 'receber' ? 'receber' : 'pagar'}</button>`) : '';
-    return `<section class="panel"><div class="vhead"><h2>${esc(v.titulo)}</h2>${A.botoesExport(rota)}${novoBtn}</div>
+    return `<section class="panel fin-list"><div class="vhead"><h2>${esc(v.titulo)}</h2>${A.botoesExport(rota)}${novoBtn}</div>
       <div class="kpis"><div class="kpi"><span>Total listado</span><strong>${A.brl(tot)}</strong><small>${arr.length} lançamento(s)</small></div>
         <div class="kpi" style="--c:var(--ok)"><span>${v.tipo === 'receber' ? 'Recebido' : 'Pago'}</span><strong>${A.brl(pago)}</strong></div>
         <div class="kpi" style="--c:var(--amber)"><span>Em aberto</span><strong>${A.brl(arr.filter(f => f.status === 'pendente').reduce((s, f) => s + f.valor, 0))}</strong></div>

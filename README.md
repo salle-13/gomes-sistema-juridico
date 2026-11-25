@@ -13,6 +13,7 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
   logo.png
   js/
     prazo-logic.js    Cálculo de prazos: dias úteis, feriados, recesso (CPC 219, 220, 224)
+    regras-logic.js   Regras operacionais puras: limites, etapas da captação, gargalos, prioridade e recorrência de tarefas
     schema.js         Esquema de dados (referência para o backend)
     seed.js           Dados de exemplo (fictícios)
     core.js           Núcleo: estado, camada de dados, permissões, interface comum
@@ -20,8 +21,10 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     m-agenda.js       Agenda única (Ano/Mês/Semana/Dia/Lista): prazos, compromissos, alertas
     m-processos.js    Processos e ficha do processo
     m-publicacoes.js  Publicações: registro, importação, tratamento
-    m-clientes.js     Captação, carteira, ficha do cliente
+    m-tarefas.js      Central de tarefas (prioridade calculada, dependências, recorrência, comentários)
+    m-clientes.js     Captação em 10 etapas (kanban), carteira, arquivados, ficha do cliente
     m-documentos.js   Documentos
+    m-checklists.js   Checklists de documentos: modelos e itens por cliente
     m-modelos.js      Modelos com campos {{...}}, gerador de documentos e kit de entrada (fichas de cliente e processo)
     m-equipe.js       Equipe, permissões, configurações
     m-financeiro.js   Contas a pagar/receber, custas, centros de custo
@@ -30,12 +33,14 @@ prototipo/            Protótipo navegável (HTML + CSS + JavaScript puro, sem b
     m-notificacoes.js Central de notificações (sino + página): gerada dos dados, leitura por pessoa
     app.js            Inicialização, navegação, eventos (carregado por último)
 banco/
-  modelo-fisico.sql   DDL completo PostgreSQL 16 (28 tabelas; modelos_documento ainda sem validação)
+  modelo-fisico.sql   DDL completo PostgreSQL 16 (tabelas de tarefas e checklists ainda sem validação num servidor)
 docs/
   juridico.md         Especificação da seção Jurídico
   integracoes.md      Entrada manual x integrações externas (DJEN, DataJud, tribunais)
   coletor-djen.md     Arquitetura do coletor DJEN e geração automática de prazos
   modelo-fisico.md    Explicação do modelo de banco e mapeamento protótipo → banco
+  evolucao-operacional.md  Gestão operacional: decisões das fases 1 e 2 e próximas fases
+testes/               Testes das regras puras: node --test
 ```
 
 ## Como rodar o protótipo
@@ -67,6 +72,9 @@ Requer PostgreSQL 16 com as extensões `pgcrypto`, `unaccent` e `pg_trgm` (vêm 
 - Dinheiro sempre em **centavos (inteiro)**.
 - Toda leitura e gravação do protótipo passa por `App.save` / `App.remove` em `js/core.js`. Ao trocar o armazenamento pela API do backend, só essa camada muda.
 - Cada módulo registra suas telas com `App.route(...)` e suas ações com `App.on(...)`.
+- Histórico, comentários e itens de checklist ficam em coleções próprias (um registro por evento), nunca em listas dentro de outro registro.
+- Automação tradicional, sem IA: alertas e gargalos são calculados dos dados; registros criados automaticamente têm id determinístico.
+- Testes: `node --test` na raiz (regras puras de `regras-logic.js`).
 
 ## Próximos passos (ver `docs/`)
 

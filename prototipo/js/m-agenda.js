@@ -193,13 +193,14 @@
   /* ---------- compromissos ---------- */
   A.on('novo-comp', el => { if (A.pode('prazos', 'editar')) A.formComp(null, el.dataset.data ? {data: el.dataset.data} : null); });
   A.on('editar-comp', (el, e) => { if (e) e.stopPropagation(); const c = A.byId('compromissos', el.dataset.id); if (c) A.formComp(c); });
-  A.on('concluir-comp', async el => { const c = A.byId('compromissos', el.dataset.id); if (!c) return; const novo = Object.assign({}, c, {status: c.status === 'concluido' ? 'agendado' : 'concluido'});
+  A.on('concluir-comp', async el => { if (!A.exigir('prazos')) return; const c = A.byId('compromissos', el.dataset.id); if (!c) return; const novo = Object.assign({}, c, {status: c.status === 'concluido' ? 'agendado' : 'concluido'});
     if (await A.save('compromissos', novo)) { if (document.getElementById('fComp')) A.closeModal(); A.toast(novo.status === 'concluido' ? 'Compromisso concluído.' : 'Compromisso reaberto.'); } });
-  A.on('excluir-comp', el => { const id = el.dataset.id; A.confirm('Excluir compromisso', 'Este compromisso será apagado da agenda de toda a equipe.', 'Excluir', async () => { if (await A.remove('compromissos', id)) A.toast('Compromisso excluído.'); }); });
+  A.on('excluir-comp', el => { if (!A.exigir('prazos')) return; const id = el.dataset.id; A.confirm('Excluir compromisso', 'Este compromisso será apagado da agenda de toda a equipe.', 'Excluir', async () => { if (A.exigir('prazos') && await A.remove('compromissos', id)) A.toast('Compromisso excluído.'); }); });
 
   /* Cadastro de compromisso. preset pode trazer data, processoId, clienteId, responsavelId, tipo, titulo. */
   A.formComp = function (c, preset) {
     const novo = !c, ed = A.pode('prazos', 'editar'), ro = ed ? '' : 'disabled';
+    const pre = Object.assign({}, preset || {}), volta = pre._voltar; delete pre._voltar; preset = pre;
     c = Object.assign({id: '', tipo: 'Atendimento', titulo: '', data: ui().dia || A.hoje(), diaInteiro: false, horaInicio: '08:00', horaFim: '09:00', responsavelId: ui().resp !== 'todos' ? ui().resp : (A.me()?.id || ''), participantes: [], processoId: '', clienteId: '', local: '', status: 'agendado', obs: ''}, c || {}, preset || {});
     const part = A.col('equipe').filter(m => m.ativo !== false || (c.participantes || []).includes(m.id)).map(m => `<label class="chk"><input type="checkbox" name="cPart" value="${esc(m.id)}"${(c.participantes || []).includes(m.id) ? ' checked' : ''} ${ro}> ${esc(m.nome)}</label>`).join('');
     A.modal(`${A.modalHead(novo ? 'Novo compromisso' : 'Compromisso', !novo && c.status === 'concluido' ? '<span class="pill s-concluido">Concluído</span>' : '')}
@@ -228,7 +229,13 @@
       if (!todo && ini && fim && fim < ini) { A.toast('O horário final é antes do inicial.'); return; }
       const obj = Object.assign({}, c, {tipo: f.cTipo.value, titulo: f.cTit.value.trim(), data: f.cData.value, diaInteiro: todo, horaInicio: todo ? '' : ini, horaFim: todo ? '' : fim, responsavelId: f.cResp.value,
         participantes: [...f.querySelectorAll('input[name="cPart"]:checked')].map(x => x.value).filter(id => id !== f.cResp.value), local: f.cLocal.value.trim(), processoId: f.cProc.value, clienteId: f.cCli.value, obs: f.cObs.value.trim()});
-      if (await A.save('compromissos', obj)) { A.closeModal(); A.toast('Compromisso salvo.'); }
+      if (!A.exigir('prazos')) return;
+      const salvo = await A.save('compromissos', obj);
+      if (salvo) { A.closeModal();
+        // "Tarefa interna" agora vive na Central de tarefas: o compromisso fica na agenda e ganha a tarefa correspondente.
+        if (salvo.tipo === 'Tarefa interna' && !salvo.migradoParaTarefa && A.migrarTarefaInterna && await A.migrarTarefaInterna(salvo)) A.toast('Compromisso salvo e incluído na Central de tarefas.');
+        else A.toast('Compromisso salvo.');
+        if (volta && A.voltarPara) A.voltarPara(volta); }
     });
   };
 

@@ -125,19 +125,24 @@
     }
 
     if (A.pode('clientes', 'ver')) {
-      // Caso encaminhado: vai para quem foi indicado na análise (e para a visão geral), não para a equipe toda.
-      const aguard = c => (c.status === 'encaminhado') && (visaoGeral() || (c.encaminhadoPara || []).includes(S.meId));
+      /* Captação em etapas: os atrasos por etapa vêm dos gargalos (categoria Operacional). Aqui ficam os avisos de
+         chegada: novo contato para quem vai atender e cliente entregue ao(à) advogado(a) ao entrar na carteira. */
+      const funil = c => A.R.noFunil(c);
       A.col('clientes').forEach(c => {
         const st = c.status === 'aceito' ? 'ativo' : (c.status || 'novo');
         const base = {cat: 'clientes', origem: c.criadoEm, acao: {rota: 'clientes', a: 'abrir-cliente', id: c.id}};
-        if (aguard(c))
-          add(Object.assign({}, base, {chave: `cli:${c.id}:encaminhado`, prio: c.urgencia === 'alta' ? 'urgente' : 'atencao', titulo: `Caso aguardando análise · ${c.nome}`,
-            texto: [c.area, resumo(c.historia, 110)].filter(Boolean).join(' · '), ref: A.hoje(), refTxt: 'Encaminhado para ' + (c.encaminhadoPara || []).map(A.nomeDe).join(', '), dispensavel: false}));
-        else if (st === 'novo' && A.pode('clientes', 'editar'))
-          add(Object.assign({}, base, {chave: `cli:${c.id}:novo`, prio: c.urgencia === 'alta' ? 'atencao' : 'info', titulo: `Novo caso cadastrado · ${c.nome}`,
-            texto: [c.area, c.origem && 'origem: ' + c.origem, 'ainda não encaminhado'].filter(Boolean).join(' · '), ref: (c.criadoEm || '').slice(0, 10) || h,
-            refTxt: c.criadoEm ? 'Cadastrado ' + A.fmt(c.criadoEm) : 'Aguardando encaminhamento', dispensavel: true}));
-        else if (st === 'ativo' && paraMim(c.responsavelId)) {
+        const etapa = A.R.etapaDe(c), entrada = (c.criadoEm || '').slice(0, 10);
+        if (funil(c) && etapa === 'novo_contato' && entrada && dias(entrada, h) <= RECENTE && deOutro(c.cadastradoPor || c.criadoPor)
+          && (c.atendimentoResponsavelId ? paraMim(c.atendimentoResponsavelId) : A.pode('clientes', 'editar')))
+          add(Object.assign({}, base, {chave: `cli:${c.id}:novo-contato`, prio: c.urgencia === 'alta' ? 'atencao' : 'info', titulo: `Novo contato · ${c.nome}`,
+            texto: [...new Set([c.area, c.tipoDemanda, c.origem && 'origem: ' + c.origem, !c.atendimentoResponsavelId && 'sem responsável pelo atendimento'].filter(Boolean))].join(' · '),
+            ref: entrada, refTxt: 'Cadastrado ' + A.fmt(entrada) + (c.cadastradoPor ? ' por ' + A.nomeDe(c.cadastradoPor) : ''), resp: c.atendimentoResponsavelId, dispensavel: true}));
+        const aceito = (c.aceitoEm || '').slice(0, 10);
+        if (st === 'ativo' && aceito && dias(aceito, h) <= RECENTE && c.responsavelId && paraMim(c.responsavelId) && deOutro(c.atualizadoPor))
+          add(Object.assign({}, base, {chave: `cli:${c.id}:entregue:${aceito}`, prio: 'info', titulo: `Cliente entregue a você · ${c.nome}`,
+            texto: [...new Set([c.area, c.tipoDemanda, 'captação concluída'].filter(Boolean))].join(' · '), ref: aceito, refTxt: 'Na carteira desde ' + A.fmt(aceito), origem: c.aceitoEm, resp: c.responsavelId, dispensavel: true}));
+        if (funil(c)) return;
+        if (st === 'ativo' && paraMim(c.responsavelId)) {
           const falta = [!c.documento && (c.tipoPessoa === 'PJ' ? 'CNPJ' : 'CPF'), !c.telefone && !c.email && 'telefone ou e-mail', !c.endereco && 'endereço'].filter(Boolean);
           if (falta.length) add(Object.assign({}, base, {chave: `cli:${c.id}:incompleto:${falta.join(',')}`, prio: 'info', titulo: `Cadastro incompleto · ${c.nome}`,
             texto: 'Falta: ' + falta.join(', ') + ' (usado na qualificação dos modelos)', ref: null, refTxt: 'Cliente ativo', resp: c.responsavelId, dispensavel: true}));

@@ -2,15 +2,17 @@
 (function (A) {
   const S = A.S, P = A.P;
   const GRUPOS = [
-    ['Rotina', ['inicio','agenda','notificacoes']],
+    ['Rotina', ['inicio','agenda','tarefas','notificacoes']],
     ['Jurídico', ['processos','publicacoes','clientes','documentos','modelos']],
     ['Financeiro', ['fin','fin-receber','fin-pagar','fin-custas','fin-fluxo','fin-centros']],
-    ['Gestão', ['relatorios','usuarios','equipe','config']],
+    ['Gestão', ['relatorios','usuarios','equipe','checklists','config']],
   ];
   const ICONES_NAV = {
     inicio: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
     agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
     notificacoes: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+    tarefas: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/>',
+    checklists: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>',
     processos: '<path d="M4 4h6l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M2 9h20"/>',
     publicacoes: '<path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7 7h10M7 11h10M7 15h6"/>',
     clientes: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-7.8a4 4 0 0 1 0 7.6M22 21v-2a4 4 0 0 0-3-3.87"/>',
@@ -53,7 +55,7 @@
     S.rota = rota;
     renderNav(rota); renderTopo(); renderAlertas(); renderAviso(); A.renderSino && A.renderSino(); A.renderBusca && A.renderBusca();
     const r = A.routes[rota], main = document.getElementById('main');
-    if (r.mod && !A.pode(r.mod, 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
+    if (r.mod && !A.pode(r.mod, r.nivel || 'ver')) { main.className = 'single'; main.innerHTML = `<section class="panel lock"><h2>Acesso restrito</h2><p>Seu papel (${A.esc(A.PAPEL_LABEL[A.papel()] || 'sem vínculo')}) não tem acesso a ${A.esc(r.label)}. Fale com o administrador do escritório.</p></section>`; return; }
     // Lista suspensa (select) em uso: redesenhar agora a fecharia na mão da pessoa. Adia até ela escolher ou sair do campo.
     const ativo = document.activeElement;
     if (!mudouCampo && ativo && ativo.tagName === 'SELECT' && main.contains(ativo)) {
@@ -70,7 +72,7 @@
 
   function renderNav(rota) {
     const nav = document.getElementById('nav');
-    const grupos = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && (!A.routes[id].mod || A.pode(A.routes[id].mod, 'ver')));
+    const grupos = GRUPOS.map(([g, ids]) => { const itens = ids.filter(id => A.routes[id] && (!A.routes[id].mod || A.pode(A.routes[id].mod, A.routes[id].nivel || 'ver')));
       return itens.length ? `<div class="grp"><b>${g}</b>${itens.map(id => { const r = A.routes[id]; const n = r.badge ? r.badge() : 0;
         return `<a href="#${id}" ${id === rota ? 'aria-current="page"' : ''}><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES_NAV[id] || ICONES_NAV.documentos}</svg></span><span class="nav-label">${A.esc(r.label)}</span>${n ? `<span class="tabbadge">${n}</span>` : ''}</a>`; }).join('')}</div>` : ''; }).join('');
     const saiu = S.mode === 'local' ? '<div class="side-logout"><button type="button" data-action="sair" title="Sair do sistema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Sair</span></button></div>' : '';
@@ -113,7 +115,7 @@
     const c = (k, txt) => g[k].length ? `<span class="count s-${k}">${g[k].length} ${txt}</span>` : '';
     if (A.pode('prazos', 'ver')) { const n = A.col('compromissos').filter(c => c.data === h && c.status !== 'concluido' && (filtro === 'todos' || c.responsavelId === filtro || (c.participantes || []).includes(filtro))).length; if (n) chips.push(`<button class="achip" data-action="ag-ver-dia" data-dia="${h}" style="font-weight:600">${n} compromisso(s) hoje</button>`); }
     if (A.pode('publicacoes', 'ver')) { const n = A.col('publicacoes').filter(p => p.status === 'nova').length; if (n) chips.push(`<a class="achip" href="#publicacoes" style="border-color:var(--accent);color:var(--accent);font-weight:600;text-decoration:none">${n} publicação(ões) nova(s) para tratar</a>`); }
-    if (A.pode('clientes', 'ver')) { const n = A.aguardando ? A.aguardando().length : 0; if (n) chips.push(`<a class="achip" href="#clientes" style="border-color:var(--accent);color:var(--accent);font-weight:600;text-decoration:none">${n} caso(s) novo(s) aguardando análise</a>`); }
+    if (A.pode('clientes', 'ver')) { const n = A.aguardando ? A.aguardando().length : 0; if (n) chips.push(`<a class="achip" href="#clientes" style="border-color:var(--accent);color:var(--accent);font-weight:600;text-decoration:none">${n} cliente(s) em captação pedindo providência</a>`); }
     if (A.pode('financeiro', 'ver')) { const v = A.col('fin_lancamentos').filter(f => f.status === 'pendente' && f.vencimento <= h);
       const pg = v.filter(f => f.tipo === 'pagar').length, rc = v.filter(f => f.tipo === 'receber').length;
       if (pg) chips.push(`<a class="achip s-critico" href="#fin-pagar" style="text-decoration:none;color:var(--warn);font-weight:600">${pg} conta(s) a pagar vencida(s) ou vencendo hoje</a>`);
@@ -202,7 +204,15 @@
     const completos = completarFixos(S.data.equipe); completos.forEach(n => Object.assign(S.data.equipe.find(m => m.id === n.id), n));
     if (fixos.length || antigos.length || completos.length) A.Store.persistLocal();
     S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null; S.operacional = A.R.normalizar(d.operacional);
-    P.setLocais(S.config.feriadosLocais || []); A.render(); A.depoisDeCarregar && A.depoisDeCarregar();
+    P.setLocais(S.config.feriadosLocais || []); A.render(); migrar().then(() => A.depoisDeCarregar && A.depoisDeCarregar());
+  }
+  /* Migrações registradas pelos módulos (A.migracoes), uma vez por carregamento, com todos os dados presentes. */
+  let migrou = false;
+  async function migrar() {
+    if (migrou || !S.canWrite || A.simulacaoAtiva()) return;
+    if (S.mode !== 'local' && (!S.identidadeOk || !A.COLS.every(k => S.loaded[k]))) return; // compartilhado: espera dados e identidade
+    migrou = true; resolverUsuario();
+    for (const m of A.migracoes) { try { await m(); } catch (e) { console.error('Migração falhou', e); } }
   }
   async function iniciar() {
     A.render();
@@ -211,7 +221,7 @@
     if (!db) { iniciarLocal(); return; }
     S.db = db; S.mode = 'db';
     window.claude.use('user').then(async u => { if (!u) return; S.user = u;
-      try { S.isOwner = await u.isOwner(); S.contaId = await u.id(); const c = await u.can('data.write'); if (c === false) S.canWrite = false; } catch (e) {} A.render(); });
+      try { S.isOwner = await u.isOwner(); S.contaId = await u.id(); const c = await u.can('data.write'); if (c === false) S.canWrite = false; } catch (e) {} S.identidadeOk = true; A.render(); setTimeout(migrar, 1500); });
     window.claude.use('assets').then(a => { S.assets = A.protegerAssets(a || null); A.render(); }).catch(() => {});
     window.claude.use('downloads').then(d => { S.downloads = d || null; }).catch(() => {});
     const timer = setTimeout(() => { if (!S.loaded.prazos) { S.mode = 'slow'; A.render(); } }, 10000);
@@ -222,6 +232,7 @@
     A.COLS.forEach(c => db.collection(A.Store.path(c)).onSnapshot(snap => {
       S.data[c] = snap.docs.map(d => Object.assign({id: d.id}, d.data()));
       if (!snap.metadata.fromCache) S.loaded[c] = true; A.render(); pronto(); A.aoAtualizar && A.aoAtualizar(c);
+      if (A.COLS.every(k => S.loaded[k]) && S.canWrite !== false) setTimeout(migrar, 1500); // espera a identidade (meId) chegar
     }, c === 'prazos' ? err : () => {}));
     db.doc('config/geral').onSnapshot(s => { if (s.exists) S.config = Object.assign({antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'}, s.data()); P.setLocais(S.config.feriadosLocais || []); A.render(); }, () => {});
     db.doc('config/permissoes').onSnapshot(s => { S.permissoes = s.exists ? s.data() : null; A.render(); }, () => {});

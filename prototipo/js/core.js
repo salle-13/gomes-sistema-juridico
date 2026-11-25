@@ -38,7 +38,7 @@ window.App = window.App || {};
   A.CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
 
   /* ---------- estado ---------- */
-  const COLS = A.COLS = ['equipe','usuarios','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado','historico'];
+  const COLS = A.COLS = ['equipe','usuarios','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado','historico','tarefas','tarefa_comentarios','checklist_modelos','checklist_itens'];
   const R = A.R = (typeof Regras !== 'undefined' ? Regras : window.Regras);
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
@@ -127,17 +127,21 @@ window.App = window.App || {};
   /* Campos cujas mudanças viram histórico automaticamente, por coleção. */
   const RASTREADOS = {clientes: ['etapa', 'status', 'responsavelId', 'atendimentoResponsavelId'], processos: ['status', 'responsavelId'], prazos: ['status', 'responsavelId'],
     compromissos: ['status', 'responsavelId'], publicacoes: ['status', 'responsavelId'], fin_lancamentos: ['status'],
-    tarefas: ['status', 'responsavelId', 'prazo'], checklist_itens: ['situacao']};
-  const CRIACAO = {clientes: 'cadastro', tarefas: 'criacao', checklist_itens: 'criacao'};
+    tarefas: ['status', 'responsavelId', 'prazo'], checklist_itens: ['situacao', 'documentoId']};
+  const CRIACAO = {clientes: 'cadastro', tarefas: 'criacao'};
   async function rastrear(col, novo, anterior, opts) {
     const campos = RASTREADOS[col]; if (!campos) return;
     const origem = opts && opts.origem, base = {entidade: col, entidadeId: novo.id, origem};
     if (!anterior) { if (CRIACAO[col]) await A.registrar(Object.assign({}, base, {acao: CRIACAO[col], texto: opts && opts.texto})); return; }
+    let texto = opts && opts.texto; // o texto livre acompanha só o primeiro evento da gravação
     for (const c of campos) {
       const a = anterior[c] ?? '', d = novo[c] ?? '';
-      if (String(a) !== String(d)) await A.registrar(Object.assign({}, base, {acao: c === 'responsavelId' || c === 'atendimentoResponsavelId' ? 'responsavel' : c, campo: c, antes: a || null, depois: d || null, texto: opts && opts.texto}));
+      if (String(a) !== String(d)) { await A.registrar(Object.assign({}, base, {acao: c === 'responsavelId' || c === 'atendimentoResponsavelId' ? 'responsavel' : c, campo: c, antes: a || null, depois: d || null, texto})); texto = null; }
     }
   }
+  /* Migrações ao carregar: funções registradas pelos módulos, chamadas pelo app.js quando todos os dados chegaram.
+     Cada uma confere a própria permissão e é idempotente (pode rodar de novo, em várias abas, sem duplicar). */
+  A.migracoes = [];
   A.historicoDe = (col, id) => A.doIdx('historico', 'entidadeId', id).filter(h => h.entidade === col).sort((a, b) => String(a.em).localeCompare(String(b.em)));
 
   /* Gravação em lote (importações). No modo local grava tudo e salva uma vez só; se o navegador
@@ -193,20 +197,20 @@ window.App = window.App || {};
   /* ---------- permissões por papel ---------- */
   A.PAPEIS = [['admin','Administrador(a)'],['advogado','Advogado(a)'],['assistente','Assistente administrativo(a)'],['estagiario','Estagiário(a)'],['gerente','Gerente']];
   A.PAPEL_LABEL = Object.fromEntries(A.PAPEIS);
-  A.MODULOS = [['prazos','Agenda e prazos'],['processos','Processos'],['publicacoes','Publicações'],['clientes','Clientes e captação'],['documentos','Documentos'],['modelos','Modelos de documentos'],['financeiro','Financeiro'],['relatorios','Relatórios'],['equipe','Equipe, permissões e configurações']];
+  A.MODULOS = [['prazos','Agenda e prazos'],['processos','Processos'],['publicacoes','Publicações'],['clientes','Clientes e captação'],['documentos','Documentos'],['modelos','Modelos de documentos'],['tarefas','Tarefas'],['financeiro','Financeiro'],['relatorios','Relatórios'],['equipe','Equipe, permissões e configurações']];
   const E = 'editar', V = 'ver', N = 'nenhum';
   A.PERM_PADRAO = {
-    admin:      {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:E, relatorios:E, equipe:E},
-    advogado:   {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:V, relatorios:V, equipe:V},
-    assistente: {prazos:V, processos:V, publicacoes:E, clientes:E, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
-    estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, modelos:V, financeiro:N, relatorios:N, equipe:V},
-    gerente:    {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, financeiro:E, relatorios:E, equipe:V},
+    admin:      {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, tarefas:E, financeiro:E, relatorios:E, equipe:E},
+    advogado:   {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, tarefas:E, financeiro:V, relatorios:V, equipe:V},
+    assistente: {prazos:V, processos:V, publicacoes:E, clientes:E, documentos:E, modelos:V, tarefas:E, financeiro:N, relatorios:N, equipe:V},
+    estagiario: {prazos:E, processos:V, publicacoes:V, clientes:V, documentos:E, modelos:V, tarefas:E, financeiro:N, relatorios:N, equipe:V},
+    gerente:    {prazos:E, processos:E, publicacoes:E, clientes:E, documentos:E, modelos:E, tarefas:E, financeiro:E, relatorios:E, equipe:V},
   };
   A.papelReal = () => { if (S.isOwner && !A.me()) return 'admin'; const m = A.me(); return m ? (A.PAPEL_LABEL[m.papel] ? m.papel : m.papel === 'financeiro' ? 'gerente' : 'advogado') : (S.mode === 'local' ? 'admin' : 'estagiario'); };
   A.podeAdministrarReal = () => S.isOwner || A.papelReal() === 'admin';
   A.papel = () => S.visualizarComo || A.papelReal();
   A.PAPEL_LABEL.consulta = 'Consulta';
-  A.PERM_CONSULTA = {prazos:V, processos:V, publicacoes:V, clientes:V, documentos:V, modelos:V, financeiro:V, relatorios:V, equipe:V};
+  A.PERM_CONSULTA = {prazos:V, processos:V, publicacoes:V, clientes:V, documentos:V, modelos:V, tarefas:V, financeiro:V, relatorios:V, equipe:V};
   A.nivel = mod => {
     if (S.isOwner && (!S.visualizarComo || S.visualizarComo === 'admin')) return E;
     const papel = A.papel(), tab = (S.permissoes && S.permissoes.papeis) || A.PERM_PADRAO;
@@ -221,7 +225,11 @@ window.App = window.App || {};
   A.avatar = (m, lg) => m ? `<span class="av${lg?' lg':''}" style="background:${A.esc(m.cor||'#273884')}" title="${A.esc(m.nome)}">${A.esc(A.iniciais(m.nome))}</span>` : `<span class="av${lg?' lg':''}" style="background:#8893A3" title="Sem responsável">?</span>`;
   A.opts = (lista, val, vazio) => (vazio !== undefined ? `<option value="">${A.esc(vazio)}</option>` : '') + lista.map(o => { const [v,l] = Array.isArray(o) ? o : [o,o]; return `<option value="${A.esc(v)}"${String(v)===String(val??'')?' selected':''}>${A.esc(l)}</option>`; }).join('');
   A.optsEquipe = (val, vazio) => A.opts(A.col('equipe').map(m => [m.id, m.nome]), val, vazio ?? 'Sem responsável');
-  A.optsClientes = (val, vazio) => A.opts(A.col('clientes').filter(c => !['novo','encaminhado','analise','recusado'].includes(c.status)).map(c => [c.id, c.nome]), val, vazio ?? 'Nenhum');
+  // Clientes da carteira; o cliente já selecionado entra mesmo se estiver em captação (ex.: reunião agendada pela ficha).
+  A.optsClientes = (val, vazio) => A.opts(A.col('clientes').filter(c => !['novo','encaminhado','analise','recusado'].includes(c.status) || (val && c.id === val)).map(c => [c.id, c.nome]), val, vazio ?? 'Nenhum');
+  // Todos os clientes menos os arquivados, com os em captação marcados (tarefas podem ser da captação).
+  A.optsClientesTodos = (val, vazio) => A.opts(A.col('clientes').filter(c => c.status !== 'recusado' || (val && c.id === val)).slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
+    .map(c => [c.id, c.nome + (['novo','encaminhado','analise'].includes(c.status) ? ' (captação)' : '')]), val, vazio ?? 'Nenhum');
   /* Pasta: número interno do caso (1 pasta = 1 processo). O nº CNJ pode ficar vazio até o ajuizamento. */
   A.rotuloPasta = p => p && p.pasta ? 'Pasta ' + p.pasta : '';
   A.rotuloProcesso = (p, numero) => { if (!p) return numero || ''; return [A.rotuloPasta(p), p.numero || (p.pasta ? 'sem nº de processo' : '')].filter(Boolean).join(' · '); };

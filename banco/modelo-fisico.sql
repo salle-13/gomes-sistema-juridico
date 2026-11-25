@@ -134,7 +134,7 @@ ALTER TABLE equipe ADD CONSTRAINT fk_equipe_atualizado_por FOREIGN KEY (atualiza
 CREATE TABLE permissoes_papel (
   org_id  uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
   papel   text NOT NULL CHECK (papel IN ('admin','advogado','assistente','estagiario','gerente')),
-  modulo  text NOT NULL CHECK (modulo IN ('prazos','processos','publicacoes','clientes','documentos','modelos','financeiro','relatorios','equipe')),
+  modulo  text NOT NULL CHECK (modulo IN ('prazos','processos','publicacoes','clientes','documentos','modelos','tarefas','financeiro','relatorios','equipe')),
   nivel   text NOT NULL CHECK (nivel IN ('nenhum','ver','editar')),
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id),
   PRIMARY KEY (org_id, papel, modulo)
@@ -214,19 +214,34 @@ CREATE TABLE clientes (
   area             text CHECK (area IN ('Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD','Direito Criminal','Direito Bancário','Direito Administrativo','Direito Tributário','Direito Imobiliário','Direito Empresarial','Outras')),
   historia         text,
   urgencia         text NOT NULL DEFAULT 'normal' CHECK (urgencia IN ('normal','alta')),
+  -- novo/encaminhado/analise = em captação (os dois últimos vêm do fluxo antigo); recusado = arquivado (contato não seguiu).
   status           text NOT NULL DEFAULT 'novo'
                    CHECK (status IN ('novo','encaminhado','analise','ativo','encerrado','recusado')),
-  responsavel_id   uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  -- Captação em 10 etapas (chaves fixas; rótulos e limites em configuracoes.operacional). Só faz sentido em captação.
+  etapa            text CHECK (etapa IN ('novo_contato','primeiro_atendimento','reuniao_agendada','reuniao_realizada','aguardando_documentos',
+                                         'documentacao_recebida','conferencia_documental','cadastro_pasta','preparacao_distribuicao','entrega_advogada')),
+  etapa_desde      timestamptz,                   -- entrada na etapa atual (dias na etapa contam em dias úteis do escritório)
+  data_entrada     date,                          -- entrada do contato
+  atendimento_responsavel_id uuid REFERENCES equipe(id) ON DELETE SET NULL,  -- quem conduz a captação
+  tipo_demanda     text,                          -- ex.: Aposentadoria rural (sugere o checklist)
+  proxima_providencia text,
+  responsavel_id   uuid REFERENCES equipe(id) ON DELETE SET NULL,  -- advogado(a); obrigatório para ir à carteira
   cadastrado_por   uuid REFERENCES equipe(id) ON DELETE SET NULL,
-  aceito_em        timestamptz,
+  aceito_em        timestamptz,                   -- entrada na carteira (conclusão da etapa 10)
   encerrado_em     timestamptz,
-  motivo_recusa    text,
+  motivo_recusa    text,                          -- motivoArquivamento do protótipo (obrigatório ao arquivar)
+  arquivado_em     timestamptz,
+  arquivado_por    uuid REFERENCES equipe(id) ON DELETE SET NULL,
   exemplo          boolean NOT NULL DEFAULT false,
   criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
   CONSTRAINT ck_cliente_recusa CHECK (status <> 'recusado' OR motivo_recusa IS NOT NULL),
   CONSTRAINT ck_cliente_aceite CHECK (status NOT IN ('ativo','encerrado') OR aceito_em IS NOT NULL)
+  -- A carteira exige advogado(a) responsável ao concluir a etapa 10; a regra fica na aplicação porque a importação
+  -- do Projuris cria clientes ativos sem responsável (marcados para revisar).
 );
+CREATE INDEX ix_clientes_etapa ON clientes (org_id, etapa, etapa_desde) WHERE status IN ('novo','encaminhado','analise');
+CREATE INDEX ix_clientes_atend ON clientes (org_id, atendimento_responsavel_id) WHERE status IN ('novo','encaminhado','analise');
 CREATE INDEX ix_clientes_status ON clientes (org_id, status);
 CREATE INDEX ix_clientes_doc ON clientes (org_id, documento_digitos) WHERE documento_digitos <> '';
 CREATE INDEX ix_clientes_nome_trgm ON clientes USING gin (app.normalizar(nome) gin_trgm_ops);
@@ -531,6 +546,65 @@ CREATE INDEX ix_comp_data ON compromissos (org_id, data, hora_inicio);
 CREATE INDEX ix_comp_resp ON compromissos (org_id, responsavel_id, data);
 CREATE INDEX ix_comp_part ON compromissos USING gin (participantes);
 
+-- Central de tarefas. Ids determinísticos do protótipo (mig-<compromisso>, rec-<serie>-<prazo>) viram as chaves únicas abaixo.
+CREATE TABLE tarefas (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  titulo           text NOT NULL,
+  descricao        text,
+  responsavel_id   uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  cliente_id       uuid REFERENCES clientes(id) ON DELETE SET NULL,
+  processo_id      uuid REFERENCES processos(id) ON DELETE SET NULL,
+  compromisso_id   uuid REFERENCES compromissos(id) ON DELETE SET NULL,
+  categoria        text,                                   -- lista em configuracoes.operacional.categoriasTarefa
+  prioridade       text NOT NULL DEFAULT 'normal' CHECK (prioridade IN ('baixa','normal','alta','urgente')),
+  prioridade_manual boolean NOT NULL DEFAULT false,        -- false = calculada (Regras.prioridadeTarefa)
+  inicio           date,
+  prazo            date,
+  status           text NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta','andamento','aguardando_terceiros','concluida','cancelada')),
+  status_desde     timestamptz NOT NULL DEFAULT now(),
+  aguardando_quem  text,
+  depende_de       uuid[] NOT NULL DEFAULT '{}',           -- tarefas que precisam ser concluídas antes (aberta = bloqueada)
+  recorrencia_freq text CHECK (recorrencia_freq IN ('diaria','semanal','mensal')),
+  recorrencia_intervalo smallint CHECK (recorrencia_intervalo BETWEEN 1 AND 365),
+  serie_id         uuid REFERENCES tarefas(id) ON DELETE SET NULL,  -- primeira tarefa da série recorrente
+  origem_tipo      text NOT NULL DEFAULT 'manual' CHECK (origem_tipo IN ('manual','automacao','cliente','processo','migracao')),
+  origem_ref       text,                                   -- id de origem (compromisso migrado, tarefa anterior, cliente, processo)
+  origem_regra     text,                                   -- regra de automação (ex.: recorrencia)
+  concluida_em     timestamptz,
+  concluida_por    uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  exemplo          boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  CHECK (inicio IS NULL OR prazo IS NULL OR prazo >= inicio),
+  CHECK (recorrencia_freq IS NULL OR (prazo IS NOT NULL AND recorrencia_intervalo IS NOT NULL)),
+  CHECK (status <> 'concluida' OR concluida_em IS NOT NULL)
+);
+CREATE INDEX ix_tarefas_resp ON tarefas (org_id, responsavel_id, status, prazo);
+CREATE INDEX ix_tarefas_abertas ON tarefas (org_id, prazo) WHERE status IN ('aberta','andamento','aguardando_terceiros');
+CREATE INDEX ix_tarefas_cliente ON tarefas (cliente_id) WHERE cliente_id IS NOT NULL;
+CREATE INDEX ix_tarefas_processo ON tarefas (processo_id) WHERE processo_id IS NOT NULL;
+CREATE INDEX ix_tarefas_depende ON tarefas USING gin (depende_de);
+CREATE UNIQUE INDEX ux_tarefas_migracao ON tarefas (org_id, origem_ref) WHERE origem_tipo = 'migracao';      -- 1 tarefa por compromisso migrado
+CREATE UNIQUE INDEX ux_tarefas_recorrencia ON tarefas (serie_id, prazo) WHERE serie_id IS NOT NULL;           -- 1 ocorrência por data
+
+-- Comentários: um registro por comentário (nunca uma lista dentro da tarefa).
+CREATE TABLE tarefa_comentarios (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id     uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  tarefa_id  uuid NOT NULL REFERENCES tarefas(id) ON DELETE CASCADE,  -- a exclusão fica registrada em auditoria
+  texto      text NOT NULL CHECK (length(texto) <= 4000),
+  em         timestamptz NOT NULL DEFAULT now(),
+  por        uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  exemplo    boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL
+);
+CREATE INDEX ix_tarefa_coment ON tarefa_comentarios (tarefa_id, em);
+
+-- "Tarefa interna" da agenda migrada para a Central de tarefas: o compromisso continua na agenda.
+ALTER TABLE compromissos ADD COLUMN migrado_para_tarefa uuid REFERENCES tarefas(id) ON DELETE SET NULL;
+
 -- ---------------------------------------------------------------------
 -- 9. Documentos
 -- ---------------------------------------------------------------------
@@ -568,6 +642,49 @@ CREATE TABLE modelos_documento (
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
   UNIQUE (org_id, nome)
 );
+
+-- Checklists de documentos: modelos (definição editada por quem edita a equipe) e itens por cliente.
+CREATE TABLE checklist_modelos (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id        uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  nome          text NOT NULL,
+  area          text,
+  tipo_demanda  text,
+  itens         jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(itens) = 'array'),  -- [{nome, obrigatorio}]: definição do modelo, não registro de eventos
+  ativo         boolean NOT NULL DEFAULT true,
+  exemplo       boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL
+);
+CREATE INDEX ix_chkm_area ON checklist_modelos (org_id, area, tipo_demanda) WHERE ativo;
+
+-- Um item por documento exigido. Cada mudança de situação ou de arquivo vai para a auditoria (vw_historico).
+-- "Documentação completa" = todos os itens obrigatórios do cliente em 'aprovado'.
+CREATE TABLE checklist_itens (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id        uuid NOT NULL DEFAULT org_atual() REFERENCES organizacoes(id),
+  cliente_id    uuid REFERENCES clientes(id) ON DELETE SET NULL,
+  processo_id   uuid REFERENCES processos(id) ON DELETE SET NULL,
+  modelo_id     uuid REFERENCES checklist_modelos(id) ON DELETE SET NULL,  -- nulo = item avulso
+  ordem         smallint NOT NULL DEFAULT 0,
+  nome          text NOT NULL,
+  obrigatorio   boolean NOT NULL DEFAULT true,
+  situacao      text NOT NULL DEFAULT 'pendente'
+                CHECK (situacao IN ('pendente','solicitado','recebido','conferencia','aprovado','rejeitado','substituir')),
+  situacao_desde timestamptz NOT NULL DEFAULT now(),
+  documento_id  uuid REFERENCES documentos(id) ON DELETE SET NULL,   -- arquivo já enviado em Documentos (sem armazenamento novo)
+  recebido_por  uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  recebido_em   timestamptz,
+  conferido_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  conferido_em  timestamptz,
+  obs           text,
+  exemplo       boolean NOT NULL DEFAULT false,
+  criado_em timestamptz NOT NULL DEFAULT now(), criado_por uuid REFERENCES equipe(id) ON DELETE SET NULL,
+  atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id) ON DELETE SET NULL
+);
+CREATE INDEX ix_chk_cliente ON checklist_itens (cliente_id, ordem);
+CREATE INDEX ix_chk_conferencia ON checklist_itens (org_id, situacao_desde) WHERE situacao IN ('recebido','conferencia');
+CREATE UNIQUE INDEX ux_chk_modelo ON checklist_itens (cliente_id, modelo_id, ordem) WHERE modelo_id IS NOT NULL;  -- aplicar duas vezes não duplica
 
 -- ---------------------------------------------------------------------
 -- 10. Financeiro (lançamentos e baixas manuais; sem integração bancária)
@@ -814,11 +931,13 @@ END $$;
 DO $$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','compromissos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
+  FOREACH t IN ARRAY ARRAY['equipe','feriados','clientes','processos','publicacoes','prazos','compromissos','tarefas','tarefa_comentarios','modelos_documento',
+                           'checklist_modelos','checklist_itens','centros_custo','contas_financeiras','fin_lancamentos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_rastreio BEFORE INSERT OR UPDATE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_rastreio()', t);
   END LOOP;
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_encaminhamentos','processos',
-                           'publicacoes','regras_prazo','prazos','compromissos','documentos','modelos_documento','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
+                           'publicacoes','regras_prazo','prazos','compromissos','tarefas','tarefa_comentarios','documentos','modelos_documento',
+                           'checklist_modelos','checklist_itens','centros_custo','contas_financeiras','fin_lancamentos','djen_alvos'] LOOP
     EXECUTE format('CREATE TRIGGER tg_auditar AFTER INSERT OR UPDATE OR DELETE ON app.%I FOR EACH ROW EXECUTE FUNCTION app.tg_auditar()', t);
   END LOOP;
 END $$;
@@ -830,7 +949,8 @@ DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['equipe','permissoes_papel','configuracoes','feriados','clientes','cliente_historico','processos','processo_andamentos',
-                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','compromissos','documentos','modelos_documento',
+                           'djen_alvos','djen_capturas','djen_respostas','publicacoes','publicacoes_quarentena','regras_prazo','prazos','compromissos',
+                           'tarefas','tarefa_comentarios','documentos','modelos_documento','checklist_modelos','checklist_itens',
                            'centros_custo','contas_financeiras','fin_lancamentos','jobs','avisos','integracoes_log','auditoria'] LOOP
     EXECUTE format('ALTER TABLE app.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('CREATE POLICY pol_org ON app.%I USING (org_id = app.org_atual()) WITH CHECK (org_id = app.org_atual())', t);
@@ -919,7 +1039,8 @@ SELECT p, m, n FROM (VALUES
  ('estagiario','documentos','editar'),('estagiario','financeiro','nenhum'),('estagiario','relatorios','nenhum'),('estagiario','equipe','ver'),
  ('gerente','prazos','editar'),('gerente','processos','editar'),('gerente','publicacoes','editar'),('gerente','clientes','editar'),
  ('gerente','documentos','editar'),('gerente','financeiro','editar'),('gerente','relatorios','editar'),('gerente','equipe','ver'),
- ('admin','modelos','editar'),('advogado','modelos','editar'),('assistente','modelos','ver'),('estagiario','modelos','ver'),('gerente','modelos','editar')
+ ('admin','modelos','editar'),('advogado','modelos','editar'),('assistente','modelos','ver'),('estagiario','modelos','ver'),('gerente','modelos','editar'),
+ ('admin','tarefas','editar'),('advogado','tarefas','editar'),('assistente','tarefas','editar'),('estagiario','tarefas','editar'),('gerente','tarefas','editar')
 ) v(p, m, n);
 
 INSERT INTO feriados (data, nome, abrangencia, comarca) VALUES

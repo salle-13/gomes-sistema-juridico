@@ -36,10 +36,12 @@
       C('k8','Clínica Vida Plena (exemplo)','PJ','66.666.666/0001-66','Direito Civil','m3'),
       C('k9','Sítio Boa Esperança (exemplo)','PJ','77.777.777/0001-77','Cobrança','m1'),
       C('k10','Ana Beatriz Costa','PF','333.444.555-66','Direito Civil','m4', {status:'encerrado'}),
-      C('c1','Fernanda Albuquerque','PF','123.456.789-00','Direito Trabalhista','m3', {status:'encaminhado', aceitoEm:null, urgencia:'alta', criadoEm:add(hoje,-3) + 'T14:20:00.000Z',
+      C('c1','Fernanda Albuquerque','PF','123.456.789-00','Direito Trabalhista','m3', {status:'novo', aceitoEm:null, urgencia:'alta', criadoEm:add(hoje,-3) + 'T14:20:00.000Z', etapa:'reuniao_realizada', etapaDesde:add(hoje,-1) + 'T16:00:00.000Z', dataEntrada:add(hoje,-3),
+        atendimentoResponsavelId:'m5', tipoDemanda:'Verbas rescisórias', proximaProvidencia:'Pedir CTPS, TRCT e extrato do FGTS',
         historia:'Trabalhou 4 anos como auxiliar administrativa em um atacadista de Araguari. Dispensada sem justa causa em outubro, sem verbas rescisórias nem multa do FGTS. Relata horas extras habituais sem pagamento.',
         historico:[{em:add(hoje,-3) + 'T14:25:00.000Z', por:'m5', texto:'Encaminhado para Camila Teixeira.'}]}),
       C('c2','Cerealista Grão do Cerrado Ltda. (exemplo)','PJ','88.888.888/0001-88','Cobrança','m1', {status:'novo', encaminhadoPara:[], responsavelId:'', aceitoEm:null, criadoEm:hoje + 'T12:05:00.000Z', origem:'Site / formulário',
+        etapa:'novo_contato', etapaDesde:hoje + 'T12:05:00.000Z', dataEntrada:hoje, atendimentoResponsavelId:'', tipoDemanda:'Cobrança', proximaProvidencia:'',
         historia:'Quer cobrar três compradores de café e soja inadimplentes, cerca de R$ 48 mil em duplicatas vencidas. Notificação extrajudicial sem resposta.'}),
       C('c3','João Batista Nogueira','PF','987.654.321-00','Direito Previdenciário','m1', {aceitoEm:add(hoje,-10) + 'T10:30:00.000Z', criadoEm:add(hoje,-11) + 'T15:00:00.000Z', origem:'Instagram',
         historia:'Aposentadoria negada pelo INSS por falta de reconhecimento de período rural (1985 a 1992) na zona rural de Araguari.',
@@ -187,7 +189,13 @@ Declaro, ainda, estar ciente de que a falsidade desta declaração sujeita o dec
 _______________________________________
 {{cliente.nome}}`},
     ].map(m => ex(Object.assign(m, {criadoEm: mes(-2, 3) + 'T12:00:00.000Z', criadoPor: 'm1'})));
-    return {data:{equipe, clientes, processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
+    // Modelo de checklist de exemplo (Checklists de documentos). Itens obrigatórios definem a "documentação completa".
+    const checklist_modelos = [ex({id:'chkm-prev-rural', nome:'Aposentadoria rural (exemplo)', area:'Direito Previdenciário', tipoDemanda:'Aposentadoria rural', ativo:true, itens:[
+      {nome:'Documento de identidade (RG ou CNH) e CPF', obrigatorio:true}, {nome:'Comprovante de residência atualizado', obrigatorio:true},
+      {nome:'CNIS (extrato previdenciário)', obrigatorio:true}, {nome:'Carta de indeferimento do INSS', obrigatorio:false},
+      {nome:'Certidão de casamento ou nascimento', obrigatorio:true}, {nome:'Documentos rurais (ITR, notas do produtor, contrato de parceria)', obrigatorio:true},
+      {nome:'Declaração de testemunhas do trabalho rural', obrigatorio:false}, {nome:'Procuração e contrato de honorários assinados', obrigatorio:true}]})];
+    return {data:{equipe, clientes, processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos, checklist_modelos}, config};
   }
   seed.equipeFixa = EQUIPE_FIXA;
   if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;

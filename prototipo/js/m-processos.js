@@ -77,11 +77,13 @@
     const dup = A.col('processos').find(o => o.id !== p.id && Number(o.pasta) === p.pasta); if (dup) { A.toast('A pasta ' + p.pasta + ' já existe (' + (A.cliente(dup.clienteId)?.nome || 'sem cliente') + '). Próxima livre: ' + A.proxPasta() + '.'); return null; }
     if (p.numero && !A.CNJ_RE.test(p.numero)) A.toast('Atenção: o número não está no padrão CNJ (0000000-00.0000.0.00.0000).');
     const obj = Object.assign({}, p, extra || {}); delete obj._novo; const r = await A.save('processos', obj); if (r) { atual = JSON.parse(JSON.stringify(r)); } return r; }
-  A.on('pr-andamento', async () => { const txt = A.v('anTxt'); if (!txt) return; ler(); atual.andamentos = [...(atual.andamentos || []), {data: A.v('anData') || A.hoje(), texto: txt, por: S.meId || null}];
+  A.on('pr-andamento', async () => { if (!A.exigir('processos')) return; const txt = A.v('anTxt'); if (!txt) return; ler(); atual.andamentos = [...(atual.andamentos || []), {data: A.v('anData') || A.hoje(), texto: txt, por: S.meId || null}];
     if (await salvar()) { abrir(atual); A.toast('Andamento registrado.'); } });
   A.on('pr-excluir', () => { if (!A.exigir('processos')) return; const id = atual.id; const n = A.col('prazos').filter(p => p.processoId === id).length;
     A.confirm('Excluir processo', `O processo será apagado.${n ? ' Os ' + n + ' prazo(s) vinculados continuam na agenda, sem vínculo.' : ''} Para processos finalizados, prefira mudar a situação para Encerrado.`, 'Excluir', async () => { if (A.exigir('processos') && await A.remove('processos', id)) A.toast('Processo excluído.'); }); });
-  A.on('pr-novo-prazo', async () => { if (atual._novo && !(await salvar())) return; const id = atual.id; A.closeModal(); A.formPrazo(null, {processoId: id}); });
+  A.on('pr-nova-tarefa', async () => { if (!A.exigir('tarefas')) return; if (atual._novo && !(await salvar())) return; const id = atual.id, cli = atual.clienteId, resp = atual.responsavelId; A.closeModal();
+    A.formTarefa(null, {processoId: id, clienteId: cli || '', responsavelId: resp || A.me()?.id || '', origem: {tipo: 'processo', ref: id}, _voltar: {tipo: 'processo', id}}); });
+  A.on('pr-novo-prazo', async () => { if (!A.exigir('prazos')) return; if (atual._novo && !(await salvar())) return; const id = atual.id; A.closeModal(); A.formPrazo(null, {processoId: id}); });
   A.on('pr-lancar', async el => { if (atual._novo && !(await salvar())) return; const id = atual.id, cli = atual.clienteId; A.closeModal();
     A.formLancamento && A.formLancamento(null, {tipo: el.dataset.tipo, natureza: el.dataset.nat, categoria: el.dataset.cat, processoId: id, clienteId: cli, reembolsavel: el.dataset.nat !== 'honorarios'}); });
 
@@ -99,8 +101,9 @@
       ${podeFin ? `<div class="box"><h4>Financeiro do processo</h4><dl class="dl"><dt>Custas e despesas</dt><dd class="num">${A.brl(custas)}</dd><dt>A reembolsar pelo cliente</dt><dd class="num">${A.brl(reemb)}</dd><dt>Honorários lançados</dt><dd class="num">${A.brl(honor)}</dd></dl>
         ${fin.slice(0, 6).map(f => `<div style="font-size:12.5px;display:flex;justify-content:space-between;gap:8px"><span>${esc(A.fmt(f.vencimento))} · ${esc(f.descricao)}</span><span class="num ${f.tipo === 'receber' ? 'pos' : 'neg'}">${f.tipo === 'receber' ? '+' : '−'} ${A.brl(f.valor)}</span></div>`).join('')}
         ${edFin ? `<div class="statusbar"><button type="button" class="btn small" data-action="pr-lancar" data-tipo="pagar" data-nat="custas" data-cat="Custas processuais">+ Custa</button><button type="button" class="btn small" data-action="pr-lancar" data-tipo="pagar" data-nat="despesa_processual" data-cat="Despesas processuais">+ Despesa</button><button type="button" class="btn small" data-action="pr-lancar" data-tipo="receber" data-nat="honorarios" data-cat="Honorários contratuais">+ Honorários</button></div>` : ''}</div>` : ''}
+      ${A.blocoTarefas && A.pode('tarefas', 'ver') ? `<div class="box"><h4>Tarefas do processo</h4>${atual._novo ? '' : A.blocoTarefas({processoId: id})}${atual._novo && A.pode('tarefas', 'editar') ? '<div><button type="button" class="btn small" data-action="pr-nova-tarefa">+ Nova tarefa</button></div>' : ''}</div>` : ''}
       ${A.pode('documentos', 'ver') && A.blocoDocumentos ? `<div class="box"><h4>Documentos do processo</h4>${A.blocoDocumentos({processoId: id, clienteId: atual.clienteId})}</div>` : ''}
       ${A.blocoGerarDocumento ? A.blocoGerarDocumento('processo') : ''}`;
   }
-  const prev = A.aoAtualizar; A.aoAtualizar = c => { prev && prev(c); if (S.ui._modalCtx && S.ui._modalCtx.tipo === 'processo' && ['prazos','publicacoes','fin_lancamentos','documentos'].includes(c)) relacionados(); };
+  const prev = A.aoAtualizar; A.aoAtualizar = c => { prev && prev(c); if (S.ui._modalCtx && S.ui._modalCtx.tipo === 'processo' && ['prazos','publicacoes','fin_lancamentos','documentos','tarefas'].includes(c)) relacionados(); };
 })(window.App);

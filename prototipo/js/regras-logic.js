@@ -226,7 +226,91 @@ const Regras = (() => {
     return out.sort((a, b) => ORD.indexOf(a.tipo) - ORD.indexOf(b.tipo) || b.dias - a.dias);
   }
 
+  /* ---------- tarefas: bloqueio, prioridade calculada e recorrência ---------- */
+  // Bloqueada: depende de alguma tarefa que existe e ainda está aberta. mapa: Map(id -> tarefa).
+  const bloqueada = (t, mapa) => (t && t.dependeDe || []).some(id => { const o = mapa.get(id); return o && o.id !== t.id && tarefaAberta(o); });
+
+  /* ctx: {hoje, cliente, processoComPrazoProximo (bool), bloqueada (bool)}. Devolve {nivel, pontos, motivos}.
+     Pontos somados com os pesos de config/operacional; faixas: >=8 urgente, >=5 alta, >=2 normal, abaixo baixa. */
+  function prioridadeTarefa(t, ctx, config) {
+    const cfg = normalizar(config), w = cfg.pesos, c = ctx || {}, hoje = c.hoje, motivos = [];
+    let pts = 0; const soma = (k, txt) => { if (!w[k]) return; pts += w[k]; motivos.push(txt); };
+    if (t.prazo && hoje) {
+      if (t.prazo < hoje) soma('vencida', 'prazo vencido');
+      else if (t.prazo === hoje) soma('venceHoje', 'vence hoje');
+      else { const u = uteisEscritorio(hoje, t.prazo); if (u <= 2) soma('venceEm2Uteis', 'vence em até 2 dias úteis'); else if (u <= 5) soma('venceEm5Uteis', 'vence em até 5 dias úteis'); }
+    }
+    if (c.cliente && c.cliente.urgencia === 'alta') soma('clienteUrgente', 'cliente com urgência alta');
+    if (t.categoria && cfg.categoriasUrgentes.includes(t.categoria)) soma('categoriaUrgente', 'categoria ' + t.categoria);
+    if (c.processoComPrazoProximo) soma('processoComPrazoProximo', 'processo com prazo próximo');
+    if (c.bloqueada) soma('bloqueada', 'bloqueada por dependência');
+    const nivel = pts >= 8 ? 'urgente' : pts >= 5 ? 'alta' : pts >= 2 ? 'normal' : 'baixa';
+    return {nivel, pontos: pts, motivos};
+  }
+  // Prioridade que vale: a manual, se a pessoa ajustou; senão a calculada.
+  const prioridadeEfetiva = (t, calculada) => t.prioridadeManual && PRIORIDADES.includes(t.prioridade) ? t.prioridade : calculada.nivel;
+
+  const addMeses = (s, n) => { const d = P.parse(s), dia = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + n); const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); d.setDate(Math.min(dia, fim)); return P.ymd(d); };
+  /* Próxima data de uma recorrência {freq: diaria|semanal|mensal, intervalo}. Diária cai sempre em dia útil do escritório. */
+  function proximaData(data, rec) {
+    if (!data || !rec || !['diaria', 'semanal', 'mensal'].includes(rec.freq)) return '';
+    const n = inteiro(rec.intervalo, 1, 365, 1);
+    if (rec.freq === 'mensal') return addMeses(data, n);
+    if (rec.freq === 'semanal') return P.addDays(data, 7 * n);
+    let d = P.addDays(data, n), guarda = 0; while (!diaUtilEscritorio(d) && guarda++ < 30) d = P.addDays(d, 1); return d;
+  }
+  /* Próxima ocorrência de uma tarefa recorrente concluída. Id determinístico (série + prazo):
+     duas abas que concluem a mesma tarefa gravam a mesma próxima ocorrência. */
+  function proximaOcorrencia(t, hoje) {
+    if (!t || !t.recorrencia) return null;
+    const base = t.prazo || hoje, prazo = proximaData(base, t.recorrencia); if (!prazo) return null;
+    const serie = t.serieId || t.id, delta = corridos(base, prazo);
+    return {id: 'rec-' + serie + '-' + prazo, serieId: serie, titulo: t.titulo, descricao: t.descricao || '', responsavelId: t.responsavelId || '', clienteId: t.clienteId || '',
+      processoId: t.processoId || '', compromissoId: '', categoria: t.categoria || '', prioridade: t.prioridadeManual ? t.prioridade : 'normal', prioridadeManual: !!t.prioridadeManual,
+      inicio: t.inicio ? P.addDays(t.inicio, delta) : '', prazo, status: 'aberta', aguardandoQuem: '', dependeDe: [], recorrencia: Object.assign({}, t.recorrencia),
+      origem: {tipo: 'automacao', ref: t.id, regra: 'recorrencia'}, concluidaEm: null, concluidaPor: null};
+  }
+
+  /* ---------- checklists ---------- */
+  const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  /* Modelos ativos ordenados pela aderência ao cliente: mesma área (+2) e mesmo tipo de demanda (+3, ou +1 se um contém o outro). */
+  function sugerirModelos(modelos, cliente) {
+    const area = norm(cliente && cliente.area), tipo = norm(cliente && cliente.tipoDemanda);
+    return (modelos || []).filter(m => m && m.ativo !== false).map(m => {
+      const ma = norm(m.area), mt = norm(m.tipoDemanda); let pts = 0;
+      if (area && ma === area) pts += 2;
+      if (tipo && mt) pts += mt === tipo ? 3 : (mt.includes(tipo) || tipo.includes(mt)) ? 1 : 0;
+      return {modelo: m, pontos: pts};
+    }).sort((a, b) => b.pontos - a.pontos || String(a.modelo.nome).localeCompare(String(b.modelo.nome), 'pt-BR'));
+  }
+  /* Itens que um modelo gera para o cliente (ids determinísticos: aplicar de novo não duplica). */
+  const itensDoModelo = (modelo, clienteId, situacaoDesde) => (modelo.itens || []).filter(i => i && String(i.nome || '').trim()).map((i, n) => ({
+    id: 'chk-' + clienteId + '-' + modelo.id + '-' + n, clienteId, processoId: '', modeloId: modelo.id, ordem: n, nome: String(i.nome).trim(), obrigatorio: !!i.obrigatorio,
+    situacao: 'pendente', situacaoDesde: situacaoDesde || null, documentoId: '', recebidoPor: null, recebidoEm: null, conferidoPor: null, conferidoEm: null, obs: ''}));
+
+  /* ---------- migrações (idempotentes; devolvem só o que muda, ou null) ---------- */
+  // Funil antigo -> etapas: novo vai para a etapa 1; encaminhado e analise para a etapa 2 (conferir).
+  function migracaoCliente(c) {
+    if (!c || ETAPAS.includes(c.etapa) || !FUNIL.includes(c.status || 'novo')) return null;
+    const desde = dataDe(c.criadoEm) || null;
+    const etapa = (c.status || 'novo') === 'novo' ? 'novo_contato' : 'primeiro_atendimento';
+    return {etapa, etapaDesde: etapa === 'novo_contato' ? desde : (dataDe(c.atualizadoEm) || desde), dataEntrada: c.dataEntrada || desde, conferir: etapa !== 'novo_contato'};
+  }
+  // Compromisso "Tarefa interna" -> tarefa com id mig-<idCompromisso>. O compromisso continua na agenda.
+  function tarefaDeCompromisso(c) {
+    if (!c || c.tipo !== 'Tarefa interna') return null;
+    const outros = (c.participantes || []).filter(id => id && id !== c.responsavelId);
+    const t = {id: 'mig-' + c.id, titulo: c.titulo || 'Tarefa', descricao: [c.obs || '', outros.length ? 'Participantes na agenda: ' + outros.join(', ') : ''].filter(Boolean).join('\n'),
+      responsavelId: c.responsavelId || '', clienteId: c.clienteId || '', processoId: c.processoId || '', compromissoId: c.id, categoria: 'Outros', prioridade: 'normal', prioridadeManual: false,
+      inicio: '', prazo: c.data || '', status: c.status === 'concluido' ? 'concluida' : 'aberta', statusDesde: c.atualizadoEm || c.criadoEm || null, aguardandoQuem: '', dependeDe: [], recorrencia: null,
+      origem: {tipo: 'migracao', ref: c.id}, concluidaEm: c.status === 'concluido' ? (c.atualizadoEm || null) : null, concluidaPor: c.status === 'concluido' ? (c.atualizadoPor || null) : null,
+      criadoEm: c.criadoEm || null, criadoPor: c.criadoPor || null, _participantes: outros};
+    if (c.exemplo) t.exemplo = true;
+    return t;
+  }
+
   return {ETAPAS, ETAPAS_PADRAO, PROVIDENCIA_ETAPA, FUNIL, noFunil, etapaDe, CATEGORIAS_PADRAO, PRIORIDADES, PESOS_PADRAO, CAMPOS, PADRAO, TIPOS,
-    normalizar, dataDe, diaUtilEscritorio, uteisEscritorio, corridos, tarefaAberta, documentacaoCompleta, vezesAtrasada, avaliarGargalos};
+    normalizar, dataDe, diaUtilEscritorio, uteisEscritorio, corridos, tarefaAberta, documentacaoCompleta, vezesAtrasada, avaliarGargalos,
+    bloqueada, prioridadeTarefa, prioridadeEfetiva, proximaData, proximaOcorrencia, sugerirModelos, itensDoModelo, migracaoCliente, tarefaDeCompromisso};
 })();
 if (typeof module !== 'undefined') module.exports = Regras;

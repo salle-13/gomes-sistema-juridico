@@ -6,7 +6,7 @@
   const MAX = 6;
   const ui = () => A.ui('busca', {q: '', aberto: false, sel: 0});
   const dig = s => String(s || '').replace(/\D/g, '');
-  const ST_CLI = {novo: 'Novo caso', encaminhado: 'Encaminhado', analise: 'Em análise', ativo: 'Ativo', aceito: 'Ativo', encerrado: 'Encerrado', recusado: 'Não aceito'};
+  const ST_CLI = {novo: 'Em captação', encaminhado: 'Em captação', analise: 'Em captação', ativo: 'Ativo', aceito: 'Ativo', encerrado: 'Encerrado', recusado: 'Arquivado'};
   const ST_PROC = {ativo: 'Ativo', suspenso: 'Suspenso', arquivado: 'Arquivado', encerrado: 'Encerrado'};
 
   /* Pontuação: quanto menor, mais relevante. -1 = não combina. */

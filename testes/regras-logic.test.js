@@ -1,4 +1,4 @@
-// Testes das regras operacionais (js/regras-logic.js). Rodar na raiz do projeto: node --test testes/
+// Testes das regras operacionais (js/regras-logic.js). Rodar na raiz do projeto: node --test
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const R = require('../prototipo/js/regras-logic.js');
@@ -192,4 +192,95 @@ test('gargalos: saída estável (mesma chave), sem alterar a entrada', () => {
   g1.forEach(x => ['tipo', 'entidade', 'id', 'motivo', 'desde', 'dias', 'responsavelId', 'providencia'].forEach(k => assert.ok(k in x, k)));
   assert.deepEqual(R.avaliarGargalos({}, null, HOJE), []);
   assert.deepEqual(R.avaliarGargalos(null, undefined, HOJE), []);
+});
+
+/* ---------- Fase 2: captação, tarefas e checklists ---------- */
+test('etapaDe: etapa gravada vale; sem etapa, deduz do status antigo; fora do funil é null', () => {
+  assert.equal(R.etapaDe({status: 'novo', etapa: 'cadastro_pasta'}), 'cadastro_pasta');
+  assert.equal(R.etapaDe({status: 'novo'}), 'novo_contato');
+  assert.equal(R.etapaDe({status: 'encaminhado'}), 'primeiro_atendimento');
+  assert.equal(R.etapaDe({status: 'analise', etapa: 'inexistente'}), 'primeiro_atendimento');
+  assert.equal(R.etapaDe({status: 'ativo', etapa: 'entrega_advogada'}), null);
+  assert.equal(R.ETAPAS.length, 10);
+});
+
+test('migracaoCliente: novo -> etapa 1; encaminhado/analise -> etapa 2 a conferir; idempotente', () => {
+  const novo = R.migracaoCliente({id: 'a', status: 'novo', criadoEm: '2026-11-20T10:00:00.000Z'});
+  assert.deepEqual(novo, {etapa: 'novo_contato', etapaDesde: '2026-11-20', dataEntrada: '2026-11-20', conferir: false});
+  const enc = R.migracaoCliente({id: 'b', status: 'encaminhado', criadoEm: '2026-11-10T10:00:00.000Z', atualizadoEm: '2026-11-12T09:00:00.000Z'});
+  assert.equal(enc.etapa, 'primeiro_atendimento'); assert.equal(enc.conferir, true); assert.equal(enc.etapaDesde, '2026-11-12');
+  assert.equal(R.migracaoCliente({status: 'analise'}).etapa, 'primeiro_atendimento');
+  // já migrado, ou fora do funil: nada muda
+  assert.equal(R.migracaoCliente(Object.assign({status: 'encaminhado'}, enc)), null);
+  for (const status of ['ativo', 'encerrado', 'recusado']) assert.equal(R.migracaoCliente({status}), null);
+});
+
+test('bloqueada: só por dependência existente e aberta', () => {
+  const mapa = new Map([['x', {id: 'x', status: 'aberta'}], ['y', {id: 'y', status: 'concluida'}], ['z', {id: 'z', status: 'cancelada'}]]);
+  assert.equal(R.bloqueada({id: 't', dependeDe: ['x']}, mapa), true);
+  assert.equal(R.bloqueada({id: 't', dependeDe: ['y', 'z', 'sumiu']}, mapa), false);
+  assert.equal(R.bloqueada({id: 'x', dependeDe: ['x']}, mapa), false); // não bloqueia a si mesma
+  assert.equal(R.bloqueada({id: 't'}, mapa), false);
+});
+
+test('prioridadeTarefa: soma os pesos e classifica em faixas', () => {
+  const p = (t, ctx) => R.prioridadeTarefa(t, Object.assign({hoje: HOJE}, ctx), null);
+  assert.equal(p({}).nivel, 'baixa');
+  assert.equal(p({prazo: '2026-11-24'}).nivel, 'alta');                              // vencida (6)
+  assert.equal(p({prazo: '2026-11-24', categoria: 'Processual'}).nivel, 'urgente');   // 6 + 2
+  assert.equal(p({prazo: HOJE}).nivel, 'alta');                                       // vence hoje (5)
+  assert.equal(p({prazo: '2026-11-27'}).nivel, 'normal');                             // 2 dias úteis (3)
+  assert.equal(p({prazo: '2026-12-02'}).nivel, 'baixa');                              // 5 dias úteis (1)
+  const r = p({prazo: '2026-11-24'}, {cliente: {urgencia: 'alta'}, processoComPrazoProximo: true, bloqueada: true});
+  assert.equal(r.pontos, 6 + 2 + 2 - 2); assert.equal(r.nivel, 'urgente'); assert.equal(r.motivos.length, 4);
+  // pesos configuráveis
+  assert.equal(R.prioridadeTarefa({prazo: '2026-11-24'}, {hoje: HOJE}, {pesos: {vencida: 1}}).nivel, 'baixa');
+});
+
+test('prioridadeEfetiva: o ajuste manual prevalece sobre o cálculo', () => {
+  const calc = {nivel: 'urgente'};
+  assert.equal(R.prioridadeEfetiva({prioridadeManual: true, prioridade: 'baixa'}, calc), 'baixa');
+  assert.equal(R.prioridadeEfetiva({prioridadeManual: false, prioridade: 'baixa'}, calc), 'urgente');
+  assert.equal(R.prioridadeEfetiva({prioridadeManual: true, prioridade: 'invalida'}, calc), 'urgente');
+});
+
+test('proximaData: diária pula dias não úteis do escritório; semanal; mensal no fim do mês', () => {
+  assert.equal(R.proximaData('2026-11-27', {freq: 'diaria', intervalo: 1}), '2026-11-30');  // sexta -> segunda
+  assert.equal(R.proximaData('2026-12-24', {freq: 'diaria', intervalo: 1}), '2026-12-28');  // Natal e fim de semana; recesso não conta
+  assert.equal(R.proximaData('2026-11-25', {freq: 'semanal', intervalo: 2}), '2026-12-09');
+  assert.equal(R.proximaData('2026-01-31', {freq: 'mensal', intervalo: 1}), '2026-02-28');
+  assert.equal(R.proximaData('2026-11-25', {freq: 'anual'}), '');
+});
+
+test('proximaOcorrencia: id determinístico pela série e pelo prazo', () => {
+  const t = {id: 't1', titulo: 'Conferir caixa', prazo: '2026-11-25', inicio: '2026-11-23', recorrencia: {freq: 'semanal', intervalo: 1}, responsavelId: 'm4', status: 'concluida'};
+  const n1 = R.proximaOcorrencia(t, HOJE);
+  assert.equal(n1.id, 'rec-t1-2026-12-02'); assert.equal(n1.serieId, 't1'); assert.equal(n1.status, 'aberta');
+  assert.equal(n1.inicio, '2026-11-30'); assert.deepEqual(n1.origem, {tipo: 'automacao', ref: 't1', regra: 'recorrencia'});
+  assert.deepEqual(R.proximaOcorrencia(t, HOJE), n1);                         // de novo: mesmo registro
+  assert.equal(R.proximaOcorrencia(n1, HOJE).id, 'rec-t1-2026-12-09');        // a série continua com o id original
+  assert.equal(R.proximaOcorrencia({id: 'x', prazo: HOJE}, HOJE), null);
+});
+
+test('sugerirModelos e itensDoModelo', () => {
+  const ms = [{id: 'a', nome: 'Trabalhista geral', area: 'Direito Trabalhista'}, {id: 'b', nome: 'Rural', area: 'Direito Previdenciário', tipoDemanda: 'Aposentadoria rural'},
+    {id: 'c', nome: 'BPC', area: 'Direito Previdenciário', tipoDemanda: 'BPC/LOAS'}, {id: 'd', nome: 'Inativo', area: 'Direito Previdenciário', ativo: false}];
+  const s = R.sugerirModelos(ms, {area: 'Direito Previdenciário', tipoDemanda: 'aposentadoria RURAL'});
+  assert.deepEqual(s.map(x => x.modelo.id), ['b', 'c', 'a']); assert.equal(s[0].pontos, 5);
+  const it = R.itensDoModelo({id: 'b', itens: [{nome: 'RG', obrigatorio: true}, {nome: '  '}, {nome: 'CNIS'}]}, 'cli1');
+  assert.deepEqual(it.map(i => [i.id, i.nome, i.obrigatorio, i.situacao, i.ordem]), [['chk-cli1-b-0', 'RG', true, 'pendente', 0], ['chk-cli1-b-1', 'CNIS', false, 'pendente', 1]]);
+});
+
+test('documentacaoCompleta: todos os obrigatórios aprovados', () => {
+  assert.equal(R.documentacaoCompleta([]), false);
+  assert.equal(R.documentacaoCompleta([{obrigatorio: true, situacao: 'aprovado'}, {obrigatorio: false, situacao: 'pendente'}]), true);
+  assert.equal(R.documentacaoCompleta([{obrigatorio: true, situacao: 'aprovado'}, {obrigatorio: true, situacao: 'conferencia'}]), false);
+});
+
+test('tarefaDeCompromisso: id mig-<id>, situação e origem preservadas', () => {
+  const c = {id: 'cp9', tipo: 'Tarefa interna', titulo: 'Arquivo', data: '2026-11-20', status: 'concluido', responsavelId: 'm4', participantes: ['m4', 'm5'], obs: 'caixa 3', atualizadoEm: '2026-11-21T10:00:00.000Z', exemplo: true};
+  const t = R.tarefaDeCompromisso(c);
+  assert.equal(t.id, 'mig-cp9'); assert.equal(t.status, 'concluida'); assert.equal(t.prazo, '2026-11-20'); assert.equal(t.concluidaEm, c.atualizadoEm);
+  assert.deepEqual(t.origem, {tipo: 'migracao', ref: 'cp9'}); assert.deepEqual(t._participantes, ['m5']); assert.equal(t.exemplo, true);
+  assert.equal(R.tarefaDeCompromisso({id: 'x', tipo: 'Reunião'}), null);
 });

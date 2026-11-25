@@ -44,7 +44,7 @@
   A.ATALHOS = [
     {id: 'novo-processo', rotulo: 'Nova pasta / processo', icone: 'processo', pode: () => A.pode('processos', 'editar'), run: () => A.actions['novo-processo']()},
     {id: 'novo-cliente', rotulo: 'Novo cliente', icone: 'clientes', pode: () => A.pode('clientes', 'editar'), run: () => A.actions['novo-cliente']()},
-    {id: 'nova-tarefa', rotulo: 'Nova tarefa', icone: 'tarefa', pode: () => A.pode('prazos', 'editar'), run: () => A.formComp(null, {tipo: 'Tarefa interna'})},
+    {id: 'nova-tarefa', rotulo: 'Nova tarefa', icone: 'tarefa', pode: () => A.pode('tarefas', 'editar'), run: () => A.formTarefa(null, {})},
     {id: 'novo-comp', rotulo: 'Novo compromisso', icone: 'calendario', pode: () => A.pode('prazos', 'editar'), run: () => A.formComp(null)},
     {id: 'novo-prazo', rotulo: 'Novo prazo', icone: 'prazo', pode: () => A.pode('prazos', 'editar'), run: () => A.formPrazo(null)},
     {id: 'novo-doc', rotulo: 'Enviar documento', icone: 'doc', pode: () => A.pode('documentos', 'editar'), run: () => A.go('documentos')},
@@ -123,7 +123,7 @@
   A.route('inicio', {label: 'Início', mod: null, render: vInicio});
 
   /* ---------- navegação a partir do painel (com filtros) ---------- */
-  // data-ir: processos | clientes | agenda | notificacoes | publicacoes; demais data-* viram filtros.
+  // data-ir: processos | clientes | agenda | tarefas | notificacoes | publicacoes; demais data-* viram filtros.
   A.on('ini-ir', el => {
     const d = el.dataset, ctx = A.inicioCtx();
     if (d.ir === 'processos') { Object.assign(A.ui('processos'), {status: d.status ?? 'ativo', busca: '', area: '', resp: d.resp || ''}); A.go('processos'); }
@@ -133,6 +133,7 @@
         resp: d.resp || (ctx.escopo === 'meu' ? S.meId : 'todos')});
       if (d.dia) { const a = A.ui('agenda'), dt = P.parse(d.dia); a.dia = d.dia; a.ano = dt.getFullYear(); a.mes = dt.getMonth(); }
       A.go('agenda'); }
+    else if (d.ir === 'tarefas') { Object.assign(A.ui('tarefas'), {visao: d.visao || (d.resp ? 'equipe' : ctx.escopo === 'meu' && S.meId ? 'minhas' : 'equipe'), resp: d.resp || '', cat: '', cli: '', proc: ''}); A.go('tarefas'); }
     else if (d.ir === 'publicacoes') { Object.assign(A.ui('publicacoes'), {status: d.status ?? 'nova', resp: d.resp || ''}); A.go('publicacoes'); }
     else A.go(d.ir || 'inicio');
   });

@@ -155,6 +155,9 @@ CREATE TABLE configuracoes (
   escalonar_apos_horas_uteis smallint NOT NULL DEFAULT 4,
   escritorio_nome            text     NOT NULL DEFAULT 'Gomes Assessoria Jurídica',  -- {{escritorio.nome}} nos modelos
   escritorio_cidade          text     NOT NULL DEFAULT 'Araguari/MG',                -- {{escritorio.cidade}}
+  -- config/operacional do protótipo: limites dos gargalos, rótulos e limites das 10 etapas da captação,
+  -- categorias e pesos da prioridade de tarefas. Validado pela aplicação (Regras.normalizar em js/regras-logic.js).
+  operacional                jsonb    NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(operacional) = 'object'),
   atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por uuid REFERENCES equipe(id)
 );
 
@@ -783,6 +786,28 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END $$;
 
+-- Histórico de negócio (coleção "historico" do protótipo): um evento por linha, na própria auditoria.
+--   acao     = 'app:' || ação do protótipo (cadastro, etapa, status, responsavel, prazo, situacao, nota, migracao…)
+--   ator     = 'membro:<uuid>' (origem usuario) ou 'sistema:automacao' (origem automacao)
+--   antes/depois = {"<campo>": valor}; o texto livre vai em depois->>'_texto'.
+-- As linhas 'app:*' convivem com as INSERT/UPDATE/DELETE gravadas pelo gatilho tg_auditar e entram na mesma cadeia de hash.
+CREATE OR REPLACE FUNCTION registrar_historico(p_entidade text, p_entidade_id text, p_acao text, p_campo text, p_antes text, p_depois text,
+                                               p_texto text DEFAULT NULL, p_origem text DEFAULT 'usuario') RETURNS bigint
+LANGUAGE plpgsql AS $$
+DECLARE novo_id bigint;
+BEGIN
+  IF p_origem NOT IN ('usuario','automacao') THEN RAISE EXCEPTION 'origem inválida: %', p_origem; END IF;
+  INSERT INTO app.auditoria (ator, acao, entidade, entidade_id, antes, depois, correlacao_id)
+  VALUES (CASE WHEN p_origem = 'automacao' THEN 'sistema:automacao' ELSE COALESCE('membro:' || app.membro_atual()::text, 'banco') END,
+          'app:' || p_acao, p_entidade, p_entidade_id,
+          CASE WHEN p_campo IS NOT NULL THEN jsonb_build_object(p_campo, p_antes) END,
+          COALESCE(CASE WHEN p_campo IS NOT NULL THEN jsonb_build_object(p_campo, p_depois) END, '{}'::jsonb)
+            || CASE WHEN p_texto IS NOT NULL THEN jsonb_build_object('_texto', p_texto) ELSE '{}'::jsonb END,
+          NULLIF(current_setting('app.correlacao_id', true), '')::uuid)
+  RETURNING id INTO novo_id;
+  RETURN novo_id;
+END $$;
+
 -- ---------------------------------------------------------------------
 -- 13. Gatilhos de rastreio e auditoria
 -- ---------------------------------------------------------------------
@@ -839,6 +864,19 @@ SELECT a.org_id, a.id AS alvo_id, a.uf_oab || a.numero_oab AS oab, a.membro_id,
   FROM djen_alvos a LEFT JOIN djen_capturas c ON c.alvo_id = a.id
  WHERE a.ativo
  GROUP BY a.org_id, a.id;
+
+-- Linha do tempo no formato do protótipo (coleção "historico").
+CREATE VIEW vw_historico AS
+SELECT a.id, a.org_id, a.em, a.entidade, a.entidade_id, substr(a.acao, 5) AS acao,
+       (SELECT k FROM jsonb_object_keys(COALESCE(a.antes, a.depois - '_texto')) k LIMIT 1) AS campo,
+       a.antes, a.depois - '_texto' AS depois, a.depois->>'_texto' AS texto,
+       CASE WHEN a.ator LIKE 'membro:%' THEN substr(a.ator, 8)::uuid END AS por,
+       CASE WHEN a.ator = 'sistema:automacao' THEN 'automacao' ELSE 'usuario' END AS origem,
+       CASE a.entidade WHEN 'clientes' THEN 'clientes' WHEN 'checklist_itens' THEN 'clientes' WHEN 'processos' THEN 'processos'
+            WHEN 'prazos' THEN 'prazos' WHEN 'compromissos' THEN 'prazos' WHEN 'publicacoes' THEN 'publicacoes'
+            WHEN 'fin_lancamentos' THEN 'financeiro' WHEN 'tarefas' THEN 'tarefas' ELSE a.entidade END AS modulo
+  FROM auditoria a
+ WHERE a.acao LIKE 'app:%';
 
 CREATE VIEW vw_prazos_abertos AS
 SELECT p.*, pr.pasta AS processo_pasta, pr.numero AS processo_numero_cadastrado, cl.nome AS cliente_cadastrado, e.nome AS responsavel_nome

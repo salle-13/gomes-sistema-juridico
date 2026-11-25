@@ -37,6 +37,15 @@ window.App.SCHEMA = {
     vistas:'{chave: ISO} primeira vez que a pessoa recebeu a notificação', lidas:'{chave: ISO}', dispensadas:'{chave: ISO}'},
   // As notificações em si não são gravadas: são geradas de prazos, compromissos, publicações, processos, financeiro,
   // clientes, documentos e equipe (js/m-notificacoes.js). A chave ("prazo:<id>:vencido:<data>") evita duplicatas.
+  historico: {entidade:'coleção (clientes|tarefas|checklist_itens|processos|prazos|…)', entidadeId:'id', acao:'cadastro|criacao|etapa|status|responsavel|prazo|situacao|nota|migracao|…',
+    campo:'campo alterado (ou nulo)', antes:'valor anterior', depois:'valor novo', texto:'descrição livre (opcional)', em:'ISO', por:'id equipe (nulo = automação/sem identificação)',
+    origem:'usuario|automacao', modulo:'módulo de permissão'},
+  // historico: só inclusão (A.registrar em core.js); mudanças de etapa, status e responsável são registradas por A.save.
+  // No banco definitivo cada registro é uma linha de app.auditoria (ver docs/modelo-fisico.md).
+  'config/operacional': {versao:'1', recenteDias:'dias', processoParadoDias:'dias', atrasoGraveDias:'dias', semResponsavelUteis:'dias úteis', conferenciaUteis:'dias úteis',
+    reuniaoSemProvidenciaUteis:'dias úteis', processoSemProvidenciaUteis:'dias úteis', atrasoRepetidoVezes:'número', cargaMaxima:'itens em aberto por pessoa',
+    etapas:'{chave: {rotulo, limiteUteis}} (chaves fixas em Regras.ETAPAS)', categoriasTarefa:'[texto]', categoriasUrgentes:'[texto]', pesos:'{criterio: pontos} (prioridade calculada)'},
+  // Validado e completado por Regras.normalizar (js/regras-logic.js): valor fora da faixa é ajustado, inválido volta ao padrão.
   'config/geral': {antecedencia:'dias úteis', escritorioNome:'texto', escritorioCidade:'Cidade/UF', feriadosLocais:'[{data, nome}]', contas:'[nome]', saldosIniciais:'{conta: {data, valor}}'},
   'config/permissoes': {papeis:'{papel: {modulo: nenhum|ver|editar}}'},
 };

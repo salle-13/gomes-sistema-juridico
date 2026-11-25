@@ -5300,3 +5300,9 @@ button.dativ-i:hover b { color: var(--accent); }
   .dhora { width: 58px; }
   .daniv { flex-wrap: wrap; }
 }
+
+/* Configurações › Limites operacionais */
+.oplims { display: flex; flex-direction: column; gap: 6px; }
+.oplim { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.oplim-v { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+@media (max-width: 560px) { .oplim { flex-direction: column; align-items: flex-start; } }

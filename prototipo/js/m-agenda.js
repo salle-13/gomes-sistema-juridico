@@ -188,7 +188,7 @@
   A.on('editar-prazo', (el, e) => { if (e) e.stopPropagation(); const p = A.byId('prazos', el.dataset.id); if (p) A.formPrazo(p); });
   A.on('concluir-prazo', async el => { const p = A.byId('prazos', el.dataset.id); if (!p) return; const novo = Object.assign({}, p, {status: p.status === 'concluido' ? 'pendente' : 'concluido'});
     if (await A.save('prazos', novo)) { if (document.getElementById('fPrazo')) A.closeModal(); A.toast(novo.status === 'concluido' ? 'Prazo concluído.' : 'Prazo reaberto.'); } });
-  A.on('excluir-prazo', el => { const id = el.dataset.id; A.confirm('Excluir prazo', 'Este prazo será apagado para toda a equipe. Se ele foi cumprido, prefira marcar como concluído.', 'Excluir', async () => { if (await A.remove('prazos', id)) A.toast('Prazo excluído.'); }); });
+  A.on('excluir-prazo', el => { if (!A.exigir('prazos')) return; const id = el.dataset.id; A.confirm('Excluir prazo', 'Este prazo será apagado para toda a equipe. Se ele foi cumprido, prefira marcar como concluído.', 'Excluir', async () => { if (A.exigir('prazos') && await A.remove('prazos', id)) A.toast('Prazo excluído.'); }); });
 
   /* ---------- compromissos ---------- */
   A.on('novo-comp', el => { if (A.pode('prazos', 'editar')) A.formComp(null, el.dataset.data ? {data: el.dataset.data} : null); });

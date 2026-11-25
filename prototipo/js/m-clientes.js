@@ -21,8 +21,8 @@
     if (u.paraMim && S.meId) arr = arr.filter(c => (c.encaminhadoPara || []).includes(S.meId) || c.cadastradoPor === S.meId || c.responsavelId === S.meId); return arr; }
   function carteira() { const u = ui(); return filtrados().filter(c => u.cart === 'todos' ? ['ativo','encerrado'].includes(st(c)) : st(c) === u.cart).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')); }
   A.exportadores.carteira = () => ({titulo: 'Carteira de clientes', linhas: carteira(), colunas: [{t:'Cliente', v:c => c.nome}, {t:'Tipo', v:c => c.tipoPessoa}, {t:'CPF/CNPJ', v:c => c.documento}, {t:'Telefone', v:c => c.telefone}, {t:'E-mail', v:c => c.email},
-    {t:'Área', v:c => c.area}, {t:'Responsável', v:c => A.membro(c.responsavelId)?.nome || ''}, {t:'Processos', v:c => A.col('processos').filter(p => p.clienteId === c.id).length},
-    {t:'A receber em aberto', v:c => A.col('fin_lancamentos').filter(f => f.clienteId === c.id && f.tipo === 'receber' && f.status === 'pendente').reduce((s, f) => s + f.valor, 0), tipo:'money'}, {t:'Situação', v:c => ST_LABEL[st(c)]}]});
+    {t:'Área', v:c => c.area}, {t:'Responsável', v:c => A.membro(c.responsavelId)?.nome || ''}, {t:'Processos', v:c => A.doIdx('processos', 'clienteId', c.id).length},
+    {t:'A receber em aberto', v:c => A.doIdx('fin_lancamentos', 'clienteId', c.id).filter(f => f.tipo === 'receber' && f.status === 'pendente').reduce((s, f) => s + f.valor, 0), tipo:'money'}, {t:'Situação', v:c => ST_LABEL[st(c)]}]});
 
   function vClientes() {
     const u = ui(), ed = A.pode('clientes', 'editar'), arr = filtrados();
@@ -36,8 +36,8 @@
       const todos = carteira(), LIM = 300, lst = todos.slice(0, LIM);
       corpo = `<div class="filters"><div class="subtabs">${[['ativo','Ativos'],['encerrado','Encerrados'],['todos','Todos']].map(([k, l]) => `<button data-action="cli-cart" data-v="${k}" aria-pressed="${u.cart === k}">${l}</button>`).join('')}</div>${A.botoesExport('carteira')}</div>
         <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Contato</th><th>Área</th><th>Responsável</th><th>Processos</th><th>Prazos abertos</th>${A.pode('financeiro', 'ver') ? '<th class="money">A receber</th>' : ''}</tr></thead><tbody>
-        ${lst.map(c => { const procs = A.col('processos').filter(p => p.clienteId === c.id).length, prz = A.col('prazos').filter(p => p.clienteId === c.id && p.status !== 'concluido').length, m = A.membro(c.responsavelId);
-          const rec = A.col('fin_lancamentos').filter(f => f.clienteId === c.id && f.tipo === 'receber' && f.status === 'pendente').reduce((s, f) => s + f.valor, 0);
+        ${lst.map(c => { const procs = A.doIdx('processos', 'clienteId', c.id).length, prz = A.doIdx('prazos', 'clienteId', c.id).filter(p => p.status !== 'concluido').length, m = A.membro(c.responsavelId);
+          const rec = A.doIdx('fin_lancamentos', 'clienteId', c.id).filter(f => f.tipo === 'receber' && f.status === 'pendente').reduce((s, f) => s + f.valor, 0);
           return `<tr class="row-click" data-action="abrir-cliente" data-id="${esc(c.id)}"><td><b>${esc(c.nome)}</b><br><span class="muted" style="font-size:12px">${esc(c.tipoPessoa === 'PJ' ? 'CNPJ' : 'CPF')} ${esc(c.documento || '—')}</span></td>
             <td>${esc(c.telefone || '')}<br><span class="muted" style="font-size:12px">${esc(c.email || '')}</span></td><td><span class="tag">${esc(c.area || '—')}</span></td><td><span class="who">${A.avatar(m)}${esc(m?.nome || '—')}</span></td>
             <td class="num">${procs}</td><td class="num">${prz}</td>${A.pode('financeiro', 'ver') ? `<td class="money">${rec ? A.brl(rec) : '—'}</td>` : ''}</tr>`; }).join('') || '<tr><td colspan="7" class="empty" style="padding:16px">Nenhum cliente.</td></tr>'}</tbody></table></div>${todos.length > LIM ? `<p class="muted" style="padding:10px 14px">Mostrando ${LIM} de ${todos.length} clientes. Use a busca para encontrar os demais (a exportação traz todos).</p>` : ''}`;
@@ -120,7 +120,7 @@
     if (await salvar(extra, txt)) { A.toast(ST_LABEL[s] + '.'); desenhar(); } });
   A.on('cl-tipo', el => { const pj = el.value === 'PJ', a = document.getElementById('cliPF'), b = document.getElementById('cliPJ'); if (a) a.style.display = pj ? 'none' : ''; if (b) b.style.display = pj ? '' : 'none'; });
   A.on('cl-nota', async () => { const n = (document.getElementById('cNota')?.value || '').trim(); if (n && await salvar(null, n)) desenhar(); });
-  A.on('cl-excluir', () => { const id = cli.id; A.confirm('Excluir cadastro', 'O cadastro e o histórico deste cliente serão apagados. Processos, prazos, documentos e lançamentos continuam, sem vínculo.', 'Excluir', async () => { if (await A.remove('clientes', id)) A.toast('Cadastro excluído.'); }); });
+  A.on('cl-excluir', () => { if (!A.exigir('clientes')) return; const id = cli.id; A.confirm('Excluir cadastro', 'O cadastro e o histórico deste cliente serão apagados. Processos, prazos, documentos e lançamentos continuam, sem vínculo.', 'Excluir', async () => { if (A.exigir('clientes') && await A.remove('clientes', id)) A.toast('Cadastro excluído.'); }); });
   A.on('cl-novo-processo', async () => { if (cli._novo && !(await salvar())) return; const id = cli.id; A.closeModal(); A.abrirProcessoNovo ? A.abrirProcessoNovo({clienteId: id}) : null; });
   function relacionados() {
     const el = document.getElementById('clRel'); if (!el || !cli) return; const id = cli.id, s = cli.status;

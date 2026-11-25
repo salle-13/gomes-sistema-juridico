@@ -38,11 +38,13 @@ window.App = window.App || {};
   A.CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
 
   /* ---------- estado ---------- */
-  const COLS = A.COLS = ['equipe','usuarios','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado'];
+  const COLS = A.COLS = ['equipe','usuarios','clientes','processos','publicacoes','prazos','compromissos','documentos','fin_lancamentos','centros_custo','modelos','notif_estado','historico'];
+  const R = A.R = (typeof Regras !== 'undefined' ? Regras : window.Regras);
   const S = A.S = {
     data: Object.fromEntries(COLS.map(c => [c, []])),
     config: {antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'},
     permissoes: null,
+    operacional: R.normalizar(null), // config/operacional: limites e listas das regras operacionais (js/regras-logic.js)
     mode: 'loading', canWrite: true, isOwner: false, contaId: null, meId: '', loaded: {},
     db: null, assets: null, downloads: null, user: null,
     ui: {}, visualizarComo: '',
@@ -55,12 +57,23 @@ window.App = window.App || {};
   A.processo = id => A.byId('processos', id);
   A.ui = (mod, defaults) => { const o = S.ui[mod] = S.ui[mod] || {}; if (defaults) for (const k in defaults) if (!(k in o)) o[k] = defaults[k]; return o; };
   A.me = () => A.membro(S.meId);
+  A.op = () => S.operacional;
 
+  /* ---------- memória por ciclo de desenho ----------
+     A.render() avança o ciclo; cálculos caros (notificações, gargalos, índices) são feitos uma vez por ciclo. */
+  A.ciclo = 0;
+  const memos = new Map();
+  A.memo = (chave, fn) => { const m = memos.get(chave); if (m && m.ciclo === A.ciclo) return m.v; const v = fn(); memos.set(chave, {ciclo: A.ciclo, v}); return v; };
+  A.invalidar = () => { A.ciclo++; };
+  /* Índice de uma coleção por um campo (ex.: A.idx('prazos', 'processoId').get(id)). Devolve sempre uma lista. */
+  A.idx = (col, campo) => A.memo('idx:' + col + ':' + campo, () => { const m = new Map();
+    A.col(col).forEach(x => { const k = x[campo]; if (!k) return; if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return m; });
+  A.doIdx = (col, campo, id) => (id && A.idx(col, campo).get(id)) || [];
   /* ---------- camada de dados ---------- */
   const Store = A.Store = {
     path: col => col, // single-tenant; no futuro: 'orgs/' + orgId + '/' + col
     local: () => S.mode !== 'db' && S.mode !== 'slow',
-    persistLocal() { A.lsSet('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes})); },
+    persistLocal() { A.lsSet('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes, operacional: S.operacional})); },
   };
   A.simulacaoAtiva = () => !!S.visualizarComo;
   A.bloqueiaGravacaoSimulada = () => {
@@ -84,14 +97,49 @@ window.App = window.App || {};
     const atual = A.byId(col, obj.id);
     if (!atual) { obj.criadoEm = obj.criadoEm || agora; obj.criadoPor = obj.criadoPor || S.meId || null; }
     obj.atualizadoEm = agora; obj.atualizadoPor = S.meId || null;
+    const anterior = atual ? Object.assign({}, atual) : null;
     if (Store.local()) {
       const arr = S.data[col]; const i = arr.findIndex(x => x.id === obj.id);
       if (i >= 0) arr[i] = obj; else arr.push(obj);
-      Store.persistLocal(); A.render(); A.aoAtualizar && A.aoAtualizar(col); return obj;
+      Store.persistLocal(); A.render(); A.aoAtualizar && A.aoAtualizar(col);
+    } else {
+      try { const {id, ...data} = obj; await S.db.collection(Store.path(col)).doc(id).set(data); }
+      catch (e) { A.falha(e); return null; }
     }
-    try { const {id, ...data} = obj; await S.db.collection(Store.path(col)).doc(id).set(data); return obj; }
-    catch (e) { A.falha(e); return null; }
+    if (col !== 'historico' && !(opts && opts.semHistorico)) await rastrear(col, obj, anterior, opts);
+    return obj;
   };
+  /* ---------- histórico (coleção "historico", só inclusão) ----------
+     Um registro por evento: {entidade, entidadeId, acao, campo, antes, depois, em, por, origem: usuario|automacao, modulo}.
+     Nunca é editado nem apagado pela interface. No banco definitivo vira linha da tabela auditoria. */
+  const MOD_DA_COL = {clientes: 'clientes', processos: 'processos', prazos: 'prazos', compromissos: 'prazos', publicacoes: 'publicacoes', fin_lancamentos: 'financeiro',
+    tarefas: 'tarefas', checklist_itens: 'clientes', documentos: 'documentos', equipe: 'equipe'};
+  A.registrar = async function (ev) {
+    const reg = A.byId(ev.entidade, ev.entidadeId);
+    const obj = {id: ev.id || undefined, entidade: ev.entidade, entidadeId: ev.entidadeId, acao: ev.acao || 'alteracao', campo: ev.campo || null,
+      antes: ev.antes === undefined ? null : ev.antes, depois: ev.depois === undefined ? null : ev.depois, texto: ev.texto || null,
+      em: ev.em || new Date().toISOString(), por: ev.por !== undefined ? ev.por : (S.meId || null), origem: ev.origem === 'automacao' ? 'automacao' : 'usuario',
+      modulo: ev.modulo || MOD_DA_COL[ev.entidade] || null};
+    if (!obj.id) delete obj.id;
+    if (reg && reg.exemplo) obj.exemplo = true;
+    return A.save('historico', obj);
+  };
+  /* Campos cujas mudanças viram histórico automaticamente, por coleção. */
+  const RASTREADOS = {clientes: ['etapa', 'status', 'responsavelId', 'atendimentoResponsavelId'], processos: ['status', 'responsavelId'], prazos: ['status', 'responsavelId'],
+    compromissos: ['status', 'responsavelId'], publicacoes: ['status', 'responsavelId'], fin_lancamentos: ['status'],
+    tarefas: ['status', 'responsavelId', 'prazo'], checklist_itens: ['situacao']};
+  const CRIACAO = {clientes: 'cadastro', tarefas: 'criacao', checklist_itens: 'criacao'};
+  async function rastrear(col, novo, anterior, opts) {
+    const campos = RASTREADOS[col]; if (!campos) return;
+    const origem = opts && opts.origem, base = {entidade: col, entidadeId: novo.id, origem};
+    if (!anterior) { if (CRIACAO[col]) await A.registrar(Object.assign({}, base, {acao: CRIACAO[col], texto: opts && opts.texto})); return; }
+    for (const c of campos) {
+      const a = anterior[c] ?? '', d = novo[c] ?? '';
+      if (String(a) !== String(d)) await A.registrar(Object.assign({}, base, {acao: c === 'responsavelId' || c === 'atendimentoResponsavelId' ? 'responsavel' : c, campo: c, antes: a || null, depois: d || null, texto: opts && opts.texto}));
+    }
+  }
+  A.historicoDe = (col, id) => A.doIdx('historico', 'entidadeId', id).filter(h => h.entidade === col).sort((a, b) => String(a.em).localeCompare(String(b.em)));
+
   /* Gravação em lote (importações). No modo local grava tudo e salva uma vez só; se o navegador
      não tiver espaço, desfaz e avisa. No modo compartilhado grava em paralelo, poucos por vez. */
   A.saveLote = async function (col, objs, progresso) {
@@ -100,7 +148,7 @@ window.App = window.App || {};
     if (Store.local()) {
       const antes = S.data[col].slice(), ids = new Set(prontos.map(o => o.id));
       S.data[col] = S.data[col].filter(x => !ids.has(x.id)).concat(prontos);
-      try { localStorage.setItem('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes})); }
+      try { localStorage.setItem('gomes-sistema-v2', JSON.stringify({data: S.data, config: S.config, permissoes: S.permissoes, operacional: S.operacional})); }
       catch (e) { S.data[col] = antes; A.toast('O navegador não tem espaço para guardar tudo. Nada foi gravado.'); return false; }
       progresso && progresso(prontos.length, prontos.length); A.render(); A.aoAtualizar && A.aoAtualizar(col); return true;
     }
@@ -127,10 +175,11 @@ window.App = window.App || {};
     if (Store.local()) { S.data[col] = S.data[col].filter(x => x.id !== id); Store.persistLocal(); A.render(); return true; }
     try { await S.db.collection(Store.path(col)).doc(id).delete(); return true; } catch (e) { A.falha(e); return false; }
   };
-  A.saveDoc = async function (path, obj) { // config/geral, config/permissoes
+  A.saveDoc = async function (path, obj) { // config/geral, config/permissoes, config/operacional
     if (A.bloqueiaGravacaoSimulada()) return false;
     if (path === 'config/geral') { S.config = obj; P.setLocais(obj.feriadosLocais || []); }
     if (path === 'config/permissoes') S.permissoes = obj;
+    if (path === 'config/operacional') { obj = Object.assign(R.normalizar(obj), {atualizadoEm: new Date().toISOString(), atualizadoPor: S.meId || null}); S.operacional = obj; }
     if (Store.local()) { Store.persistLocal(); A.render(); return true; }
     try { await S.db.doc(path).set(obj); A.render(); return true; } catch (e) { A.falha(e); return false; }
   };
@@ -165,6 +214,8 @@ window.App = window.App || {};
     return (tab[papel] && tab[papel][mod]) || (A.PERM_PADRAO[papel] || {})[mod] || N;
   };
   A.pode = (mod, acao) => { const n = A.nivel(mod); if (acao === 'editar') return n === E && S.canWrite; return n === E || n === V; };
+  /* Conferência dentro das ações (não basta esconder o botão): devolve true se pode editar; senão avisa. */
+  A.exigir = (mod, acao) => { if (A.pode(mod, acao || 'editar')) return true; A.toast('Seu perfil não tem permissão para esta ação.'); return false; };
 
   /* ---------- interface comum ---------- */
   A.avatar = (m, lg) => m ? `<span class="av${lg?' lg':''}" style="background:${A.esc(m.cor||'#273884')}" title="${A.esc(m.nome)}">${A.esc(A.iniciais(m.nome))}</span>` : `<span class="av${lg?' lg':''}" style="background:#8893A3" title="Sem responsável">?</span>`;
@@ -199,6 +250,6 @@ window.App = window.App || {};
   A.route = (id, def) => { A.routes[id] = def; };
   A.on = (nome, fn) => { A.actions[nome] = fn; };
   let rq = false;
-  A.render = () => { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; A.renderNow && A.renderNow(); }); };
+  A.render = () => { A.ciclo++; if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; A.renderNow && A.renderNow(); }); };
   A.go = hash => { if (location.hash === '#' + hash) A.render(); else location.hash = hash; };
 })(window.App);

@@ -5,7 +5,7 @@
   const STATUS = [['ativo','Ativo'],['suspenso','Suspenso'],['arquivado','Arquivado'],['encerrado','Encerrado']];
   const ST_LABEL = Object.fromEntries(STATUS);
   A.AREAS = ['Assessoria jurídica','Direito Civil','Direito Trabalhista','Direito Previdenciário','Família e Sucessões','Cobrança','Consumidor','LGPD','Direito Criminal','Direito Bancário','Direito Administrativo','Direito Tributário','Direito Imobiliário','Direito Empresarial','Outras'];
-  const abertosDe = id => A.col('prazos').filter(p => p.processoId === id && p.status !== 'concluido');
+  const abertosDe = id => A.doIdx('prazos', 'processoId', id).filter(p => p.status !== 'concluido');
 
   function lista() { const u = ui();
     return A.col('processos').filter(p => (!u.status || p.status === u.status) && (!u.area || p.area === u.area) && (!u.resp || p.responsavelId === u.resp))
@@ -79,8 +79,8 @@
     const obj = Object.assign({}, p, extra || {}); delete obj._novo; const r = await A.save('processos', obj); if (r) { atual = JSON.parse(JSON.stringify(r)); } return r; }
   A.on('pr-andamento', async () => { const txt = A.v('anTxt'); if (!txt) return; ler(); atual.andamentos = [...(atual.andamentos || []), {data: A.v('anData') || A.hoje(), texto: txt, por: S.meId || null}];
     if (await salvar()) { abrir(atual); A.toast('Andamento registrado.'); } });
-  A.on('pr-excluir', () => { const id = atual.id; const n = A.col('prazos').filter(p => p.processoId === id).length;
-    A.confirm('Excluir processo', `O processo será apagado.${n ? ' Os ' + n + ' prazo(s) vinculados continuam na agenda, sem vínculo.' : ''} Para processos finalizados, prefira mudar a situação para Encerrado.`, 'Excluir', async () => { if (await A.remove('processos', id)) A.toast('Processo excluído.'); }); });
+  A.on('pr-excluir', () => { if (!A.exigir('processos')) return; const id = atual.id; const n = A.col('prazos').filter(p => p.processoId === id).length;
+    A.confirm('Excluir processo', `O processo será apagado.${n ? ' Os ' + n + ' prazo(s) vinculados continuam na agenda, sem vínculo.' : ''} Para processos finalizados, prefira mudar a situação para Encerrado.`, 'Excluir', async () => { if (A.exigir('processos') && await A.remove('processos', id)) A.toast('Processo excluído.'); }); });
   A.on('pr-novo-prazo', async () => { if (atual._novo && !(await salvar())) return; const id = atual.id; A.closeModal(); A.formPrazo(null, {processoId: id}); });
   A.on('pr-lancar', async el => { if (atual._novo && !(await salvar())) return; const id = atual.id, cli = atual.clienteId; A.closeModal();
     A.formLancamento && A.formLancamento(null, {tipo: el.dataset.tipo, natureza: el.dataset.nat, categoria: el.dataset.cat, processoId: id, clienteId: cli, reembolsavel: el.dataset.nat !== 'honorarios'}); });

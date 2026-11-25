@@ -130,7 +130,8 @@
     const tem = A.COLS.some(c => A.col(c).some(x => x.exemplo));
     el.innerHTML = tem && A.pode('equipe', 'editar') ? `<div class="notice"><span>O sistema está com <strong>dados de exemplo</strong> para testes. Quando for usar de verdade, remova-os.</span><button class="btn small" data-action="limpar-exemplos">Remover exemplos</button></div>` : '';
   }
-  A.on('limpar-exemplos', () => A.confirm('Remover dados de exemplo', 'Todos os registros de exemplo (equipe, clientes, processos, publicações, prazos, compromissos e financeiro) serão apagados. O que vocês cadastraram continua.', 'Remover exemplos', async () => {
+  A.on('limpar-exemplos', () => A.exigir('equipe') && A.confirm('Remover dados de exemplo', 'Todos os registros de exemplo (equipe, clientes, processos, publicações, prazos, compromissos e financeiro) serão apagados. O que vocês cadastraram continua.', 'Remover exemplos', async () => {
+    if (!A.exigir('equipe')) return;
     for (const c of A.COLS) for (const x of A.col(c).filter(x => x.exemplo)) await A.remove(c, x.id);
     A.toast('Exemplos removidos.');
   }));
@@ -200,7 +201,7 @@
     const antigos = papelAntigo(S.data.equipe); antigos.forEach(m => m.papel = 'gerente');
     const completos = completarFixos(S.data.equipe); completos.forEach(n => Object.assign(S.data.equipe.find(m => m.id === n.id), n));
     if (fixos.length || antigos.length || completos.length) A.Store.persistLocal();
-    S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null;
+    S.config = Object.assign(S.config, d.config || {}); S.permissoes = d.permissoes || null; S.operacional = A.R.normalizar(d.operacional);
     P.setLocais(S.config.feriadosLocais || []); A.render(); A.depoisDeCarregar && A.depoisDeCarregar();
   }
   async function iniciar() {
@@ -224,7 +225,8 @@
     }, c === 'prazos' ? err : () => {}));
     db.doc('config/geral').onSnapshot(s => { if (s.exists) S.config = Object.assign({antecedencia: 5, feriadosLocais: [], contas: ['Caixa', 'Conta corrente'], saldosIniciais: {}, escritorioNome: 'Gomes Assessoria Jurídica', escritorioCidade: 'Araguari/MG'}, s.data()); P.setLocais(S.config.feriadosLocais || []); A.render(); }, () => {});
     db.doc('config/permissoes').onSnapshot(s => { S.permissoes = s.exists ? s.data() : null; A.render(); }, () => {});
+    db.doc('config/operacional').onSnapshot(s => { S.operacional = A.R.normalizar(s.exists ? s.data() : null); A.render(); }, () => {});
   }
-  setInterval(() => { renderAlertas(); A.renderSino && A.renderSino(); }, 60000);
+  setInterval(() => { A.invalidar(); renderAlertas(); A.renderSino && A.renderSino(); }, 60000);
   iniciar();
 })(window.App);

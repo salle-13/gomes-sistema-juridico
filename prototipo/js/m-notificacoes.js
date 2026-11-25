@@ -9,11 +9,9 @@
   const S = A.S, P = A.P, esc = A.esc;
   const PRIO = {urgente: 0, atencao: 1, info: 2};
   const PRIO_LABEL = {urgente: 'Urgente', atencao: 'Atenção', info: 'Informativo'};
-  const CATS = [['agenda','Agenda e prazos'],['publicacoes','Publicações'],['processos','Processos'],['financeiro','Financeiro'],['clientes','Clientes'],['documentos','Documentos'],['equipe','Equipe']];
+  const CATS = [['agenda','Agenda e prazos'],['operacional','Operacional'],['publicacoes','Publicações'],['processos','Processos'],['financeiro','Financeiro'],['clientes','Clientes'],['documentos','Documentos'],['equipe','Equipe']];
   const CAT_LABEL = Object.fromEntries(CATS);
-  const RECENTE = 3;      // dias em que um registro novo (andamento, documento, pagamento) vira notificação informativa
-  const PARADO = 90;      // dias sem andamento para sinalizar processo parado
-  const ATRASO_GRAVE = 30; // dias de atraso de recebimento que tornam a cobrança urgente
+  // Limites em config/operacional (Configurações): recenteDias, processoParadoDias, atrasoGraveDias.
   const ui = () => A.ui('notif', {aberto: false, painel: 'naolidas', cat: '', sit: 'naolidas', prio: '', ordem: 'prioridade'});
 
   /* ---------- destinatário ---------- */
@@ -27,9 +25,19 @@
   const resumo = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
   /* ---------- regras de geração ---------- */
-  A.gerarNotificacoes = function () {
+  /* Dados no formato que js/regras-logic.js espera. Tarefas: coleção "tarefas" quando existir;
+     antes disso, os compromissos do tipo "Tarefa interna". */
+  A.tarefasRegras = A.tarefasRegras || (() => A.col('compromissos').filter(c => c.tipo === 'Tarefa interna').map(c => ({id: c.id, titulo: c.titulo, responsavelId: c.responsavelId,
+    prazo: c.data, status: c.status === 'concluido' ? 'concluida' : 'aberta', clienteId: c.clienteId, processoId: c.processoId, criadoEm: c.criadoEm, _comp: true})));
+  A.dadosRegras = () => ({clientes: A.col('clientes'), tarefas: A.tarefasRegras(), compromissos: A.col('compromissos'), processos: A.col('processos'), prazos: A.col('prazos'),
+    equipe: A.col('equipe'), checklist_itens: A.col('checklist_itens'), historico: A.col('historico')});
+  A.gargalos = () => A.memo('gargalos:' + A.hoje(), () => A.R.avaliarGargalos(A.dadosRegras(), A.op(), A.hoje()));
+
+  const chaveMemo = () => [A.hoje(), S.meId, A.papel(), S.visualizarComo, S.canWrite].join('|');
+  A.gerarNotificacoes = () => A.memo('notif:' + chaveMemo(), gerar);
+  function gerar() {
     const h = A.hoje(), out = [], add = n => out.push(n);
-    const ant = Number(S.config.antecedencia) || 5;
+    const ant = Number(S.config.antecedencia) || 5, op = A.op(), RECENTE = op.recenteDias, PARADO = op.processoParadoDias, ATRASO_GRAVE = op.atrasoGraveDias;
 
     if (A.pode('prazos', 'ver')) {
       const T = {vencido: 'Prazo vencido', hoje: 'Prazo vence hoje', critico: 'Prazo em até 2 dias úteis', atencao: 'Prazo se aproximando'};
@@ -49,9 +57,7 @@
         if (c.tipo === 'Audiência' && c.data >= h && c.data <= ate7)
           add(Object.assign({}, base, {chave: `comp:${c.id}:aud:${c.data === h ? 'hoje' : 'prox'}:${c.data}`, prio: c.data === h ? 'urgente' : 'atencao',
             titulo: `Audiência ${c.data === h ? 'hoje' : 'em ' + A.fmtCurto(c.data)} · ${c.titulo || ''}`, refTxt: `${A.fmt(c.data)} · ${hora(c)}`, dispensavel: c.data !== h}));
-        else if (c.tipo === 'Tarefa interna' && c.data < h)
-          add(Object.assign({}, base, {chave: `comp:${c.id}:tarefa-atrasada:${c.data}`, prio: 'atencao', titulo: `Tarefa pendente · ${c.titulo || ''}`,
-            refTxt: 'Era para ' + A.fmt(c.data), dispensavel: true}));
+        else if (c.tipo === 'Tarefa interna') return; // tarefas atrasadas vêm dos gargalos (categoria Operacional)
         else if (c.data === h)
           add(Object.assign({}, base, {chave: `comp:${c.id}:hoje:${c.data}`, prio: 'info', titulo: `${c.tipo || 'Compromisso'} hoje · ${c.titulo || ''}`,
             refTxt: 'Hoje · ' + hora(c), dispensavel: true}));
@@ -80,7 +86,7 @@
           add(Object.assign({}, base, {chave: `proc:${pr.id}:sem-resp`, prio: 'atencao', titulo: `Processo sem responsável · ${A.rotuloProcesso(pr) || 'sem número'}`,
             texto: [cli, 'defina quem acompanha este processo'].filter(Boolean).join(' · '), ref: null, refTxt: 'Processo ativo', origem: pr.criadoEm, dispensavel: true}));
         const ultimo = and.map(a => a.data).filter(Boolean).sort().pop() || pr.distribuidoEm;
-        const pend = A.col('prazos').some(p => p.processoId === pr.id && p.status !== 'concluido');
+        const pend = A.doIdx('prazos', 'processoId', pr.id).some(p => p.status !== 'concluido');
         if (ultimo && !pend && dias(ultimo, h) > PARADO)
           add(Object.assign({}, base, {chave: `proc:${pr.id}:parado:${ultimo}`, prio: 'info', titulo: `Processo sem movimentação · ${pr.numero}`,
             texto: [cli, `nenhum andamento há ${dias(ultimo, h)} dias e nenhum prazo em aberto`].filter(Boolean).join(' · '), ref: ultimo,
@@ -149,6 +155,24 @@
           acao: {rota: 'documentos'}, dispensavel: true});
       });
 
+    /* Gargalos operacionais (js/regras-logic.js). "Processo sem providência futura" não entra aqui para não
+       inundar o sino com pastas importadas; aparece no quadro "Processos que exigem atenção" do Início. */
+    const GAR = {
+      cliente_sem_atendimento: {mod: 'clientes', prio: 'atencao', acao: g => ({rota: 'clientes', a: 'abrir-cliente', id: g.id})},
+      cliente_parado: {mod: 'clientes', prio: 'atencao', acao: g => ({rota: 'clientes', a: 'abrir-cliente', id: g.id})},
+      cliente_sem_responsavel: {mod: 'clientes', prio: 'atencao', acao: g => ({rota: 'clientes', a: 'abrir-cliente', id: g.id})},
+      documentacao_conferencia: {mod: 'clientes', prio: 'atencao', acao: g => ({rota: 'clientes', a: 'abrir-cliente', id: g.id})},
+      tarefa_atrasada: {mod: A.TAREFAS_MOD || 'prazos', prio: 'atencao', acao: g => A.acaoTarefa ? A.acaoTarefa(g.id) : {rota: 'agenda', a: 'editar-comp', id: g.id}},
+      tarefa_atraso_repetido: {mod: A.TAREFAS_MOD || 'prazos', prio: 'atencao', acao: g => A.acaoTarefa ? A.acaoTarefa(g.id) : {rota: 'agenda', a: 'editar-comp', id: g.id}},
+      excesso_tarefas: {mod: 'equipe', prio: 'info', acao: () => ({rota: A.routes.tarefas ? 'tarefas' : 'agenda'})},
+      reuniao_sem_providencia: {mod: 'prazos', prio: 'atencao', acao: g => ({rota: 'agenda', a: 'editar-comp', id: g.id})},
+    };
+    A.gargalos().forEach(g => { const t = GAR[g.tipo]; if (!t || !A.pode(t.mod, 'ver')) return;
+      if (g.tipo === 'excesso_tarefas' ? !(visaoGeral() || g.responsavelId === S.meId || A.pode('equipe', 'editar')) : !paraMim(g.responsavelId)) return;
+      add({chave: g.chave, cat: 'operacional', prio: t.prio, titulo: A.R.TIPOS[g.tipo], texto: [g.motivo, g.providencia && 'Providência: ' + g.providencia].filter(Boolean).join(' · '),
+        ref: g.desde, refTxt: g.desde ? 'Desde ' + A.fmt(g.desde) : '', origem: g.desde, resp: g.responsavelId, acao: t.acao(g), dispensavel: true});
+    });
+
     if (A.pode('equipe', 'editar'))
       A.col('equipe').filter(m => m.contaPendente).forEach(m =>
         add({chave: `eq:${m.id}:vinculo:${m.contaPendente.id}`, cat: 'equipe', prio: 'atencao', titulo: `Pedido de acesso · ${m.nome}`,
@@ -156,7 +180,7 @@
           refTxt: m.contaPendente.em ? 'Pedido em ' + A.quando(m.contaPendente.em) : 'Pendente', origem: m.contaPendente.em, acao: {rota: 'equipe'}, dispensavel: false}));
 
     return out;
-  };
+  }
 
   /* ---------- estado por pessoa (visto / lido / dispensado) ---------- */
   const docId = () => S.meId || (S.contaId ? 'conta-' + String(S.contaId).replace(/[^A-Za-z0-9_-]/g, '') : 'administrador');
@@ -164,11 +188,10 @@
     return {id: docId(), usuarioId: S.meId || null, vistas: e.vistas || {}, lidas: e.lidas || {}, dispensadas: e.dispensadas || {}}; };
   const carregado = () => S.mode === 'local' || A.COLS.every(c => S.loaded[c]);
 
-  A.notificacoes = function () {
-    const e = estado();
-    return A.gerarNotificacoes().map(n => Object.assign(n, {
-      criada: e.vistas[n.chave] || n.origem || null, lida: !!e.lidas[n.chave], dispensada: !!e.dispensadas[n.chave]}));
-  };
+  // Calculado uma vez por ciclo de desenho (A.memo; o ciclo avança a cada A.render). Quem usar não deve alterar a lista.
+  A.notificacoes = () => A.memo('notif-estado:' + chaveMemo(), () => { const e = estado();
+    return A.gerarNotificacoes().map(n => Object.assign({}, n, {
+      criada: e.vistas[n.chave] || n.origem || null, lida: !!e.lidas[n.chave], dispensada: !!e.dispensadas[n.chave]})); });
   const ordenar = (arr, ordem) => arr.sort(ordem === 'recentes'
     ? (a, b) => String(b.criada || '').localeCompare(String(a.criada || '')) || PRIO[a.prio] - PRIO[b.prio]
     : (a, b) => PRIO[a.prio] - PRIO[b.prio] || (a.lida - b.lida) || String(a.ref || '9').localeCompare(String(b.ref || '9')));
@@ -185,7 +208,7 @@
   // Registra a primeira vez que a pessoa recebeu cada notificação (é a "data de criação" exibida).
   let tVista = null;
   function registrarVistas(lista) {
-    if (!carregado() || !S.canWrite || tVista) return;
+    if (!carregado() || !S.canWrite || tVista || A.simulacaoAtiva()) return;
     const e = estado(); if (!lista.some(n => !e.vistas[n.chave])) return;
     tVista = setTimeout(() => { tVista = null; const agora = new Date().toISOString();
       const novas = A.notificacoes().filter(n => !estado().vistas[n.chave]); if (!novas.length) return;

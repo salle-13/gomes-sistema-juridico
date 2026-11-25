@@ -19,8 +19,8 @@ Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compro
 | Financeiro | `centros_custo`, `contas_financeiras`, `fin_lancamentos` |
 | Infraestrutura | `jobs`, `avisos`, `integracoes_log`, `auditoria` |
 
-Visões: `vw_saldo_contas`, `vw_fluxo_mensal`, `vw_cobertura_djen`, `vw_prazos_abertos`.
-Funções: `org_atual()`, `membro_atual()`, `so_digitos()`, `normalizar()`, `cnj_valido()`, `proximo_job()`, `liberar_jobs_travados()`, `verificar_auditoria()`.
+Visões: `vw_saldo_contas`, `vw_fluxo_mensal`, `vw_cobertura_djen`, `vw_historico`, `vw_prazos_abertos`.
+Funções: `org_atual()`, `membro_atual()`, `so_digitos()`, `normalizar()`, `cnj_valido()`, `proximo_job()`, `liberar_jobs_travados()`, `verificar_auditoria()`, `registrar_historico()`.
 
 ## 2. Relacionamentos principais
 
@@ -111,4 +111,6 @@ erDiagram
 | `documentos.assetId` | `storage_chave` + `sha256` (armazenamento próprio) |
 | `equipe.contaId` / `contaPendente` | `usuario_id` / `vinculo_pendente_usuario_id` |
 | Coleção `notif_estado` (por pessoa: `vistas`, `lidas`, `dispensadas` por chave) | Linhas em `avisos` com `canal = 'sistema'`: a chave vira `evento` + `entidade_id` (ex.: `prazo.vencido` + id do prazo), `destinatario_id` = membro, `criado_em` = vista, `lido_em`, `dispensado_em` (coluna nova). As regras de geração de `js/m-notificacoes.js` passam para o Worker Notificador. |
+| Coleção `historico` (só inclusão: `entidade`, `entidadeId`, `acao`, `campo`, `antes`, `depois`, `texto`, `em`, `por`, `origem`, `modulo`) | Linhas da tabela `auditoria` com `acao = 'app:<acao>'`, gravadas por `registrar_historico()`. `ator` = `membro:<uuid>` (origem usuário) ou `sistema:automacao`; `antes`/`depois` = `{"<campo>": valor}` e o texto livre em `depois->>'_texto'`. A visão `vw_historico` devolve o formato do protótipo (inclui `modulo`). Entram na mesma cadeia de hash da auditoria |
+| Documento `config/operacional` (limites dos gargalos, etapas da captação, categorias e pesos de tarefa) | Coluna `configuracoes.operacional jsonb`, validada pela aplicação (`Regras.normalizar`) |
 | Campos camelCase | Colunas snake_case (mapeamento direto na migração) |

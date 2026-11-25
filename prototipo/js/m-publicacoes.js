@@ -114,7 +114,7 @@
       if (!obj.texto) { A.toast('Cole o texto da publicação.'); return; }
       if (await A.save('publicacoes', obj)) { A.closeModal(); A.toast('Publicação salva.'); } });
   }
-  A.on('pub-excluir', el => { const id = el.dataset.id; A.confirm('Excluir publicação', 'A publicação será apagada. Prazos já gerados a partir dela continuam na agenda.', 'Excluir', async () => { if (await A.remove('publicacoes', id)) A.toast('Publicação excluída.'); }); });
+  A.on('pub-excluir', el => { if (!A.exigir('publicacoes')) return; const id = el.dataset.id; A.confirm('Excluir publicação', 'A publicação será apagada. Prazos já gerados a partir dela continuam na agenda.', 'Excluir', async () => { if (A.exigir('publicacoes') && await A.remove('publicacoes', id)) A.toast('Publicação excluída.'); }); });
 
   /* ---------- importação ---------- */
   A.on('pub-importar', () => {

@@ -5,7 +5,6 @@
 (function (A) {
   const S = A.S, P = A.P, esc = A.esc;
   const TAREFA = 'Tarefa interna', RETORNO = 'Ligação / retorno';
-  const PARADO = 90; // dias sem andamento: mesma regra da Central de Notificações
   const aberto = x => x.status !== 'concluido';
   const corta = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
   const diaRel = (d, h) => d === h ? 'Hoje' : d === P.addDays(h, 1) ? 'Amanhã' : d === P.addDays(h, -1) ? 'Ontem' : A.fmtCurto(d);
@@ -159,6 +158,7 @@
       const pzPor = new Map(), tfPor = new Map(), pubPor = new Map(), add = (m, k, v) => { if (!k) return; if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
       if (verPz) { A.col('prazos').filter(aberto).forEach(p => add(pzPor, p.processoId, p)); tarefas().filter(c => aberto(c) && c.data < h).forEach(c => add(tfPor, c.processoId, c)); }
       if (verPub) A.col('publicacoes').filter(p => p.status === 'nova').forEach(p => add(pubPor, p.processoId, p));
+      const semProv = new Set(A.gargalos ? A.gargalos().filter(g => g.tipo === 'processo_sem_providencia').map(g => g.id) : []);
       const lista = A.col('processos').filter(pr => pr.status === 'ativo' && (ctx.escopo === 'equipe' || pr.responsavelId === S.meId)).map(pr => {
         const mot = [], pz = pzPor.get(pr.id) || [];
         const pior = pz.map(p => [ctx.sit(p), p]).filter(([s]) => T[s]).sort((a, b) => RS[T[a[0]][0]] - RS[T[b[0]][0]] || a[1].vencimento.localeCompare(b[1].vencimento))[0];
@@ -167,7 +167,8 @@
         const pb = (pubPor.get(pr.id) || []).length; if (pb) mot.push(['aten', `${pb} publicação(ões) para tratar`]);
         if (!pr.responsavelId) mot.push(['aten', 'Sem responsável']);
         const ult = (pr.andamentos || []).map(a => a.data).filter(Boolean).sort().pop() || pr.distribuidoEm;
-        if (ult && !pz.length) { const d = Math.round((P.parse(h) - P.parse(ult)) / 86400000); if (d > PARADO) mot.push(['info', `Sem movimentação há ${d} dias`]); }
+        if (ult && !pz.length) { const d = Math.round((P.parse(h) - P.parse(ult)) / 86400000); if (d > A.op().processoParadoDias) mot.push(['info', `Sem movimentação há ${d} dias`]); }
+        if (semProv.has(pr.id)) mot.push(['info', 'Sem providência futura']);
         if (pr.revisar) mot.push(['info', 'Importado: conferir dados']);
         return {pr, mot: mot.sort((a, b) => RS[a[0]] - RS[b[0]])};
       }).filter(x => x.mot.length).sort((a, b) => RS[a.mot[0][0]] - RS[b.mot[0][0]] || b.mot.length - a.mot.length);

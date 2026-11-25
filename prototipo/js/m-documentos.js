@@ -53,6 +53,7 @@
   document.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('.drop'); if (d) d.classList.remove('over'); });
   document.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('.drop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); if (e.dataTransfer?.files?.length) enviar(e.dataTransfer.files, d); });
   A.on('doc-excluir', async el => {
+    if (!A.exigir('documentos')) return;
     if (!el.dataset.armed) { el.dataset.armed = '1'; el.textContent = 'Confirmar'; el.classList.add('danger'); setTimeout(() => { if (el.isConnected) { delete el.dataset.armed; el.textContent = 'Excluir'; el.classList.remove('danger'); } }, 4000); return; }
     const d = A.byId('documentos', el.dataset.id); if (!d) return;
     if (await A.remove('documentos', d.id)) { if (S.assets && d.assetId) { try { await S.assets.delete(d.assetId); } catch (e) {} } A.toast('Documento excluído.'); }

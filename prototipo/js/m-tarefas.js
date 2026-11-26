@@ -95,6 +95,7 @@
         <select id="tfCat" data-ui="tarefas.cat" aria-label="Categoria">${A.opts(cats, u.cat, 'Todas as categorias')}</select>
         <select id="tfCli" data-ui="tarefas.cli" aria-label="Cliente">${A.optsClientesTodos(u.cli, 'Todos os clientes')}</select>
         <select id="tfProc" data-ui="tarefas.proc" aria-label="Processo">${A.optsProcessos(u.proc, 'Todos os processos')}</select></div>
+      ${u.visao === 'recorrentes' ? '<div class="dica"><b>Tarefas recorrentes</b> são rotinas que se repetem (todo dia útil, toda semana, todo mês ou a cada N). Quando alguém conclui a de hoje, o sistema já cria a próxima com o prazo seguinte, então ninguém precisa lembrar de cadastrar de novo. A lista mostra a próxima ocorrência de cada rotina; as anteriores ficam em “Concluídas”. Para encerrar uma rotina, mude a situação para “Cancelada”.</div>' : ''}
       ${u.visao === 'minhas' && !S.meId ? '<p class="muted" style="padding:0 14px">Você não está identificado na equipe: use a visão Equipe.</p>' : ''}
       <div class="tablewrap"><table class="tarefas"><thead><tr><th></th><th>Tarefa</th><th>Prioridade</th><th>Prazo</th><th>Situação</th><th>Responsável</th><th>Cliente / processo</th></tr></thead>
         <tbody>${arr.slice(0, LIM).map(linha).join('') || '<tr><td colspan="7" class="empty" style="padding:16px">Nenhuma tarefa nesta visão.</td></tr>'}</tbody></table></div>
@@ -170,7 +171,7 @@
       ${A.inp('tIni', 'Início', t.inicio, `type="date" ${ro}`)}${A.inp('tPrazo', 'Prazo', t.prazo, `type="date" ${ro}`)}
       ${A.inp('tAguard', 'Aguardando quem? (situação "Aguardando terceiros")', t.aguardandoQuem, `${ro} placeholder="Ex.: cliente enviar comprovante"`, 'full')}
       ${A.sel('tCli', 'Cliente', A.optsClientesTodos(t.clienteId, 'Nenhum'), '', ro)}${A.sel('tProc', 'Processo', A.optsProcessos(t.processoId, 'Nenhum'), '', ro)}
-      ${A.field('tFreq', 'Repetir', `<div style="display:flex;gap:6px;align-items:center"><select id="tFreq" ${ro}>${A.opts([['', 'Não repete'], ['diaria', 'Diariamente (dias úteis)'], ['semanal', 'Semanalmente'], ['mensal', 'Mensalmente']], rec.freq || '')}</select><span class="muted">a cada</span><input id="tInt" type="number" min="1" max="365" value="${esc(rec.intervalo || 1)}" style="width:64px" ${ro}></div>`)}
+      ${A.field('tFreq', 'Repetir', `<div style="display:flex;gap:6px;align-items:center"><select id="tFreq" ${ro}>${A.opts([['', 'Não repete'], ['diaria', 'Diariamente (dias úteis)'], ['semanal', 'Semanalmente'], ['mensal', 'Mensalmente']], rec.freq || '')}</select><span class="muted">a cada</span><input id="tInt" type="number" min="1" max="365" value="${esc(rec.intervalo || 1)}" style="width:64px" ${ro}></div><small class="muted" style="display:block;margin-top:4px">Para rotinas, como conferir o DJEN todo dia ou o Meu INSS toda semana. Ao concluir, a próxima é criada sozinha com o novo prazo.</small>`)}
       ${A.field('tDep', 'Depende de (Ctrl/⌘ para várias)', `<select id="tDep" multiple size="${Math.min(6, Math.max(3, outras.length))}" ${ro}>${outras.map(o => `<option value="${esc(o.id)}"${(t.dependeDe || []).includes(o.id) ? ' selected' : ''}>${esc(o.titulo)}${aberta(o) ? '' : ' (' + esc(ST[o.status]).toLowerCase() + ')'}</option>`).join('')}</select>`, 'full')}
       <div class="tinfo full muted">${[`Origem: ${esc(origemTxt(t))}`, !novo && t.criadoEm ? `criada por ${esc(t.criadoPor ? A.nomeDe(t.criadoPor) : 'automação/sem identificação')} em ${esc(A.quando(t.criadoEm))}` : '',
         !novo ? `${esc(ST[t.status])} ${esc(A.haDias(desde(t)))}` : '', `prioridade calculada: ${esc(PRIO[i.calc.nivel].toLowerCase())}${i.calc.motivos.length ? ' (' + esc(i.calc.motivos.join(', ')) + ')' : ''}`,
@@ -238,5 +239,17 @@
     const pend = A.col('compromissos').filter(c => c.tipo === 'Tarefa interna' && !c.migradoParaTarefa);
     let n = 0; for (const c of pend) { if (await A.migrarTarefaInterna(c)) n++; }
     if (n) A.toast(n + ' tarefa(s) interna(s) da agenda migrada(s) para a Central de tarefas.');
+  });
+
+  /* ---------- exemplos de captação, checklists e tarefas em dados locais antigos ----------
+     Entram uma única vez: só se a base ainda tem dados de exemplo (ninguém clicou em "Remover exemplos")
+     e se nenhum deles existe ainda (apagar um exemplo não o faz voltar). Ids fixos: rodar em duas abas não duplica. */
+  A.migracoes.push(async () => {
+    if (!A.seed.exemplosOperacionais || !A.pode('clientes', 'editar') || !A.pode(MOD, 'editar')) return;
+    if (!A.COLS.some(c => A.col(c).some(x => x.exemplo))) return;
+    const ex = A.seed.exemplosOperacionais(A.hoje(), P);
+    if (Object.keys(ex).some(c => ex[c].some(o => A.byId(c, o.id)))) return;
+    for (const c of Object.keys(ex)) if (ex[c].length && !(await A.saveLote(c, ex[c]))) return;
+    A.toast('Exemplos de checklists e tarefas recorrentes incluídos (clientes Maria Aparecida e José Carlos).');
   });
 })(window.App);

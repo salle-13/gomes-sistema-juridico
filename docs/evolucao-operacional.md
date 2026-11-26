@@ -52,6 +52,17 @@ Este documento registra as decisões das fases 1 e 2 da evolução do protótipo
 - O item é vinculado a um documento já enviado em Documentos, sem armazenamento novo. Vincular um arquivo a um item pendente, rejeitado ou "substituir" (ou trocar o arquivo de um item aprovado ou em conferência) volta o item para "recebido".
 - **Documentação completa** = todos os itens obrigatórios aprovados. O gargalo "documentação parada em conferência" usa essa regra.
 
+### Exemplos para entender as funções
+
+`seed.exemplosOperacionais` traz os exemplos de captação, checklists e tarefas, todos com `exemplo: true`:
+- **Maria Aparecida Rezende** (c4): checklist de aposentadoria rural em andamento, com 3 de 6 obrigatórios aprovados, um CNIS rejeitado e documentos rurais solicitados.
+- **José Carlos Ferreira** (c5): o mesmo checklist completo ("Documentação completa").
+- Fernanda (c1) com o modelo "Verbas rescisórias (exemplo)" sugerido, mas ainda não aplicado, para testar o botão.
+- Tarefas recorrentes: DJEN diário, Meu INSS semanal, ligação a cada 2 semanas e honorários mensais. As duas primeiras já foram concluídas uma vez, então a próxima ocorrência aparece.
+- Tarefas comuns ligadas aos checklists: aguardando terceiros, atrasada e bloqueada por dependência.
+
+A tela de Checklists e a visão Tarefas › Recorrentes têm uma caixa "para que serve". Em dados locais antigos, os exemplos entram uma única vez por migração.
+
 ## Próximas fases
 
 1. **Automações por evento.** Regras do tipo "quando X, criar tarefa Y" (por exemplo: cliente entrou em "Reunião realizada" → tarefa "Solicitar documentos"; item rejeitado → tarefa "Pedir substituição"). Ids determinísticos por regra e por evento, histórico com `origem: 'automacao'` e um painel para ligar e desligar as regras.

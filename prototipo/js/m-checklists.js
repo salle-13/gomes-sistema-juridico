@@ -16,7 +16,13 @@
   function vModelos() {
     const u = ui(), arr = A.col('checklist_modelos').filter(m => A.match(u.busca, m.nome, m.area, m.tipoDemanda, (m.itens || []).map(i => i.nome).join(' ')))
       .sort((a, b) => (a.ativo === false) - (b.ativo === false) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+    const usados = [...new Set(A.col('checklist_itens').map(i => i.clienteId))].map(A.cliente).filter(c => c && c.status !== 'recusado').slice(0, 4);
     return `<section class="panel"><div class="vhead"><h2>Checklists de documentos</h2><span class="muted num">${arr.length} modelo(s)</span><button class="btn primary" data-action="chkm-novo">+ Novo modelo</button></div>
+      <div class="dica"><b>Para que serve:</b> controlar, cliente por cliente, quais documentos já chegaram e quais faltam pedir.
+        <ol><li>Aqui você cadastra <b>uma vez</b> a lista de documentos de cada tipo de caso (o modelo). Ex.: aposentadoria rural pede RG, CNIS, documentos rurais…</li>
+        <li>Na ficha do cliente, no bloco <b>Checklist</b>, clique em <b>Aplicar checklist</b>: a lista do modelo é copiada para aquele cliente.</li>
+        <li>Conforme os documentos chegam, mude a situação de cada um (solicitado → recebido → em conferência → aprovado, ou rejeitado). Quando todos os obrigatórios estão aprovados, aparece <b>Documentação completa</b>.</li></ol>
+        ${usados.length ? `<div class="dica-ex">Veja na prática: ${usados.map(c => { const ok = A.documentacaoCompleta(c.id); return `<button type="button" class="btn small" data-action="abrir-cliente" data-id="${esc(c.id)}">${esc(c.nome)} <span class="muted">(${ok ? 'completo' : 'em andamento'})</span></button>`; }).join(' ')}</div>` : ''}</div>
       <div class="filters"><input id="chkBusca" type="search" data-ui="checklists.busca" placeholder="Buscar modelo, área, tipo de demanda ou documento…" value="${esc(u.busca)}" style="flex:1 1 260px"></div>
       <div class="tablewrap"><table><thead><tr><th>Modelo</th><th>Área</th><th>Tipo de demanda</th><th class="num">Itens</th><th class="num">Obrigatórios</th><th class="num">Em uso</th><th>Situação</th></tr></thead><tbody>
       ${arr.map(m => { const it = m.itens || [], uso = new Set(A.col('checklist_itens').filter(i => i.modeloId === m.id).map(i => i.clienteId)).size;
@@ -63,7 +69,7 @@
     const obr = itens.filter(i => i.obrigatorio), ok = obr.filter(i => i.situacao === 'aprovado').length, completa = R.documentacaoCompleta(itens);
     const docs = A.pode('documentos', 'ver') ? A.doIdx('documentos', 'clienteId', c.id) : [];
     const sug = R.sugerirModelos(A.col('checklist_modelos'), c);
-    const resumo = !itens.length ? '<span class="muted" style="font-size:12px">Nenhum checklist aplicado.</span>'
+    const resumo = !itens.length ? `<span class="muted" style="font-size:12px">Nenhum checklist aplicado.${ed && sug.length ? ' Escolha abaixo o modelo do caso e clique em <b>Aplicar checklist</b>: aparece aqui a lista de documentos para marcar o que já chegou.' : ''}</span>`
       : completa ? '<span class="tag ok">Documentação completa</span>' : `<span class="tag${ok < obr.length ? ' alta' : ''}">${ok} de ${obr.length} obrigatório(s) aprovado(s)</span>`;
     const linha = i => { const d = i.documentoId ? A.byId('documentos', i.documentoId) : null;
       return `<div class="chk-i s-${esc(i.situacao)}"><div class="chk-n"><b>${esc(i.nome)}</b>${i.obrigatorio ? ' <span class="muted">(obrigatório)</span>' : ''}

@@ -5355,3 +5355,8 @@ table.tarefas tr.done b { text-decoration: line-through; }
 .chkm-item { display: flex; gap: 8px; align-items: center; }
 .chkm-nome { flex: 1; min-width: 0; }
 @media (max-width: 560px) { .chkm-item { flex-wrap: wrap; } }
+
+/* Caixa de explicação (Checklists, Tarefas › Recorrentes) */
+.dica { margin: 10px 14px; padding: 10px 14px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.5; }
+.dica ol { margin: 6px 0 0; padding-left: 20px; }
+.dica-ex { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

@@ -197,7 +197,9 @@
     try { d = JSON.parse(A.lsGet('gomes-sistema-v2') || 'null'); } catch (e) {}
     if (!d) { const s = A.seed(A.hoje(), P); d = {data: s.data, config: s.config, permissoes: null}; }
     // Coleção criada depois que os dados locais foram salvos (ex.: modelos): começa com os exemplos do seed.
-    const faltam = A.COLS.filter(c => !(d.data && d.data[c])); if (faltam.length && d.data) { const s = A.seed(A.hoje(), P); faltam.forEach(c => d.data[c] = s.data[c] || []); }
+    // Os exemplos de captação/checklists/tarefas ficam de fora: entram juntos (ou não entram) pela migração de m-tarefas.js.
+    const faltam = A.COLS.filter(c => !(d.data && d.data[c])); if (faltam.length && d.data) { const s = A.seed(A.hoje(), P), op = new Set(Object.values(A.seed.exemplosOperacionais(A.hoje(), P)).flat().map(o => o.id));
+      faltam.forEach(c => d.data[c] = (s.data[c] || []).filter(o => !op.has(o.id))); }
     A.COLS.forEach(c => S.data[c] = (d.data && d.data[c]) || []);
     const fixos = faltamFixos(S.data.equipe); if (fixos.length) S.data.equipe.unshift(...fixos.map(m => Object.assign({}, m)));
     const antigos = papelAntigo(S.data.equipe); antigos.forEach(m => m.papel = 'gerente');

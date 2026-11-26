@@ -5,7 +5,6 @@
 (function (A) {
   const S = A.S, P = A.P, esc = A.esc;
   const TAREFA = 'Tarefa interna', RETORNO = 'Ligação / retorno';
-  const PARADO = 90; // dias sem andamento: mesma regra da Central de Notificações
   const aberto = x => x.status !== 'concluido';
   const corta = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
   const diaRel = (d, h) => d === h ? 'Hoje' : d === P.addDays(h, 1) ? 'Amanhã' : d === P.addDays(h, -1) ? 'Ontem' : A.fmtCurto(d);
@@ -13,7 +12,11 @@
   const horario = c => c.diaInteiro || !c.horaInicio ? 'Dia todo' : hm(c.horaInicio) + (c.horaFim ? '–' + hm(c.horaFim) : '');
   const nomeCli = x => A.cliente(x.clienteId)?.nome || x.cliente || '';
   const dataDe = iso => iso ? P.ymd(new Date(iso)) : '';
-  const tarefas = () => A.col('compromissos').filter(c => c.tipo === TAREFA);
+  // Tarefas vêm da Central de tarefas (coleção "tarefas"). Compromissos "Tarefa interna" antigos foram migrados para lá
+  // e continuam só como compromisso na agenda.
+  const tarefas = () => A.pode('tarefas', 'ver') ? A.col('tarefas').filter(t => t.status !== 'cancelada') : [];
+  const tAberta = A.R.tarefaAberta;
+  const prioT = t => A.infoTarefa ? A.infoTarefa(t).prio : (t.prioridade || 'normal');
   const mais = (n, rotulo, attrs) => n > 0 ? `<button class="dw-mais" ${attrs}>${esc(rotulo.replace('{n}', n))}</button>` : '';
   // Cabeçalho dos quadros: link "ver tudo" e botão "+" compacto
   const link = (rot, attrs) => `<button class="dw-link" ${attrs}>${esc(rot)} →</button>`;
@@ -22,7 +25,7 @@
 
   /* ================= Indicadores ================= */
   A.widget('indicadores', {titulo: 'Indicadores', icone: 'equipe', tam: 'g',
-    visivel: () => A.pode('processos', 'ver') || A.pode('clientes', 'ver') || A.pode('prazos', 'ver'),
+    visivel: () => A.pode('processos', 'ver') || A.pode('clientes', 'ver') || A.pode('prazos', 'ver') || A.pode('tarefas', 'ver'),
     render(ctx) {
       const h = ctx.h, cards = [];
       const card = (cor, icone, valor, rotulo, desc, attrs) => cards.push(`<button class="dkpi" style="--c:${cor}" ${attrs} title="${esc(desc || '')}"><strong class="num">${valor}</strong><span>${esc(rotulo)}</span></button>`);
@@ -30,9 +33,11 @@
         const pr = A.col('processos'), ativos = pr.filter(p => p.status === 'ativo'), meus = ativos.filter(p => p.responsavelId === S.meId).length;
         card('transparent', 'processo', ativos.length, 'Processos ativos', S.meId ? `${meus} sob sua responsabilidade` : `${pr.filter(p => p.status === 'suspenso').length} suspenso(s)`, 'data-action="ini-ir" data-ir="processos" data-status="ativo"');
       }
+      if (A.pode('tarefas', 'ver')) {
+        const tf = tarefas().filter(t => tAberta(t) && ctx.meu(t.responsavelId)), atr = tf.filter(t => t.prazo && t.prazo < h).length;
+        card(atr ? 'var(--danger)' : 'transparent', 'tarefa', tf.length, atr ? `Tarefas · ${atr} atrasada(s)` : 'Tarefas em aberto', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="tarefas" data-visao="${atr ? 'atrasadas' : ctx.escopo === 'meu' ? 'minhas' : 'equipe'}"`);
+      }
       if (A.pode('prazos', 'ver')) {
-        const tf = tarefas().filter(c => aberto(c) && ctx.meu(c.responsavelId, c.participantes)), atr = tf.filter(c => c.data < h).length;
-        card(atr ? 'var(--danger)' : 'transparent', 'tarefa', tf.length, atr ? `Tarefas · ${atr} atrasada(s)` : 'Tarefas pendentes', atr ? `${atr} atrasada(s)` : 'Nenhuma atrasada', `data-action="ini-ir" data-ir="agenda" data-mostrar="compromissos" data-busca="${TAREFA}"`);
         const pz = A.col('prazos').filter(p => aberto(p) && p.vencimento && ctx.meu(p.responsavelId)), s = pz.map(ctx.sit);
         const prox = s.filter(x => ['hoje','critico','atencao'].includes(x)).length, venc = s.filter(x => x === 'vencido').length;
         card(venc || s.includes('hoje') ? 'var(--danger)' : prox ? 'var(--warn)' : 'transparent', 'prazo', prox + venc, venc ? `Prazos · ${venc} vencido(s)` : 'Prazos próximos', `${venc ? venc + ' vencido(s) · ' : ''}até ${ctx.ant} dias úteis`, 'data-action="ini-ir" data-ir="agenda" data-mostrar="prazos"');
@@ -54,38 +59,38 @@
 
   /* ================= Meu dia (prazos e tarefas) ================= */
   A.widget('meudia', {titulo: 'Meu dia', icone: 'sol',
-    visivel: () => A.pode('prazos', 'ver'),
-    acoes: () => link('Agenda', 'data-action="ini-ir" data-ir="agenda"') + (A.pode('prazos', 'editar') ? novo('Nova tarefa', 'nova-tarefa') : ''),
+    visivel: () => A.pode('prazos', 'ver') || A.pode('tarefas', 'ver'),
+    acoes: () => (A.pode('prazos', 'ver') ? link('Agenda', 'data-action="ini-ir" data-ir="agenda"') : link('Tarefas', 'data-action="ini-ir" data-ir="tarefas"')) + (A.pode('tarefas', 'editar') ? novo('Nova tarefa', 'nova-tarefa') : ''),
     render(ctx) {
-      const h = ctx.h, ate = P.addDays(h, 7), ed = A.pode('prazos', 'editar');
+      const h = ctx.h, ate = P.addDays(h, 7);
       const itens = [
-        ...A.col('prazos').filter(p => p.vencimento && ctx.meu(p.responsavelId)).map(p => ({k: 'prazo', o: p, data: p.vencimento, ok: !aberto(p)})),
-        ...tarefas().filter(c => c.data && ctx.meu(c.responsavelId, c.participantes)).map(c => ({k: 'tarefa', o: c, data: c.data, ok: !aberto(c)})),
+        ...(A.pode('prazos', 'ver') ? A.col('prazos') : []).filter(p => p.vencimento && ctx.meu(p.responsavelId)).map(p => ({k: 'prazo', o: p, data: p.vencimento, ok: !aberto(p), feito: p.atualizadoEm, alta: p.prioridade === 'alta'})),
+        ...tarefas().filter(t => t.prazo && ctx.meu(t.responsavelId)).map(t => ({k: 'tarefa', o: t, data: t.prazo, ok: !tAberta(t), feito: t.concluidaEm || t.atualizadoEm, alta: ['alta', 'urgente'].includes(prioT(t)), prio: prioT(t)})),
       ];
       const grupos = {
         atrasadas: itens.filter(i => !i.ok && i.data < h),
         hoje: itens.filter(i => !i.ok && i.data === h),
         proximas: itens.filter(i => !i.ok && i.data > h && i.data <= ate),
-        concluidas: itens.filter(i => i.ok && dataDe(i.o.atualizadoEm) === h),
+        concluidas: itens.filter(i => i.ok && dataDe(i.feito) === h),
       };
-      Object.values(grupos).forEach(g => g.sort((a, b) => a.data.localeCompare(b.data) || (a.o.prioridade === 'alta' ? -1 : 0) - (b.o.prioridade === 'alta' ? -1 : 0)));
+      Object.values(grupos).forEach(g => g.sort((a, b) => a.data.localeCompare(b.data) || (b.alta - a.alta)));
       const ABAS = [['atrasadas','Atrasadas'],['hoje','Hoje'],['proximas','7 dias'],['concluidas','Feitas']];
       let aba = ctx.ui.dia; if (!grupos[aba]) aba = ['atrasadas','hoje','proximas'].find(k => grupos[k].length) || 'hoje';
       const linha = i => { const o = i.o, prazo = i.k === 'prazo', pr = A.processo(o.processoId), m = A.membro(o.responsavelId);
         const titulo = prazo ? o.tipo || 'Prazo' : o.titulo || 'Tarefa';
         const proc = A.rotuloProcId(o.processoId, o.processo), cli = prazo ? nomeCli(o) : A.cliente(o.clienteId)?.nome;
-        const atrasada = !i.ok && i.data < h;
+        const atrasada = !i.ok && i.data < h, ed = A.pode(prazo ? 'prazos' : 'tarefas', 'editar');
         return `<li class="dtask${atrasada ? ' is-late' : ''}${i.ok ? ' is-done' : ''}">
-          ${ed ? `<button class="dcheck" data-action="${prazo ? 'concluir-prazo' : 'concluir-comp'}" data-id="${esc(o.id)}" aria-label="${i.ok ? 'Reabrir' : 'Concluir'}: ${esc(titulo)}" title="${i.ok ? 'Reabrir' : 'Marcar como concluído'}">${i.ok ? A.ico('check', 14) : ''}</button>` : '<span class="dcheck" aria-hidden="true"></span>'}
-          <button class="dtask-main" ${abrirAttrs(prazo ? 'editar-prazo' : 'editar-comp', o.id)}>
-            <span class="dtask-t">${esc(titulo)}${o.prioridade === 'alta' ? ' <span class="tag alta">Alta</span>' : ''}</span>
+          ${ed ? `<button class="dcheck" data-action="${prazo ? 'concluir-prazo' : 'tarefa-concluir'}" data-id="${esc(o.id)}" aria-label="${i.ok ? 'Reabrir' : 'Concluir'}: ${esc(titulo)}" title="${i.ok ? 'Reabrir' : 'Marcar como concluído'}">${i.ok ? A.ico('check', 14) : ''}</button>` : '<span class="dcheck" aria-hidden="true"></span>'}
+          <button class="dtask-main" ${abrirAttrs(prazo ? 'editar-prazo' : 'tarefa-editar', o.id, prazo ? '' : 'tarefas')}>
+            <span class="dtask-t">${esc(titulo)}${i.alta ? ` <span class="tag alta">${i.prio === 'urgente' ? 'Urgente' : 'Alta'}</span>` : ''}</span>
             <span class="dtask-m"><span class="num${atrasada ? ' late' : ''}">${esc(atrasada ? 'Venceu ' + A.fmt(i.data) : diaRel(i.data, h) + (i.data === h ? '' : ' · ' + A.fmt(i.data).slice(0, 5)))}</span>${proc || cli ? `<span>${esc([cli, proc].filter(Boolean).join(' · '))}</span>` : ''}${ctx.escopo === 'equipe' ? A.avatar(m) : ''}</span>
           </button></li>`; };
       const lst = grupos[aba], LIM = 3;
       const vazios = {atrasadas: ['check', 'Nada atrasado.', ''], hoje: ['sol', 'Nada vence hoje.', ''], proximas: ['calendario', 'Nada nos próximos 7 dias.', ''], concluidas: ['tarefa', 'Nada concluído hoje ainda.', '']};
       return `<div class="subtabs dw-tabs">${ABAS.map(([k, l]) => `<button data-action="ini-aba" data-k="dia" data-v="${k}" aria-pressed="${aba === k}"${k === 'atrasadas' && grupos[k].length ? ' class="tab-late"' : ''}>${l} <span class="num">${grupos[k].length}</span></button>`).join('')}</div>
         ${lst.length ? `<ul class="dtasks">${lst.slice(0, LIM).map(linha).join('')}</ul>` : A.vazio(...vazios[aba])}
-        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} item(ns)', `data-action="ini-ir" data-ir="agenda"`)}</div>`;
+        <div class="dw-foot">${mais(lst.length - LIM, '+ {n} item(ns)', A.pode('prazos', 'ver') ? 'data-action="ini-ir" data-ir="agenda"' : 'data-action="ini-ir" data-ir="tarefas"')}</div>`;
     }});
 
   /* ================= Compromissos ================= */
@@ -157,8 +162,10 @@
       const h = ctx.h, verPz = A.pode('prazos', 'ver'), verPub = A.pode('publicacoes', 'ver');
       const RS = {crit: 0, aten: 1, info: 2}, T = {vencido: ['crit', 'Prazo vencido'], hoje: ['crit', 'Prazo vence hoje'], critico: ['crit', 'Prazo em até 2 dias úteis'], atencao: ['aten', 'Prazo se aproximando']};
       const pzPor = new Map(), tfPor = new Map(), pubPor = new Map(), add = (m, k, v) => { if (!k) return; if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
-      if (verPz) { A.col('prazos').filter(aberto).forEach(p => add(pzPor, p.processoId, p)); tarefas().filter(c => aberto(c) && c.data < h).forEach(c => add(tfPor, c.processoId, c)); }
+      if (verPz) { A.col('prazos').filter(aberto).forEach(p => add(pzPor, p.processoId, p)); }
+      tarefas().filter(t => tAberta(t) && t.prazo && t.prazo < h).forEach(t => add(tfPor, t.processoId, t));
       if (verPub) A.col('publicacoes').filter(p => p.status === 'nova').forEach(p => add(pubPor, p.processoId, p));
+      const semProv = new Set(A.gargalos ? A.gargalos().filter(g => g.tipo === 'processo_sem_providencia').map(g => g.id) : []);
       const lista = A.col('processos').filter(pr => pr.status === 'ativo' && (ctx.escopo === 'equipe' || pr.responsavelId === S.meId)).map(pr => {
         const mot = [], pz = pzPor.get(pr.id) || [];
         const pior = pz.map(p => [ctx.sit(p), p]).filter(([s]) => T[s]).sort((a, b) => RS[T[a[0]][0]] - RS[T[b[0]][0]] || a[1].vencimento.localeCompare(b[1].vencimento))[0];
@@ -167,7 +174,8 @@
         const pb = (pubPor.get(pr.id) || []).length; if (pb) mot.push(['aten', `${pb} publicação(ões) para tratar`]);
         if (!pr.responsavelId) mot.push(['aten', 'Sem responsável']);
         const ult = (pr.andamentos || []).map(a => a.data).filter(Boolean).sort().pop() || pr.distribuidoEm;
-        if (ult && !pz.length) { const d = Math.round((P.parse(h) - P.parse(ult)) / 86400000); if (d > PARADO) mot.push(['info', `Sem movimentação há ${d} dias`]); }
+        if (ult && !pz.length) { const d = Math.round((P.parse(h) - P.parse(ult)) / 86400000); if (d > A.op().processoParadoDias) mot.push(['info', `Sem movimentação há ${d} dias`]); }
+        if (semProv.has(pr.id)) mot.push(['info', 'Sem providência futura']);
         if (pr.revisar) mot.push(['info', 'Importado: conferir dados']);
         return {pr, mot: mot.sort((a, b) => RS[a[0]] - RS[b[0]])};
       }).filter(x => x.mot.length).sort((a, b) => RS[a.mot[0][0]] - RS[b.mot[0][0]] || b.mot.length - a.mot.length);
@@ -193,11 +201,12 @@
           <small>${esc(c.data < h ? 'Era para ' + A.fmt(c.data) : diaRel(c.data, h) + (c.diaInteiro || !c.horaInicio ? '' : ' · ' + hm(c.horaInicio)))}</small></span></button>`});
       });
       if (A.pode('clientes', 'ver')) {
-        const LAB = {novo: 'Novo cadastro: encaminhar para análise', encaminhado: 'Encaminhado: aguardando análise da advogada', analise: 'Em análise: dar retorno ao cliente'};
-        A.col('clientes').filter(c => LAB[c.status] && (ctx.escopo === 'equipe' || (c.encaminhadoPara || []).includes(S.meId) || c.cadastradoPor === S.meId || c.responsavelId === S.meId)).forEach(c => {
-          const desde = c.criadoEm ? dataDe(c.criadoEm) : '';
-          itens.push({ord: desde || '9', late: c.urgencia === 'alta', html: `<button class="dret${c.urgencia === 'alta' ? ' is-late' : ''}" ${abrirAttrs('abrir-cliente', c.id, 'clientes')}>${A.ico('clientes', 16)}
-            <span><b>${esc(c.nome)}</b><span>${esc(LAB[c.status])}${c.urgencia === 'alta' ? ' · urgente' : ''}</span><small>${esc(c.criadoEm ? 'Cadastrado ' + A.haDias(c.criadoEm) : 'Caso em captação')}</small></span></button>`});
+        // Clientes em captação: etapa atual e próxima providência; destaque quando passou do limite da etapa ou é urgente.
+        const atrasados = new Set((A.gargalos ? A.gargalos() : []).filter(g => g.entidade === 'clientes').map(g => g.id));
+        A.col('clientes').filter(c => A.R.noFunil(c) && (ctx.escopo === 'equipe' || [c.atendimentoResponsavelId, c.cadastradoPor, c.responsavelId].includes(S.meId) || (c.encaminhadoPara || []).includes(S.meId))).forEach(c => {
+          const et = A.R.etapaDe(c), n = A.R.ETAPAS.indexOf(et) + 1, late = c.urgencia === 'alta' || atrasados.has(c.id), desde = dataDe(c.etapaDesde || c.criadoEm);
+          itens.push({ord: desde || '9', late, html: `<button class="dret${late ? ' is-late' : ''}" ${abrirAttrs('abrir-cliente', c.id, 'clientes')}>${A.ico('clientes', 16)}
+            <span><b>${esc(c.nome)}</b><span>${esc(n + '. ' + A.rotuloEtapa(et))}${c.proximaProvidencia ? ' · ' + esc(corta(c.proximaProvidencia, 60)) : ''}${c.urgencia === 'alta' ? ' · urgente' : ''}</span><small>${esc(desde ? 'Na etapa desde ' + A.fmt(desde) : 'Caso em captação')}${atrasados.has(c.id) ? ' · pede providência' : ''}</small></span></button>`});
         });
       }
       if (!itens.length) return A.vazio('telefone', 'Nenhum retorno pendente.', 'Ligações e retornos agendados e casos em captação aparecem aqui.');
@@ -232,9 +241,10 @@
   // (criadoEm/criadoPor e atualizadoEm/atualizadoPor). Por isso mostra o cadastro e a ÚLTIMA alteração de cada registro.
   const ATIV = [
     {col: 'processos', mod: 'processos', criou: 'Processo cadastrado', alterou: () => 'Processo atualizado', nome: p => A.rotuloProcesso(p) + (A.cliente(p.clienteId) ? ' · ' + A.cliente(p.clienteId).nome : ''), abrir: ['abrir-processo', 'processos']},
-    {col: 'clientes', mod: 'clientes', criou: 'Cliente cadastrado', alterou: c => c.status === 'ativo' && c.aceitoEm && Math.abs(new Date(c.aceitoEm) - new Date(c.atualizadoEm)) < 60000 ? 'Caso aceito' : 'Cadastro de cliente atualizado', nome: c => c.nome, abrir: ['abrir-cliente', 'clientes']},
+    {col: 'clientes', mod: 'clientes', criou: 'Cliente cadastrado', alterou: c => c.status === 'ativo' && c.aceitoEm && Math.abs(new Date(c.aceitoEm) - new Date(c.atualizadoEm)) < 60000 ? 'Cliente entrou na carteira' : 'Cadastro de cliente atualizado', nome: c => c.nome, abrir: ['abrir-cliente', 'clientes']},
     {col: 'prazos', mod: 'prazos', criou: 'Prazo cadastrado', alterou: p => p.status === 'concluido' ? 'Prazo concluído' : 'Prazo atualizado', nome: p => [p.tipo, nomeCli(p)].filter(Boolean).join(' · '), abrir: ['editar-prazo']},
-    {col: 'compromissos', mod: 'prazos', criou: c => c.tipo === TAREFA ? 'Tarefa criada' : 'Compromisso agendado', alterou: c => c.status === 'concluido' ? (c.tipo === TAREFA ? 'Tarefa concluída' : 'Compromisso concluído') : (c.tipo === TAREFA ? 'Tarefa atualizada' : 'Compromisso atualizado'), nome: c => [c.tipo === TAREFA ? '' : c.tipo, c.titulo].filter(Boolean).join(' · '), abrir: ['editar-comp']},
+    {col: 'compromissos', mod: 'prazos', filtro: c => !c.migradoParaTarefa, criou: c => c.tipo === TAREFA ? 'Tarefa criada' : 'Compromisso agendado', alterou: c => c.status === 'concluido' ? (c.tipo === TAREFA ? 'Tarefa concluída' : 'Compromisso concluído') : (c.tipo === TAREFA ? 'Tarefa atualizada' : 'Compromisso atualizado'), nome: c => [c.tipo === TAREFA ? '' : c.tipo, c.titulo].filter(Boolean).join(' · '), abrir: ['editar-comp']},
+    {col: 'tarefas', mod: 'tarefas', criou: t => t.origem && t.origem.tipo === 'migracao' ? 'Tarefa migrada da agenda' : t.origem && t.origem.tipo === 'automacao' ? 'Tarefa recorrente criada' : 'Tarefa criada', alterou: t => ({concluida: 'Tarefa concluída', cancelada: 'Tarefa cancelada'})[t.status] || 'Tarefa atualizada', nome: t => [t.titulo, A.cliente(t.clienteId)?.nome].filter(Boolean).join(' · '), abrir: ['tarefa-editar', 'tarefas']},
     {col: 'documentos', mod: 'documentos', criou: 'Documento anexado', alterou: () => 'Documento atualizado', nome: d => [d.nome, A.cliente(d.clienteId)?.nome].filter(Boolean).join(' · '), abrir: [null, 'documentos'], em: d => d.criadoEm || d.enviadoEm, por: d => d.criadoPor || d.enviadoPor},
     {col: 'publicacoes', mod: 'publicacoes', criou: p => p.origem === 'manual' ? 'Publicação registrada' : 'Publicação importada', alterou: p => ({tratada: 'Publicação tratada', descartada: 'Publicação sem providência', lida: 'Publicação lida'})[p.status] || 'Publicação atualizada', nome: p => [p.tipo, p.numeroProcesso].filter(Boolean).join(' · '), abrir: ['abrir-pub', 'publicacoes']},
     {col: 'fin_lancamentos', mod: 'financeiro', criou: f => f.tipo === 'receber' ? 'Conta a receber lançada' : 'Conta a pagar lançada', alterou: f => f.status === 'pago' ? 'Baixa de pagamento' : 'Lançamento atualizado', nome: f => [f.descricao, A.brl(f.valor)].filter(Boolean).join(' · '), abrir: ['fin-editar', f => f.tipo === 'receber' ? 'fin-receber' : 'fin-pagar']},
@@ -244,7 +254,7 @@
   A.widget('atividades', {titulo: 'Últimas atividades', icone: 'atividade', oculto: true,
     render() {
       const ev = [], txt = (v, o) => typeof v === 'function' ? v(o) : v;
-      ATIV.filter(t => A.pode(t.mod, 'ver')).forEach(t => A.col(t.col).forEach(o => {
+      ATIV.filter(t => A.pode(t.mod, 'ver')).forEach(t => A.col(t.col).filter(t.filtro || (() => true)).forEach(o => {
         const em = t.em ? t.em(o) : o.criadoEm, por = t.por ? t.por(o) : o.criadoPor;
         if (em) ev.push({em, por, acao: txt(t.criou, o), t, o});
         if (o.atualizadoEm && (!em || new Date(o.atualizadoEm) - new Date(em) > 60000)) ev.push({em: o.atualizadoEm, por: o.atualizadoPor, acao: txt(t.alterou, o), t, o});
@@ -261,20 +271,21 @@
 
   /* ================= Distribuição de tarefas da equipe ================= */
   A.widget('equipe', {titulo: 'Distribuição da equipe', icone: 'equipe', tam: 'g', oculto: true,
-    visivel: () => A.pode('prazos', 'ver') && A.col('equipe').length > 1 && (!S.meId || ['admin', 'advogado'].includes(A.papel())),
+    visivel: () => (A.pode('prazos', 'ver') || A.pode('tarefas', 'ver')) && A.col('equipe').length > 1 && (!S.meId || ['admin', 'advogado'].includes(A.papel())),
     render(ctx) {
       const h = ctx.h, desde = P.addDays(h, -30);
-      const itens = [...A.col('prazos').map(p => ({o: p, resp: p.responsavelId, data: p.vencimento})), ...tarefas().map(c => ({o: c, resp: c.responsavelId, data: c.data}))];
+      const itens = [...(A.pode('prazos', 'ver') ? A.col('prazos') : []).map(p => ({o: p, resp: p.responsavelId, data: p.vencimento, ab: aberto(p), feito: p.atualizadoEm})),
+        ...tarefas().map(t => ({o: t, resp: t.responsavelId, data: t.prazo, ab: tAberta(t), feito: t.concluidaEm || t.atualizadoEm}))];
       const linhas = A.col('equipe').filter(m => m.ativo !== false).map(m => {
-        const meus = itens.filter(i => i.resp === m.id), pend = meus.filter(i => aberto(i.o));
-        return {m, pend: pend.length, atr: pend.filter(i => i.data && i.data < h).length, hoje: pend.filter(i => i.data === h).length, ok: meus.filter(i => !aberto(i.o) && dataDe(i.o.atualizadoEm) >= desde).length};
+        const meus = itens.filter(i => i.resp === m.id), pend = meus.filter(i => i.ab);
+        return {m, pend: pend.length, atr: pend.filter(i => i.data && i.data < h).length, hoje: pend.filter(i => i.data === h).length, ok: meus.filter(i => !i.ab && dataDe(i.feito) >= desde).length};
       });
-      const sem = itens.filter(i => !i.resp && aberto(i.o)).length;
+      const sem = itens.filter(i => !i.resp && i.ab).length;
       if (!linhas.some(l => l.pend || l.ok) && !sem) return A.vazio('equipe', 'Nenhum prazo ou tarefa cadastrado.', '');
       const max = Math.max(1, ...linhas.map(l => l.pend));
       linhas.sort((a, b) => b.atr - a.atr || b.pend - a.pend);
       return `<div class="tablewrap"><table class="dequipe"><thead><tr><th>Pessoa</th><th>Carga em aberto</th><th class="num">Pendentes</th><th class="num">Atrasados</th><th class="num">Hoje</th><th class="num">Concluídos (30 dias)</th></tr></thead><tbody>
-        ${linhas.map(l => `<tr class="row-click" data-action="ini-ir" data-ir="agenda" data-resp="${esc(l.m.id)}"><td><span class="who">${A.avatar(l.m)}${esc(l.m.nome)}</span></td>
+        ${linhas.map(l => `<tr class="row-click" data-action="ini-ir" data-ir="${A.pode('prazos', 'ver') ? 'agenda' : 'tarefas'}" data-resp="${esc(l.m.id)}"><td><span class="who">${A.avatar(l.m)}${esc(l.m.nome)}</span></td>
           <td><span class="dcarga" title="${l.pend} pendente(s), ${l.atr} atrasado(s)"><i class="atr" style="width:${l.atr / max * 100}%"></i><i style="width:${(l.pend - l.atr) / max * 100}%"></i></span></td>
           <td class="num">${l.pend}</td><td class="num">${l.atr ? `<b class="late">${l.atr}</b>` : 0}</td><td class="num">${l.hoje}</td><td class="num">${l.ok}</td></tr>`).join('')}
         ${sem ? `<tr><td colspan="6" class="muted">${sem} prazo(s) ou tarefa(s) em aberto sem responsável.</td></tr>` : ''}</tbody></table></div>`;

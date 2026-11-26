@@ -5300,3 +5300,63 @@ button.dativ-i:hover b { color: var(--accent); }
   .dhora { width: 58px; }
   .daniv { flex-wrap: wrap; }
 }
+
+/* Configurações › Limites operacionais */
+.oplims { display: flex; flex-direction: column; gap: 6px; }
+.oplim { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.oplim-v { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+@media (max-width: 560px) { .oplim { flex-direction: column; align-items: flex-start; } }
+
+/* Captação em 10 etapas (kanban com rolagem horizontal) */
+.board.board-etapas { grid-template-columns: repeat(10, minmax(220px, 1fr)); }
+.ccard-abrir { all: unset; cursor: pointer; display: block; border-radius: 4px; }
+.ccard-abrir:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ccard.atrasado { border-color: var(--danger); box-shadow: inset 3px 0 0 var(--danger); }
+.cdias.late { color: var(--danger); font-weight: 600; }
+.cmove { display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px; }
+.etapas-trilha { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.etapas-trilha li { height: 22px; border-radius: 4px; background: var(--bg); color: var(--muted); font-size: 11px; display: grid; place-items: center; border: 1px solid var(--line); }
+.etapas-trilha li.feita { background: var(--ok); border-color: var(--ok); color: #fff; }
+.etapas-trilha li.atual { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+/* Central de tarefas */
+.tvisoes { flex-wrap: wrap; }
+.tprio { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: var(--bg); color: var(--muted); }
+.tprio.p-normal { background: #E8EDF7; color: var(--accent); }
+.tprio.p-alta { background: var(--warn-soft); color: var(--warn); }
+.tprio.p-urgente { background: var(--danger); color: #fff; }
+.ttags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.ttag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+table.tarefas tr.is-late td:first-child + td b { color: var(--danger); }
+table.tarefas tr.done { opacity: .62; }
+table.tarefas tr.done b { text-decoration: line-through; }
+.dcheck.is-on { border-color: var(--ok); background: var(--ok); color: #fff; }
+.tinfo { font-size: 12px; line-height: 1.5; }
+.tcoments h4 { margin: 4px 0 6px; font-size: 13px; }
+.tbloco { display: flex; flex-direction: column; gap: 4px; }
+.tbl-i { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font-size: 12.5px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); cursor: pointer; }
+.tbl-i:hover { border-color: var(--accent); }
+.tbl-i.is-late { border-color: var(--danger); }
+.tbl-t { flex: 1; min-width: 0; }
+
+/* Checklists de documentos */
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.chk-res { margin-bottom: 6px; }
+.chk-lista { display: flex; flex-direction: column; gap: 6px; }
+.chk-i { border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 7px; padding: 7px 8px; display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+.chk-i select, .chk-i input { font-size: 12.5px; }
+.chk-i.s-aprovado { border-left-color: var(--ok); }
+.chk-i.s-recebido, .chk-i.s-conferencia { border-left-color: var(--accent); }
+.chk-i.s-solicitado { border-left-color: var(--warn); }
+.chk-i.s-rejeitado, .chk-i.s-substituir { border-left-color: var(--danger); }
+.chk-n { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+.chk-acoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.chkm-itens { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.chkm-item { display: flex; gap: 8px; align-items: center; }
+.chkm-nome { flex: 1; min-width: 0; }
+@media (max-width: 560px) { .chkm-item { flex-wrap: wrap; } }
+
+/* Caixa de explicação (Checklists, Tarefas › Recorrentes) */
+.dica { margin: 10px 14px; padding: 10px 14px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.5; }
+.dica ol { margin: 6px 0 0; padding-left: 20px; }
+.dica-ex { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

@@ -36,10 +36,12 @@
       C('k8','Clínica Vida Plena (exemplo)','PJ','66.666.666/0001-66','Direito Civil','m3'),
       C('k9','Sítio Boa Esperança (exemplo)','PJ','77.777.777/0001-77','Cobrança','m1'),
       C('k10','Ana Beatriz Costa','PF','333.444.555-66','Direito Civil','m4', {status:'encerrado'}),
-      C('c1','Fernanda Albuquerque','PF','123.456.789-00','Direito Trabalhista','m3', {status:'encaminhado', aceitoEm:null, urgencia:'alta', criadoEm:add(hoje,-3) + 'T14:20:00.000Z',
+      C('c1','Fernanda Albuquerque','PF','123.456.789-00','Direito Trabalhista','m3', {status:'novo', aceitoEm:null, urgencia:'alta', criadoEm:add(hoje,-3) + 'T14:20:00.000Z', etapa:'reuniao_realizada', etapaDesde:add(hoje,-1) + 'T16:00:00.000Z', dataEntrada:add(hoje,-3),
+        atendimentoResponsavelId:'m5', tipoDemanda:'Verbas rescisórias', proximaProvidencia:'Pedir CTPS, TRCT e extrato do FGTS',
         historia:'Trabalhou 4 anos como auxiliar administrativa em um atacadista de Araguari. Dispensada sem justa causa em outubro, sem verbas rescisórias nem multa do FGTS. Relata horas extras habituais sem pagamento.',
         historico:[{em:add(hoje,-3) + 'T14:25:00.000Z', por:'m5', texto:'Encaminhado para Camila Teixeira.'}]}),
       C('c2','Cerealista Grão do Cerrado Ltda. (exemplo)','PJ','88.888.888/0001-88','Cobrança','m1', {status:'novo', encaminhadoPara:[], responsavelId:'', aceitoEm:null, criadoEm:hoje + 'T12:05:00.000Z', origem:'Site / formulário',
+        etapa:'novo_contato', etapaDesde:hoje + 'T12:05:00.000Z', dataEntrada:hoje, atendimentoResponsavelId:'', tipoDemanda:'Cobrança', proximaProvidencia:'',
         historia:'Quer cobrar três compradores de café e soja inadimplentes, cerca de R$ 48 mil em duplicatas vencidas. Notificação extrajudicial sem resposta.'}),
       C('c3','João Batista Nogueira','PF','987.654.321-00','Direito Previdenciário','m1', {aceitoEm:add(hoje,-10) + 'T10:30:00.000Z', criadoEm:add(hoje,-11) + 'T15:00:00.000Z', origem:'Instagram',
         historia:'Aposentadoria negada pelo INSS por falta de reconhecimento de período rural (1985 a 1992) na zona rural de Araguari.',
@@ -187,8 +189,97 @@ Declaro, ainda, estar ciente de que a falsidade desta declaração sujeita o dec
 _______________________________________
 {{cliente.nome}}`},
     ].map(m => ex(Object.assign(m, {criadoEm: mes(-2, 3) + 'T12:00:00.000Z', criadoPor: 'm1'})));
-    return {data:{equipe, clientes, processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos}, config};
+    // Modelo de checklist de exemplo (Checklists de documentos). Itens obrigatórios definem a "documentação completa".
+    const checklist_modelos = [ex({id:'chkm-prev-rural', nome:'Aposentadoria rural (exemplo)', area:'Direito Previdenciário', tipoDemanda:'Aposentadoria rural', ativo:true, itens:[
+      {nome:'Documento de identidade (RG ou CNH) e CPF', obrigatorio:true}, {nome:'Comprovante de residência atualizado', obrigatorio:true},
+      {nome:'CNIS (extrato previdenciário)', obrigatorio:true}, {nome:'Carta de indeferimento do INSS', obrigatorio:false},
+      {nome:'Certidão de casamento ou nascimento', obrigatorio:true}, {nome:'Documentos rurais (ITR, notas do produtor, contrato de parceria)', obrigatorio:true},
+      {nome:'Declaração de testemunhas do trabalho rural', obrigatorio:false}, {nome:'Procuração e contrato de honorários assinados', obrigatorio:true}]})];
+    const op = exemplosOperacionais(hoje, P);
+    return {data:{equipe, clientes:clientes.concat(op.clientes), processos, publicacoes, prazos, compromissos, documentos, fin_lancamentos:fin, centros_custo, modelos,
+      checklist_modelos:checklist_modelos.concat(op.checklist_modelos), checklist_itens:op.checklist_itens, tarefas:op.tarefas, tarefa_comentarios:op.tarefa_comentarios, historico:op.historico}, config};
   }
+
+  /* Exemplos da captação, dos checklists e das tarefas (recorrentes e comuns), para entender as funções na prática.
+     Ficam aqui separados porque também entram, uma única vez, em dados locais criados antes deles (migração em m-tarefas.js).
+     Ids fixos (c4, c5, exop-*, chk-<cliente>-<modelo>-<n>, rec-<série>-<prazo>): rodar de novo só sobrescreve. */
+  function exemplosOperacionais(hoje, P) {
+    const R = typeof Regras !== 'undefined' ? Regras : require('./regras-logic.js');
+    const add = (s, n) => P.addDays(s, n), ts = (d, h) => d + 'T' + (h || '13:00') + ':00.000Z';
+    const util = (n) => { let d = add(hoje, n); while (P.fimDeSemana(d)) d = add(d, n < 0 ? -1 : 1); return d; }; // prazo de exemplo fora do fim de semana
+    const ex = o => Object.assign(o, {exemplo: true});
+    const CLI = (o) => ex(Object.assign({tipoPessoa:'PF', email:'', origem:'Indicação de cliente', urgencia:'normal', status:'novo', encaminhadoPara:[], aceitoEm:null, historico:[],
+      cadastradoPor:'m5', criadoPor:'m5', atendimentoResponsavelId:'m5', area:'Direito Previdenciário', tipoDemanda:'Aposentadoria rural'}, o));
+    const clientes = [
+      CLI({id:'c4', nome:'Maria Aparecida Rezende', documento:'456.789.123-00', telefone:'(34) 99812-4410', responsavelId:'m1', criadoEm:ts(add(hoje,-12),'12:30'), dataEntrada:add(hoje,-12),
+        etapa:'aguardando_documentos', etapaDesde:ts(add(hoje,-6),'14:00'), proximaProvidencia:'Cobrar nova cópia do CNIS e os documentos rurais',
+        historia:'Trabalhadora rural em regime de economia familiar desde 1990, num sítio da zona rural de Araguari. Tem 57 anos e quer pedir a aposentadoria por idade rural. EXEMPLO DE CHECKLIST EM ANDAMENTO: veja o bloco Checklist desta ficha.'}),
+      CLI({id:'c5', nome:'José Carlos Ferreira', documento:'321.654.987-00', telefone:'(34) 99745-2231', responsavelId:'m1', criadoEm:ts(add(hoje,-20),'11:00'), dataEntrada:add(hoje,-20),
+        etapa:'conferencia_documental', etapaDesde:ts(add(hoje,-1),'16:30'), proximaProvidencia:'Criar a pasta e preparar a petição inicial',
+        historia:'Lavrador desde a juventude, 61 anos, aposentadoria rural negada pelo INSS por falta de prova do período de 1995 a 2005. EXEMPLO DE CHECKLIST COMPLETO: todos os documentos obrigatórios aprovados.'}),
+    ];
+    const checklist_modelos = [ex({id:'chkm-trab-rescisao', nome:'Verbas rescisórias (exemplo)', area:'Direito Trabalhista', tipoDemanda:'Verbas rescisórias', ativo:true, criadoEm:ts(add(hoje,-30)), criadoPor:'m1', itens:[
+      {nome:'Documento de identidade (RG ou CNH), CPF e comprovante de residência', obrigatorio:true}, {nome:'Carteira de trabalho (CTPS digital ou física)', obrigatorio:true},
+      {nome:'Termo de rescisão (TRCT)', obrigatorio:true}, {nome:'Extrato do FGTS', obrigatorio:true}, {nome:'Contracheques dos últimos 12 meses', obrigatorio:true},
+      {nome:'Comunicado de dispensa ou aviso prévio', obrigatorio:false}, {nome:'Controle de ponto, mensagens ou nomes de testemunhas das horas extras', obrigatorio:false},
+      {nome:'Procuração e contrato de honorários assinados', obrigatorio:true}]})];
+    // Itens do modelo "Aposentadoria rural (exemplo)" (chkm-prev-rural, no seed principal), na mesma ordem dos documentos do modelo.
+    const NOMES = ['Documento de identidade (RG ou CNH) e CPF', 'Comprovante de residência atualizado', 'CNIS (extrato previdenciário)', 'Carta de indeferimento do INSS',
+      'Certidão de casamento ou nascimento', 'Documentos rurais (ITR, notas do produtor, contrato de parceria)', 'Declaração de testemunhas do trabalho rural', 'Procuração e contrato de honorários assinados'];
+    const OBR = [true, true, true, false, true, true, false, true];
+    const item = (cli, n, situacao, d, obs) => { const rec = situacao !== 'pendente' && situacao !== 'solicitado', conf = ['aprovado', 'rejeitado', 'substituir'].includes(situacao);
+      return ex({id:'chk-' + cli + '-chkm-prev-rural-' + n, clienteId:cli, processoId:'', modeloId:'chkm-prev-rural', ordem:n, nome:NOMES[n], obrigatorio:OBR[n], situacao, situacaoDesde:ts(d),
+        documentoId:'', recebidoPor:rec ? 'm5' : null, recebidoEm:rec ? ts(add(d, conf ? -1 : 0), '12:00') : null, conferidoPor:conf ? 'm1' : null, conferidoEm:conf ? ts(d) : null, obs:obs || '',
+        criadoEm:ts(add(hoje, cli === 'c4' ? -6 : -15), '14:05'), criadoPor:'m5'}); };
+    const checklist_itens = [
+      item('c4', 0, 'aprovado', add(hoje,-5)), item('c4', 1, 'aprovado', add(hoje,-5)),
+      item('c4', 2, 'rejeitado', add(hoje,-3), 'Cópia ilegível. Pedir nova emissão pelo Meu INSS.'),
+      item('c4', 3, 'pendente', add(hoje,-6), 'Opcional: só se ela já tiver pedido no INSS.'),
+      item('c4', 4, 'conferencia', add(hoje,-1)), item('c4', 5, 'solicitado', add(hoje,-6), 'Pedido por WhatsApp: ITR e notas do produtor de 1990 em diante.'),
+      item('c4', 6, 'recebido', add(hoje,-2)), item('c4', 7, 'aprovado', add(hoje,-6)),
+      ...[0, 1, 2, 4, 5, 6, 7].map(n => item('c5', n, 'aprovado', add(hoje, n < 4 ? -4 : -2))), item('c5', 3, 'aprovado', add(hoje,-4), 'Indeferimento de março; base do pedido judicial.'),
+    ];
+    const H = (id, cli, em, por, texto, extra) => ex(Object.assign({id, entidade:'clientes', entidadeId:cli, acao:'alteracao', campo:null, antes:null, depois:null, texto, em, por, origem:'usuario', modulo:'clientes'}, extra || {}));
+    const historico = [
+      H('exop-h1', 'c4', ts(add(hoje,-12),'12:30'), 'm5', null, {acao:'cadastro'}),
+      H('exop-h2', 'c4', ts(add(hoje,-7),'15:00'), 'm5', null, {acao:'etapa', campo:'etapa', antes:'reuniao_agendada', depois:'reuniao_realizada'}),
+      H('exop-h3', 'c4', ts(add(hoje,-6),'14:00'), 'm5', null, {acao:'etapa', campo:'etapa', antes:'reuniao_realizada', depois:'aguardando_documentos'}),
+      H('exop-h4', 'c4', ts(add(hoje,-6),'14:05'), 'm5', 'Checklist “Aposentadoria rural (exemplo)” aplicado (8 documento(s))', {acao:'checklist'}),
+      H('exop-h5', 'c5', ts(add(hoje,-15),'14:05'), 'm5', 'Checklist “Aposentadoria rural (exemplo)” aplicado (8 documento(s))', {acao:'checklist'}),
+      H('exop-h6', 'c5', ts(add(hoje,-1),'16:30'), 'm5', null, {acao:'etapa', campo:'etapa', antes:'documentacao_recebida', depois:'conferencia_documental'}),
+      ...[['exop-h7', 2, -4, 'm5', 'solicitado', 'recebido'], ['exop-h8', 2, -3, 'm1', 'recebido', 'rejeitado'], ['exop-h9', 5, -6, 'm5', 'pendente', 'solicitado'], ['exop-h10', 4, -1, 'm5', 'solicitado', 'conferencia']]
+        .map(([id, n, d, por, antes, depois]) => H(id, 'c4', ts(add(hoje, d), '15:30'), por, null, {entidade:'checklist_itens', entidadeId:'chk-c4-chkm-prev-rural-' + n, acao:'situacao', campo:'situacao', antes, depois})),
+    ];
+    const T = o => ex(Object.assign({descricao:'', responsavelId:'', clienteId:'', processoId:'', compromissoId:'', categoria:'', prioridade:'normal', prioridadeManual:false, inicio:'', prazo:'',
+      status:'aberta', aguardandoQuem:'', dependeDe:[], recorrencia:null, origem:{tipo:'manual'}, concluidaEm:null, concluidaPor:null, criadoEm:ts(add(hoje,-14),'11:00'), criadoPor:'m6'}, o));
+    // Recorrente já concluída uma vez: a ocorrência seguinte é gerada pela mesma regra do sistema (id rec-<série>-<prazo>).
+    const serie = (o, concluidaEm) => { const t = T(Object.assign(o, {status:'concluida', concluidaEm, concluidaPor:o.responsavelId, statusDesde:concluidaEm}));
+      const prox = Object.assign(R.proximaOcorrencia(t, hoje), {exemplo:true, criadoEm:concluidaEm, criadoPor:null, statusDesde:concluidaEm}); return [t, prox]; };
+    const tarefas = [
+      ...serie({id:'exop-t1', titulo:'Conferir publicações do DJEN', responsavelId:'m4', categoria:'Processual', prazo:util(-1), recorrencia:{freq:'diaria', intervalo:1},
+        descricao:'EXEMPLO DE TAREFA RECORRENTE (todo dia útil). Abrir Publicações, vincular cada intimação ao processo e lançar os prazos. Ao concluir, a tarefa do próximo dia útil aparece sozinha.'}, ts(add(hoje,-1),'18:10')),
+      ...serie({id:'exop-t2', titulo:'Verificar no Meu INSS os requerimentos em análise', responsavelId:'m5', categoria:'Administrativo', prazo:util(-7), recorrencia:{freq:'semanal', intervalo:1},
+        descricao:'EXEMPLO DE TAREFA RECORRENTE (toda semana). Entrar no Meu INSS de cada cliente com pedido em análise e anotar exigências ou perícias marcadas.'}, ts(add(hoje,-7),'17:00')),
+      T({id:'exop-t3', titulo:'Ligar para João Batista: o INSS já marcou a perícia?', responsavelId:'m5', clienteId:'c3', categoria:'Atendimento', prazo:util(3), recorrencia:{freq:'semanal', intervalo:2},
+        origem:{tipo:'cliente', ref:'c3'}, descricao:'EXEMPLO DE TAREFA RECORRENTE (a cada 2 semanas). Acompanhamento até o INSS responder. Quando a perícia for marcada, troque a situação para "Cancelada" para encerrar a série.'}),
+      T({id:'exop-t4', titulo:'Conferir os honorários recebidos no mês', responsavelId:'m6', categoria:'Financeiro', prazo:util(5), recorrencia:{freq:'mensal', intervalo:1},
+        descricao:'EXEMPLO DE TAREFA RECORRENTE (todo mês). Comparar os recebimentos do Financeiro com os contratos e cobrar quem atrasou.'}),
+      T({id:'exop-t6', titulo:'Pedir nova cópia do CNIS à Maria Aparecida', responsavelId:'m5', clienteId:'c4', categoria:'Documentos', prazo:util(2), status:'aguardando_terceiros',
+        aguardandoQuem:'Cliente emitir o CNIS no Meu INSS', origem:{tipo:'cliente', ref:'c4'}, criadoEm:ts(add(hoje,-3),'15:00'), criadoPor:'m5', statusDesde:ts(add(hoje,-3),'15:00'),
+        descricao:'O CNIS foi rejeitado no checklist (cópia ilegível).'}),
+      T({id:'exop-t7', titulo:'Cobrar ITR e notas do produtor da Maria Aparecida', responsavelId:'m5', clienteId:'c4', categoria:'Documentos', prazo:util(-2),
+        origem:{tipo:'cliente', ref:'c4'}, criadoEm:ts(add(hoje,-6),'14:10'), criadoPor:'m5', descricao:'Item "Documentos rurais" do checklist está como Solicitado há quase uma semana.'}),
+      T({id:'exop-t8', titulo:'Aplicar o checklist e pedir os documentos da Fernanda', responsavelId:'m5', clienteId:'c1', categoria:'Captação', prazo:util(1), origem:{tipo:'cliente', ref:'c1'},
+        criadoEm:ts(add(hoje,-1),'16:05'), criadoPor:'m5', descricao:'Na ficha da cliente, bloco Checklist: escolher "Verbas rescisórias (exemplo)" (já vem sugerido), clicar em Aplicar checklist e mandar a lista para ela.'}),
+      T({id:'exop-t9', titulo:'Conferir a documentação do José Carlos', responsavelId:'m1', clienteId:'c5', categoria:'Documentos', prazo:hoje, status:'andamento', origem:{tipo:'cliente', ref:'c5'},
+        criadoEm:ts(add(hoje,-1),'16:35'), criadoPor:'m5', statusDesde:ts(hoje,'12:00')}),
+      T({id:'exop-t10', titulo:'Preparar a petição inicial do José Carlos', responsavelId:'m1', clienteId:'c5', categoria:'Processual', prazo:util(7), dependeDe:['exop-t9'], origem:{tipo:'cliente', ref:'c5'},
+        criadoEm:ts(add(hoje,-1),'16:36'), criadoPor:'m5', descricao:'Depende da conferência dos documentos: aparece como "Bloqueada" até a tarefa anterior ser concluída.'}),
+    ];
+    const tarefa_comentarios = [ex({id:'exop-k1', tarefaId:'exop-t6', texto:'Ela disse que vai à agência do INSS na quinta-feira e manda a foto pelo WhatsApp.', em:ts(add(hoje,-2),'10:20'), por:'m5', criadoEm:ts(add(hoje,-2),'10:20'), criadoPor:'m5'})];
+    return {clientes, checklist_modelos, checklist_itens, historico, tarefas, tarefa_comentarios};
+  }
+  seed.exemplosOperacionais = exemplosOperacionais;
   seed.equipeFixa = EQUIPE_FIXA;
   if (typeof module !== 'undefined') module.exports = seed; else (root.App = root.App || {}).seed = seed;
 })(typeof window !== 'undefined' ? window : globalThis);

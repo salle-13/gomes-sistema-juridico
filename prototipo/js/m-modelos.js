@@ -287,13 +287,13 @@
   const nomeArquivo = it => [it.nome || 'Documento', A.cliente(g.clienteId)?.nome].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]/g, '').slice(0, 120) + ' - ' + A.hoje() + '.pdf';
   const cabecalhoTxt = () => [S.config.escritorioNome || 'Gomes Assessoria Jurídica', S.config.escritorioCidade].filter(Boolean).join(' — ');
 
-  /* Histórico do cliente: uma entrada por documento, uma vez por abertura do gerador, numa única gravação. */
+  /* Histórico do cliente: uma entrada por documento, uma vez por abertura do gerador. Vai para a coleção
+     "historico" (um registro por evento); a lista antiga clientes.historico não recebe mais inclusões. */
   async function registrarHistorico(itens) {
     const c = A.cliente(g.clienteId); if (!c) return;
     const novos = itens.filter(it => !g.registrados.has(it.modeloId)); if (!novos.length) return;
-    const em = new Date().toISOString();
-    const hist = [...(c.historico || []), ...novos.map(it => ({em, por: S.meId || null, tipo: 'documento', texto: 'Documento gerado: ' + it.nome + (g.processoId ? ' (' + A.rotuloProcId(g.processoId) + ')' : '') + '.'}))];
-    if (await A.save('clientes', Object.assign({}, c, {historico: hist}))) novos.forEach(it => g.registrados.add(it.modeloId));
+    for (const it of novos) if (await A.registrar({entidade: 'clientes', entidadeId: c.id, acao: 'documento', modulo: 'modelos',
+      texto: 'Documento gerado: ' + it.nome + (g.processoId ? ' (' + A.rotuloProcId(g.processoId) + ')' : '') + '.'})) g.registrados.add(it.modeloId);
   }
 
   A.on('ger-imprimir', el => {

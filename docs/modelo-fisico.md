@@ -2,9 +2,10 @@
 
 Versão: 16/11/2026 · DDL completo: `especificacao/modelo-fisico.sql` (PostgreSQL 16)
 Validado: o script foi aplicado num PostgreSQL 16 limpo, sem erros, e passou nos testes funcionais listados na seção 4.
+Atualizado em 25/11/2026 (evolução operacional, fase 2): tabelas `tarefas`, `tarefa_comentarios`, `checklist_modelos` e `checklist_itens`, colunas da captação em `clientes` e `compromissos.migrado_para_tarefa`. **Essas alterações ainda não foram aplicadas num PostgreSQL** (não havia servidor disponível); revalidar antes de usar.
 Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compromissos`, `processos.pasta`, as colunas novas de `clientes` e as de 19/11/2026) foi aplicado num PostgreSQL 16 limpo, sem erros. Foram testados as restrições de horário de `compromissos`, a numeração automática e a unicidade da pasta, processo sem número CNJ e o registro na auditoria.
 
-## 1. Tabelas (29) por área
+## 1. Tabelas (33) por área
 
 | Área | Tabelas |
 |---|---|
@@ -15,12 +16,13 @@ Revalidado em 21/11/2026: o DDL completo (incluindo `modelos_documento`, `compro
 | Coletor DJEN | `djen_alvos`, `djen_capturas`, `djen_respostas` |
 | Publicações | `publicacoes`, `publicacoes_quarentena` |
 | Prazos e agenda | `regras_prazo`, `prazos`, `compromissos` |
-| Documentos | `documentos`, `modelos_documento` |
+| Tarefas | `tarefas`, `tarefa_comentarios` |
+| Documentos | `documentos`, `modelos_documento`, `checklist_modelos`, `checklist_itens` |
 | Financeiro | `centros_custo`, `contas_financeiras`, `fin_lancamentos` |
 | Infraestrutura | `jobs`, `avisos`, `integracoes_log`, `auditoria` |
 
-Visões: `vw_saldo_contas`, `vw_fluxo_mensal`, `vw_cobertura_djen`, `vw_prazos_abertos`.
-Funções: `org_atual()`, `membro_atual()`, `so_digitos()`, `normalizar()`, `cnj_valido()`, `proximo_job()`, `liberar_jobs_travados()`, `verificar_auditoria()`.
+Visões: `vw_saldo_contas`, `vw_fluxo_mensal`, `vw_cobertura_djen`, `vw_historico`, `vw_prazos_abertos`.
+Funções: `org_atual()`, `membro_atual()`, `so_digitos()`, `normalizar()`, `cnj_valido()`, `proximo_job()`, `liberar_jobs_travados()`, `verificar_auditoria()`, `registrar_historico()`.
 
 ## 2. Relacionamentos principais
 
@@ -44,6 +46,14 @@ erDiagram
   processos ||--o{ prazos : tem
   processos ||--o{ compromissos : tem
   equipe ||--o{ compromissos : responsavel
+  equipe ||--o{ tarefas : responsavel
+  clientes ||--o{ tarefas : tem
+  processos ||--o{ tarefas : tem
+  tarefas ||--o{ tarefa_comentarios : tem
+  compromissos |o--o| tarefas : "migrado para"
+  clientes ||--o{ checklist_itens : exige
+  checklist_modelos ||--o{ checklist_itens : origina
+  documentos |o--o{ checklist_itens : comprova
   clientes ||--o{ documentos : tem
   processos ||--o{ documentos : tem
   centros_custo ||--o{ fin_lancamentos : classifica
@@ -111,4 +121,16 @@ erDiagram
 | `documentos.assetId` | `storage_chave` + `sha256` (armazenamento próprio) |
 | `equipe.contaId` / `contaPendente` | `usuario_id` / `vinculo_pendente_usuario_id` |
 | Coleção `notif_estado` (por pessoa: `vistas`, `lidas`, `dispensadas` por chave) | Linhas em `avisos` com `canal = 'sistema'`: a chave vira `evento` + `entidade_id` (ex.: `prazo.vencido` + id do prazo), `destinatario_id` = membro, `criado_em` = vista, `lido_em`, `dispensado_em` (coluna nova). As regras de geração de `js/m-notificacoes.js` passam para o Worker Notificador. |
+| Coleção `historico` (só inclusão: `entidade`, `entidadeId`, `acao`, `campo`, `antes`, `depois`, `texto`, `em`, `por`, `origem`, `modulo`) | Linhas da tabela `auditoria` com `acao = 'app:<acao>'`, gravadas por `registrar_historico()`. `ator` = `membro:<uuid>` (origem usuário) ou `sistema:automacao`; `antes`/`depois` = `{"<campo>": valor}` e o texto livre em `depois->>'_texto'`. A visão `vw_historico` devolve o formato do protótipo (inclui `modulo`). Entram na mesma cadeia de hash da auditoria |
+| Documento `config/operacional` (limites dos gargalos, etapas da captação, categorias e pesos de tarefa) | Coluna `configuracoes.operacional jsonb`, validada pela aplicação (`Regras.normalizar`) |
+| `clientes.etapa`, `etapaDesde`, `dataEntrada`, `atendimentoResponsavelId`, `tipoDemanda`, `proximaProvidencia` | Colunas `etapa` (`CHECK` com as 10 chaves), `etapa_desde`, `data_entrada`, `atendimento_responsavel_id`, `tipo_demanda`, `proxima_providencia` |
+| `clientes.motivoArquivamento`, `arquivadoEm`, `arquivadoPor` (status `recusado` = arquivado) | `motivo_recusa` (já obrigatório quando `recusado`), `arquivado_em`, `arquivado_por` |
+| Conclusão da etapa 10 exige `responsavelId` | Regra da aplicação (a importação do Projuris cria clientes ativos sem responsável) |
+| `compromissos.migradoParaTarefa` | `migrado_para_tarefa` (FK para `tarefas`) |
+| Coleção `tarefas` (`origem {tipo, ref, regra}`, `recorrencia {freq, intervalo}`, `dependeDe [ids]`, `serieId`) | Tabela `tarefas`: `origem_tipo`/`origem_ref`/`origem_regra`, `recorrencia_freq`/`recorrencia_intervalo`, `depende_de uuid[]`, `serie_id`. Os ids determinísticos do protótipo viram índices únicos: `mig-<compromisso>` → `ux_tarefas_migracao (org_id, origem_ref)`; `rec-<serie>-<prazo>` → `ux_tarefas_recorrencia (serie_id, prazo)` |
+| Coleção `tarefa_comentarios` | Tabela `tarefa_comentarios` (um registro por comentário) |
+| Coleção `checklist_modelos` (`itens [{nome, obrigatorio}]`) | Tabela `checklist_modelos`, `itens jsonb` (definição do modelo, não registro de eventos) |
+| Coleção `checklist_itens` (id `chk-<cliente>-<modelo>-<n>`, `ordem`) | Tabela `checklist_itens`; unicidade por `ux_chk_modelo (cliente_id, modelo_id, ordem)` |
+| Mudanças de `tarefas.status/responsavelId/prazo` e `checklist_itens.situacao/documentoId` (coleção `historico`) | Linhas `app:*` em `auditoria` via `registrar_historico()` (mais as linhas do gatilho `tg_auditar`, que também cobre as tabelas novas) |
+| Módulo de permissão `tarefas` | Valor novo no `CHECK` de `permissoes_papel.modulo`, `editar` para todos os papéis |
 | Campos camelCase | Colunas snake_case (mapeamento direto na migração) |

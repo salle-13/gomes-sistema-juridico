@@ -70,7 +70,7 @@ ${A.inp('mCargo', 'Cargo / função', m.cargo, 'list="cargosList"')}<datalist id
       if (!obj.nome) return; if (await A.save('equipe', obj)) { A.closeModal(); A.toast('Equipe atualizada.'); }
     });
   }
-  A.on('eq-remover', el => { const id = el.dataset.id, q = Number(el.dataset.qtd); A.confirm('Remover pessoa', q ? `Esta pessoa tem ${q} prazo(s) em aberto, que ficarão sem responsável. Para manter o histórico, prefira marcá-la como inativa.` : 'Esta pessoa será removida da equipe.', 'Remover', async () => { if (await A.remove('equipe', id)) A.toast('Pessoa removida.'); }); });
+  A.on('eq-remover', el => { if (!A.exigir('equipe')) return; const id = el.dataset.id, q = Number(el.dataset.qtd); A.confirm('Remover pessoa', q ? `Esta pessoa tem ${q} prazo(s) em aberto, que ficarão sem responsável. Para manter o histórico, prefira marcá-la como inativa.` : 'Esta pessoa será removida da equipe.', 'Remover', async () => { if (A.exigir('equipe') && await A.remove('equipe', id)) A.toast('Pessoa removida.'); }); });
 
   /* ---------- configurações ---------- */
   function vConfig() {
@@ -88,11 +88,24 @@ ${A.inp('mCargo', 'Cargo / função', m.cargo, 'list="cargosList"')}<datalist id
         <ul class="hlist">${nac.map(([d, n]) => `<li><span class="num">${esc(A.fmtCurto(d))}</span><span>${esc(n)}</span></li>`).join('')}</ul></div>
       <div class="hbox"><h3>Feriados locais e suspensões de expediente</h3><ul class="hlist">${loc.map(f => `<li><span class="num">${esc(A.fmt(f.data))}</span><span>${esc(f.nome)} ${ed ? `<button class="btn small" data-action="cfg-rm-fer" data-data="${esc(f.data)}" aria-label="Remover ${esc(f.nome)}">×</button>` : ''}</span></li>`).join('') || '<li class="muted">Nenhum cadastrado.</li>'}</ul>
         ${ed ? '<form class="form-inline" id="fFer"><input id="ferData" type="date" required aria-label="Data"><input id="ferNome" placeholder="Ex.: suspensão de expediente TJMG" required aria-label="Nome" style="flex:1 1 140px"><button class="btn small primary" type="submit">Adicionar</button></form>' : ''}</div>
+      ${boxOperacional(ed)}
       <div class="hbox"><h3>Contas e caixas (financeiro)</h3><p class="muted" style="margin:0 0 8px;font-size:12px">Usadas nas baixas e no fluxo de caixa. O saldo inicial é o ponto de partida do fluxo.</p>
         <ul class="hlist">${contas.map(c => { const si = (cfg.saldosIniciais || {})[c] || {}; return `<li><span>${esc(c)}</span><span class="num">${si.valor != null ? A.brl(si.valor) + ' em ' + A.fmt(si.data) : '<span class="muted">sem saldo inicial</span>'} ${edFin ? `<button class="btn small" data-action="cfg-rm-conta" data-conta="${esc(c)}" aria-label="Remover ${esc(c)}">×</button>` : ''}</span></li>`; }).join('')}</ul>
         ${edFin ? `<form class="form-inline" id="fConta"><input id="ctNome" placeholder="Nome da conta (ex.: Banco X)" required aria-label="Nome da conta" style="flex:1 1 140px"><input id="ctData" type="date" value="${A.hoje()}" aria-label="Data do saldo inicial"><input id="ctValor" placeholder="Saldo inicial (R$)" inputmode="decimal" aria-label="Saldo inicial" style="width:140px"><button class="btn small primary" type="submit">Salvar conta</button></form>` : ''}</div>
     </div></section>`;
   }
+  /* Limites das regras operacionais (config/operacional; validação em js/regras-logic.js). */
+  function boxOperacional(ed) {
+    const op = A.op(), dis = ed ? '' : 'disabled';
+    return `<div class="hbox"><h3>Limites operacionais</h3><p class="muted" style="margin:0 0 8px;font-size:12px">Usados nos alertas e na detecção de gargalos (notificações, categoria Operacional). Dias úteis do escritório: sem fins de semana e feriados; o recesso forense não suspende o expediente interno.</p>
+      <form id="fOperacional" data-onsubmit="cfg-operacional"><div class="oplims">${A.R.CAMPOS.map(c => `<label class="oplim"><span>${esc(c.rotulo)}</span><span class="oplim-v"><input id="op-${c.k}" type="number" min="${c.min}" max="${c.max}" value="${esc(op[c.k])}" style="width:76px" ${dis}> <small class="muted">${esc(c.unidade)}</small></span></label>`).join('')}</div>
+      ${ed ? '<div class="form-inline" style="margin-top:8px"><button class="btn small primary" type="submit">Salvar limites</button><button class="btn small" type="button" data-action="cfg-operacional-padrao">Restaurar padrão</button></div>' : ''}</form></div>`;
+  }
+  A.on('cfg-operacional', async (el, e) => { if (e) e.preventDefault(); if (!A.exigir('equipe')) return;
+    const novo = Object.assign({}, A.op()); A.R.CAMPOS.forEach(c => { const v = A.v('op-' + c.k); if (v !== '') novo[c.k] = Number(v); });
+    if (await A.saveDoc('config/operacional', novo)) A.toast('Limites operacionais salvos.'); });
+  A.on('cfg-operacional-padrao', () => { if (!A.exigir('equipe')) return; A.confirm('Restaurar limites', 'Os limites operacionais voltam aos valores padrão. Rótulos das etapas e categorias de tarefa também.', 'Restaurar', async () => {
+    if (A.exigir('equipe') && await A.saveDoc('config/operacional', A.R.normalizar(null))) A.toast('Limites restaurados.'); }); });
   A.route('config', { label: 'Configurações', mod: 'equipe', render: vConfig });
   A.on('cfg-ano', el => { ui().anoFer += Number(el.dataset.d); A.render(); });
   A.on('cfg-ant', async () => { const v = Math.min(30, Math.max(1, Number(A.v('cAnt')) || 5)); await A.saveDoc('config/geral', Object.assign({}, S.config, { antecedencia: v })); A.toast('Antecedência salva.'); });
